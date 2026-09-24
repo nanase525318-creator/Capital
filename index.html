@@ -527,9 +527,11 @@ nav button.on svg{animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
 .tb .next{height:38px;padding:0 14px;border-radius:11px 0 0 11px;background:var(--ai);color:#fff;font-weight:700;font-size:13.5px;white-space:nowrap}
 .tb .more{height:38px;width:30px;border-radius:0 11px 11px 0;background:var(--ai);color:#fff;border-left:1px solid rgba(255,255,255,.25);display:grid;place-items:center}
 /* nav */
-nav{display:grid;grid-template-columns:repeat(6,1fr);background:var(--sf);border-top:1px solid var(--line);padding:4px 2px 6px}
-nav button{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:10.5px;color:var(--ink3);padding:4px 0}
-nav button svg{width:22px;height:22px}
+nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--sf);border-top:1px solid var(--line);padding:4px 1px 6px}   /* タブは常に1段 */
+nav button{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9.5px;color:var(--ink3);padding:4px 0;min-width:0;overflow:hidden}
+nav button svg{width:21px;height:21px;flex:none}
+nav span{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.02em}
+@media (max-width:360px){nav button{font-size:9px}nav button svg{width:19px;height:19px}}
 nav button.on{color:var(--ai);font-weight:700}
 /* sheet */
 .ov{position:fixed;inset:0;background:rgba(10,14,26,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fd .15s ease-out}
@@ -1184,7 +1186,7 @@ const Co={
     S.flows=newFlows();return rec;},
   // 自社の四半期決算（3・6・9・12月末。年度は4月始まり、3月が通期）
   // 委任した事業は毎月、役員が自動で運営する
-  autorun(){for(const b of S.biz)if(b.auto&&Exec.canAuto(b))Exec.auto(b);},
+  autorun(){for(const b of S.biz)if(b.auto&&Exec.canAuto(b))Exec.auto(b);Exec.invest();},
   quarter(){const H=S.co.hist.slice(-3);if(H.length<3)return;const F=fyOf(S.y,S.m===3?S.m:S.m),fyq={6:1,9:2,12:3,3:4}[S.m],fy=S.m<=3?S.y-1:S.y;
     const sm=k=>sum(H,x=>x.pl[k]||0),rev=sm('rev'),op=sm('op'),ord=op+sm('nonOp')-sm('interest'),pre=sm('pretax'),ni=sm('ni'),b=H[2].bs,sh=S.eq.listed?S.eq.shares:S.eq.shares;
     const Q=S.co.qr||(S.co.qr=[]),prev=Q.find(x=>x.fy===fy-1&&x.q===fyq),g=S.eq.listed?(S.eq.expG??this.growth()):this.growth(),base=prev||Q[Q.length-1];
@@ -1520,7 +1522,7 @@ const Prop={
 /* =====================================================================
    MODULE: Exec — 経営陣（CFO・CTO・COO・CMO）。能力・報酬・経営スタイル・在籍期間を持ち、実際の数字に効く
    ===================================================================== */
-const EXR={CFO:{n:'最高財務責任者',fx:'借入金利を下げ、借入枠を広げる'},CTO:{n:'最高技術責任者',fx:'研究開発の効果を高める（品質が上がりやすい）'},COO:{n:'最高執行責任者',fx:'原価と諸経費を削減する'},CMO:{n:'最高マーケティング責任者',fx:'広告の効果を高める'}};
+const EXR={CFO:{n:'最高財務責任者',fx:'借入金利を下げ、借入枠を広げる'},CTO:{n:'最高技術責任者',fx:'研究開発の効果を高める（品質が上がりやすい）'},COO:{n:'最高執行責任者',fx:'原価と諸経費を削減する'},CMO:{n:'最高マーケティング責任者',fx:'広告の効果を高める'},CIO:{n:'最高投資責任者',fx:'会社の余剰資金で株式・不動産に投資して運用益を狙う'}};
 const EXP={攻め型:{e:1.15,s:1.1},堅実型:{e:1,s:1},改革型:{e:1.25,s:1.25}};
 const Exec={
   st(){if(!S.exec)S.exec={};if(!S.execC)S.execC={m:-99,c:{}};return S.exec;},
@@ -1539,7 +1541,31 @@ const Exec={
       if(H.some(t=>['ad','media','ec','ent','retail'].includes(t)))K.mkt=Math.min(99,K.mkt+sp*.4);
       const D={CFO:'fin',COO:'mfg',CTO:'tech',CMO:'mkt'}[r];K[D]=Math.min(99,K[D]+sp*.25);}},
   eff(role){const e=this.st()[role];if(!e)return 0;const ten=Math.min(1,(S.month-e.since)/6);return e.ab/100*EXP[e.pol].e*(.6+.4*ten)*(.75+.25*this.kn(role));},   // 着任直後は効果が小さい
-  mods(){return{rate:this.eff('CFO')*.5,lim:1+this.eff('CFO')*.3,rd:1+this.eff('CTO')*.5,cost:1-this.eff('COO')*.05,ad:1+this.eff('CMO')*.4};},
+  mods(){return{rate:this.eff('CFO')*.5,lim:1+this.eff('CFO')*.3,rd:1+this.eff('CTO')*.5,cost:1-this.eff('COO')*.05,ad:1+this.eff('CMO')*.4,inv:this.eff('CIO')};},
+  // CIO：毎月、余剰資金で株式と不動産を運用する（能力が高いほど銘柄選びと売買のタイミングが良い）
+  invest(){const e=this.st().CIO;if(!e||!S.co.invAuto)return;const sk=this.eff('CIO'),log=[];
+    const burn=Math.max(1e6,sum(S.co.hist.slice(-3),x=>Math.max(0,x.pl.rev-x.pl.op))/3),reserve=burn*6+Co.debt()*.08;   /* 運転資金は多めに残す */
+    const free=S.co.cash-reserve;
+    // 売り：値上がりして割高になった銘柄、または資金が必要なとき
+    for(const t in S.hold){const a=asset(t);if(!a||a.fund||Trade.own(t)>.2||a.lock>S.month)continue;const h=S.hold[t];
+      const fair=Market.fair(a)/a.shares,over=a.price/Math.max(1,fair);
+      if(over>1.25+(1-sk)*.25||free<0){const q=Math.max(100,Math.floor(h.q*(free<0?1:.6)/100)*100);if(q>=100&&!Trade.sell(t,q)){log.push(`${a.name}を${nf(q)}株売却`);if(free<0)break;}}}
+    const free2=S.co.cash-reserve;if(free2<=1e7)return this.invLog(log);
+    // 買い：割安で、成長と財務が悪くない銘柄を選ぶ
+    const cands=Market.listed().filter(c=>!c.crisis&&Trade.own(c.t)<=.2&&c.price*c.shares>1e10)
+      .map(c=>{const fair=Market.fair(c)/c.shares,val=fair/c.price,ni=Market.ni(c);
+        return{c,sc:val*(1+c.expG*.5)*(ni>0?1.15:.8)*(1-c.debt/Math.max(1,c.equity)*.05)*(1+gauss()*(1-sk)*.35)};})
+      .sort((a,b)=>b.sc-a.sc).slice(0,3+Math.round(sk*3));
+    let budget=Math.min(free2*(.15+sk*.25),free2);
+    for(const {c,sc} of cands){if(budget<1e7)break;if(sc<1.06)continue;const amt=Math.min(budget,free2*.12);
+      const q=Math.floor(amt/(c.price*1.002)/100)*100;if(q<100)continue;if(!Trade.buy(c.t,q)){budget-=q*c.price;log.push(`${c.name}を${nf(q)}株購入`);}}
+    // 不動産：利回りが良く割安な物件を、資金に余裕があるときに取得
+    if(S.co.cash-reserve>3e9&&R()<.25+sk*.35){const list=(S.reMkt||[]).map(p=>({p,sc:Prop.value(p)/p.price*(Prop.noi(p)*12/p.price)*10})).sort((a,b)=>b.sc-a.sc);
+      const top=list[0];if(top&&top.p.price*.5<S.co.cash-reserve&&Prop.value(top.p)>top.p.price*(1.02+(1-sk)*.06)){if(!Prop.buy(top.p.id,.5))log.push(`${CTY?'':''}${top.p.city}の${PT[top.p.type].n}を取得`);}}
+    for(const p of (S.props||[]).slice()){const v=Prop.value(p);if(v>p.cost*(1.35+(1-sk)*.25)&&R()<.3){if(!Prop.sell(p.id))log.push(`${p.city}の${PT[p.type].n}を売却`);break;}}
+    this.invLog(log);},
+  invLog(log){if(!log.length)return;S.co.invLog=log.slice(0,4);S.co.invN=(S.co.invN||0)+log.length;
+    if(log.length>1)News.add('自社',`${S.player.name}、運用部門が${log.length}件の売買を実行`,log.join('、')+'。',null,0,{lv:0});},
   canAuto(b){return !!this.st().COO||(b&&b.mg);},   /* 責任者を置いた事業は単独でも自動運営できる */
   // 経営陣に運営を任せた事業は、毎月ひとりでに価格・広告・研究開発・人員・拠点を調整して売上を伸ばす
   auto(b){const M=this.mods(),t=BT[b.type],E=S.econ,ref=Biz.ref(b),cash=S.co.cash,log=[];const mg=b.mg?(b.mg.ab-50)/100:0;
@@ -3165,7 +3191,7 @@ function exRow(r,e,me){const col={CEO:'var(--ai)',CFO:'#C28A1B',CTO:'#0E8C8C',CO
   return `<div class="ex"><span class="av" style="--c:${col}">${r}</span><div class="sp"><b>${esc(e.name)}</b>${me?' <span class="tag">あなた</span>':''} <span class="mut3" style="font-size:11px">${e.pol||''}・${ten}</span>
     <div class="ab"><i style="width:${e.ab||0}%"></i></div><div class="mut" style="font-size:11px;margin-top:3px">${!me&&e.since!=null&&e.kn?`知識 製造${Math.round(e.kn.mfg)}・技術${Math.round(e.kn.tech)}・財務${Math.round(e.kn.fin)}・海外${Math.round(e.kn.gl)}・市場${Math.round(e.kn.mkt)}<br>`:''}能力 ${e.ab??'—'}${e.sal?`・年俸 ${yen(e.sal)}円`:''}${EXR[r]&&!me&&e.since!=null?`・${EXR[r].fx}（効果 ${Math.round(Exec.eff(r)*100)}%）`:''}</div></div>
     ${!me&&e.since!=null?`<button class="btn sm dng" data-act="exF" data-v="${r}">退任</button>`:''}</div>`;}
-function myExecs(){const E=Exec.st();return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:'オーナー経営'},1)}${['CFO','CTO','COO','CMO'].map(r=>exRow(r,E[r])).join('')}</div>
+function myExecs(){const E=Exec.st();return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:'オーナー経営'},1)}${['CFO','CTO','COO','CMO','CIO'].map(r=>exRow(r,E[r])).join('')}</div>
   <p class="note">役員報酬は人件費に含まれます。着任から半年ほどで本来の力を発揮し、在籍が長いほど能力が伸びます。役員報酬の合計 月${yen(Exec.pay())}円。</p>`;}
 function shExec(role){return()=>{const L=Exec.cands(role);return [`${role}の候補者`,`<p class="note" style="margin-top:0">${EXR[role].n}：${EXR[role].fx}。候補者は半年ごとに入れ替わります。</p>
   <div class="list">${L.map((c,i)=>`<div class="li"><div class="sp"><div class="t">${esc(c.name)}（${c.age}歳）<span class="tag">${c.pol}</span></div><div class="ex" style="padding:4px 0 0;border:0"><div class="sp"><div class="ab"><i style="width:${c.ab}%"></i></div><div class="s">能力 ${c.ab}・年俸 ${yen(c.sal)}円・効果の強さ ×${EXP[c.pol].e}</div></div></div></div><button class="btn sm" data-act="exH" data-v="${role}" data-t="${i}">招へい</button></div>`).join('')||'<div class="empty">今期の候補者はいません</div>'}</div>`];};}
@@ -3501,6 +3527,9 @@ function vInvest(){const hs=Object.entries(S.hold);const mv=Co.secMV(),cost=Co.s
     <div class="grid3" style="font-size:12px;margin-top:6px"><div><div class="mut3">時価総額</div><b class="num">${yen(cap)}</b></div><div><div class="mut3">PER</div><b class="num">${ni>0?(cap/ni).toFixed(1)+'倍':'赤字'}</b></div><div><div class="mut3">配当利回り</div><b class="num">${pctp((q.dps||0)/q.price)}</b></div>
      <div><div class="mut3">社長の持株</div><b class="num">${pctp(Eq.founderPct(),1)}</b></div><div><div class="mut3">持株の価値</div><b class="num">${yen(fv)}</b></div><div><div class="mut3">自社株買い余力</div><b class="num">${yen(S.co.cash)}</b></div></div>
     <p class="note" style="margin-bottom:0">タップすると資本政策（配当・自社株買い・増資・株式分割・MBO）の画面に移ります。</p></button>`;})():''}
+  ${(()=>{const e=Exec.st().CIO,sk=Exec.mods().inv;
+   return `<h3>運用の委任</h3><div class="card"><div class="ctl" style="padding-top:0"><div class="lb"><b>${e?`CIO ${esc(e.name)}（能力${e.ab}・${e.pol}）に運用を任せる`:'最高投資責任者（CIO）が必要です'}</b><span>${e?'毎月、余剰資金で割安な株を買い、割高になったら売ります。不動産も利回りを見て売買します'+(S.co.invLog?'<br>先月：'+esc(S.co.invLog.join('、')):''):'会社タブ→概要の経営陣から招へいできます'}</span></div><button class="btn sm ${S.co.invAuto?'':'sub'}" data-act="invAuto" ${e?'':'disabled'}>${S.co.invAuto?'オン':'オフ'}</button></div>
+   <p class="note" style="margin-bottom:0">運転資金（直近3ヶ月の支出4ヶ月分＋借入の5%）は必ず手元に残します。能力が高いCIOほど銘柄選びとタイミングが良くなります。${S.co.invN?`これまでの売買 ${nf(S.co.invN)}件。`:''}</p></div>`;})()}
   ${vcSection()}
   ${reSection()}
   <h3>ファンド・その他資産</h3>
@@ -3973,6 +4002,7 @@ const A={
   bAuto:d=>{const b=S.biz.find(x=>x.id===d.id);if(!Exec.canAuto(b))return toast('COOを招へいするか、事業責任者を置くと使えます');b.auto=!b.auto;if(b.auto)toast('この事業の運営を経営陣に任せました');render();},
   glAuto:()=>{if(!Exec.canAuto())return toast('COOを招へいすると使えます');const G=Global.st();G.auto=!G.auto;toast(G.auto?'海外事業を役員に任せました':'海外事業の委任を解除しました');render();},
   glCeo:d=>{const c=Global.rceoCands(d.v)[0];confirmBox(`${d.v}の統括責任者に${c.name}氏（能力${c.ab}）を任命します。招へい費用${yen(c.sal)}円。`,()=>{if(!err(Global.setRceo(d.v,0)))toast('任命しました');render();},'任命する');},
+  invAuto:()=>{if(!Exec.st().CIO)return toast('CIOを招へいすると使えます');S.co.invAuto=!S.co.invAuto;toast(S.co.invAuto?'運用をCIOに任せました':'委任を解除しました');render();},
   vcList:()=>openSheet(shVCList()),vcD:d=>{UI.vcA=0;openSheet(shVC(d.v));},vcA:d=>{UI.vcA=+d.v;renderSheets();},
   vcGo:d=>{const s=VC.st().list.find(x=>x.id===d.v),amt=UI.vcA,go=()=>{if(!err(VC.invest(d.v,amt))){toast('出資しました');openSheet(shVC(d.v));}render();};
     if(amt<Math.max(3e7,Co.bs().equity*.03))return confirmBox(`${s.n}に${yen(amt)}円を出資します。未上場株のため、IPOか買収まで現金化できません。`,go,'出資する');
