@@ -1206,11 +1206,11 @@ const Co={
         Disc.add('ME','業績予想',`通期業績予想の修正（${d>0?'上方':'下方'}）に関するお知らせ`,{lv:2,tn:d>0?1:-1,sum:`${d>0?'事業が計画を上回って推移':'事業が計画を下回って推移'}しているため、通期予想を修正します。`,tab:[['売上高',G.rev,old.rev,null,null,1],['営業利益',G.op,old.op,null,null,1],['純利益',G.ni,old.ni,null,null,1]]});}}},
   checks(rec){const D=DIFF[S.diff],pn=S.player.name;
     if(S.co.cash<0){S.co.distress++;
-      if(S.co.distress>D.grace){S.over={reason:'資金ショートによる倒産',detail:`現金がマイナスのまま${S.co.distress}ヶ月が経過し、支払いが不能になりました。`};return;}
+      if(S.co.distress>D.grace){Life.lose('倒産しました',`現金がマイナスのまま${S.co.distress}ヶ月が続き、支払いが不能になりました。`,0);return;}
       S.stopReason=`現金がマイナスです。あと${D.grace-S.co.distress+1}回の決算までに解消しないと倒産します`;
       News.add('自社',`${pn}、資金繰りが悪化`,'借入・資産売却・コスト削減で現金を確保する必要がある。',null,-1);}
     else S.co.distress=0;
-    if(rec.bs.equity<0){S.co.negEq++;if(S.co.negEq>D.negEq){S.over={reason:'債務超過による破綻',detail:`債務超過が${S.co.negEq}ヶ月続き、金融機関が支援を打ち切りました。`};return;}}
+    if(rec.bs.equity<0){S.co.negEq++;if(S.co.negEq>D.negEq){Life.lose('債務超過で破綻しました',`債務超過が${S.co.negEq}ヶ月続き、金融機関が支援を打ち切りました。`,0);return;}}
     else S.co.negEq=0;
     if(rec.pl.ni>0&&(S.co.bestNI||0)<=0&&S.co.hist.length>2)chron('初めて黒字化','業績');
     if(rec.pl.ni>0&&rec.pl.ni>S.co.bestNI&&S.co.hist.length>2){S.co.bestNI=rec.pl.ni;S.co.bestNIm=`${rec.y}年${rec.m}月`;}if(rec.pl.rev>(S.co.bestRev||0)){S.co.bestRev=rec.pl.rev;S.co.bestRevm=`${rec.y}年${rec.m}月`;}   /* 過去最高記録は会社情報で確認（通知しない） */
@@ -1440,7 +1440,7 @@ const Eq={
     if(bad.length)P.push({k:'sell',n:`不採算事業（${BT[bad[0].type].n}）の売却`,y:()=>{Biz.exit(bad[0]);}});
     return P;},
   agm(){const q=S.eq,r=this.agmScore();q.lastAgm={y:S.y,total:r.total};
-    if(r.total<.5){S.over={reason:'株主総会で社長が解任',detail:`${S.y}年の定時株主総会で、社長の選任議案への賛成が${pctp(r.total,1)}にとどまり否決されました。株主の期待に応えられませんでした。`};return;}
+    if(r.total<.5){const pr=q.founder*q.price*.8;Life.lose('株主総会で社長が解任されました',`${S.y}年の定時株主総会で、選任議案への賛成が${pctp(r.total,1)}にとどまりました。保有株は市場で売却されました。`,pr);return;}
     News.add('自社',`${S.player.name} 定時株主総会：社長選任議案は賛成${pctp(r.total,1)}で可決`,r.total<.65?'反対票が多く、経営に厳しい目が向けられている。':'株主の信任を得た。',null,r.total<.65?-1:1);
     if(q.act&&q.act.angry){News.add('企業',`${q.act.name}、${S.player.name}株を売却し撤退`,'要求が通らなかったことへの不満を表明。',null,-1);q.act=null;q.jump-=.05;}
     const P=this.agmProps();if(P.length){const p=P[0],fp=this.founderPct(),pass=R()<clamp(.75-fp*.9+(q.act?.2:0)+(r.total<.7?.15:0),.05,.85);
@@ -1456,7 +1456,7 @@ const Eq={
   hostileRes(){const q=S.eq,H=q.hTob;if(!H||S.month<H.m)return;q.hTob=null;const fp=this.founderPct(),a=CM[H.a];
     if(fp>=.5||!a){News.add('自社',`${S.player.name}への敵対的TOBは不成立`,'買収防衛に成功した。',null,1,{lv:2});q.jump-=.12;return;}
     const pOk=clamp(.35+(.5-fp)*2-(q.mood||0),.1,.85);if(R()>pOk){News.add('自社',`${S.player.name}への敵対的TOBは応募が集まらず不成立`,'株主の多くが現経営陣を支持した。',null,1,{lv:2});q.jump-=.12;return;}
-    S.over={reason:`${a.name}に買収され経営権を失った`,detail:`${a.name}の敵対的TOBが成立し、${S.player.name}は子会社化されました。社長の持株は1株${nf(H.px)}円で売却され、約${yen(q.founder*H.px)}円を手にしました。`};},
+    Life.lose(`${a.name}に買収されました`,`敵対的TOBが成立し、${S.player.name}は${a.name}の子会社となりました。`,q.founder*H.px);},
   mboPlan(){const q=S.eq,out=q.shares-q.founder,px=q.price*1.3;return{out,px,cost:out*px};},
   mbo(){const q=S.eq;if(!q.listed)return '上場していません';const P=this.mboPlan();if(S.co.cash<P.cost)return `現金が不足しています（必要 ${yen(P.cost)}円）`;
     S.co.cash-=P.cost;S.co.treas=(S.co.treas||0)+P.cost;S.flows.buyback+=P.cost;q.shares=q.founder;q.listed=false;q.hTob=null;q.act=null;
@@ -2434,6 +2434,86 @@ const Syn={
 };
 
 /* =====================================================================
+   MODULE: Life — 会社を失っても人生は続く。個人として次の会社を作り直せる
+   ===================================================================== */
+const Life={
+  // 会社を失ったときの処理（倒産・買収・解任・売却）。ゲームオーバーにはしない
+  lose(kind,detail,proceeds){const M=Me.st();const nm=pName();
+    M.cash+=Math.max(0,proceeds||0);
+    S.lost=(S.lost||[]);S.lost.unshift({y:S.y,m:S.m,name:nm,kind,proceeds:proceeds||0});
+    // 会社まわりを初期化（個人資産・個人の会社・個人保有株はそのまま残る）
+    S.biz=[];S.hold={};S.props=[];S.co={cash:0,capital:0,retained:0,loans:[],hist:[],credit:50,distress:0,negEq:0,nol:0,cumRev:0,maxBrand:0,bestNI:0,qr:[],treas:0,mfixed:0,unl:[],slotSeen:1,left:0,rehire:0,autoN:0,invAuto:false};
+    S.eq={listed:false,shares:1e4,founder:1e4,price:0,hist:[],oh:[],divPolicy:0,mood:0,jump:0};
+    S.exec={};S.board={n:0,hist:[],pend:null,lastM:-99,lvl:1,log:[],done:{}};S.gl=null;Global.st();S.sp={team:null,market:null};S.tob=null;S.offers=[];
+    S.player.hd=false;M.role='投資家';M.salary=0;
+    News.add('速報',`${nm}は${kind}`,`${detail} ${esc(S.player.ceo)}氏は個人資産${yen(Me.net())}円を手に、次の一手を探している。`,null,-1,{lv:2,imp:['あなた個人の資産・保有株・個人の会社は残ります','個人タブから新しい会社を作って再起できます','投資家として生きる道もあります']});
+    chron(`${nm}を失う（${kind}）`,'人生');M.hist.unshift({y:S.y,m:S.m,e:`${nm}を失う（${kind}）${proceeds?`・${yen(proceeds)}円を受け取り`:''}`});
+    S.over=null;S.stopReason=null;UI.tab='me';},
+  canFound(){return Me.st().cash>=3e6;},
+  // 個人資産から新しい本体の会社を作る（2度目以降の創業）
+  found(name,type,cap){const M=Me.st();if(S.biz.length||S.co.cumRev>0)return 'すでに会社を経営しています';
+    cap=Math.min(cap||Math.max(3e6,Math.round(M.cash*.5)),M.cash);if(cap<3e6)return '創業には300万円以上の個人資金が必要です';
+    const t=BT[type];if(!t)return '事業を選んでください';
+    M.cash-=cap;S.player.name=(name||S.player.name).slice(0,16);S.co.cash=cap;S.co.capital=cap;
+    S.eq={listed:false,shares:1e4,founder:1e4,price:0,hist:[],oh:[],divPolicy:0,mood:0,jump:0};
+    const e=Biz.start(type);if(e){S.co.cash+=0;return e;}
+    M.role='CEO';M.hist.unshift({y:S.y,m:S.m,e:`${S.player.name}を創業（資本金 ${yen(cap)}円）`});chron(`${S.player.name}を創業`,'会社');
+    News.add('速報',`${esc(S.player.ceo)}氏、新会社「${S.player.name}」を創業`,`資本金 ${yen(cap)}円。${t.n}事業からの再出発となる。`,null,1,{lv:2});
+    Store.auto(true);return null;},
+  hasCo(){return S.biz.length>0||S.co.cumRev>0||S.co.cash>0;}
+};
+
+/* =====================================================================
+   MODULE: Geo — 架空世界の地政学（緊張・戦争・政変が経済と企業に波及する）
+   ===================================================================== */
+const Geo={
+  st(){if(!S.geo)S.geo={ten:{},wars:[],hist:[],infl:0};return S.geo;},
+  pairs:[['us','cn'],['cn','tw'],['de','cn'],['in','cn'],['us','ae'],['br','mx'],['gb','de'],['kr','cn']],
+  key(p){return p[0]+'-'+p[1];},
+  monthly(){const G=this.st(),E=S.econ;
+    for(const p of this.pairs){const k=this.key(p);let t=G.ten[k]??ri(5,25);
+      const A=S.gl?S.gl.cty[p[0]]:null,B=S.gl?S.gl.cty[p[1]]:null;
+      t+=gauss()*4+((A&&A.g<0)||(B&&B.g<0)?1.5:0)-1.2;t=clamp(t,0,100);G.ten[k]=t;
+      const war=G.wars.find(w=>w.k===k);
+      if(!war&&t>78&&R()<.1){G.wars.push({k,p,m:S.month,dur:ri(6,30)});
+        News.add('世界経済',`⚠️ ${CTY[p[0]].n}と${CTY[p[1]].n}が武力衝突に発展`,'物流と資源の流れが止まり、世界経済に大きな影響が出る見込み。',null,-1,{lv:2,imp:['資源・エネルギー価格が上昇します','半導体・物流に混乱が広がります','防衛・エネルギー・資源関連には追い風','復興需要は数年後に生まれます']});
+        chron(`${CTY[p[0]].n}と${CTY[p[1]].n}の衝突が発生`,'世界');}
+      else if(!war&&t>60&&R()<.06)News.add('世界経済',`${CTY[p[0]].n}と${CTY[p[1]].n}の緊張が高まる`,'貿易制限や関税引き上げの観測が出ている。',null,-1,{lv:1,imp:['関税や輸出規制が起こりやすくなります']});}
+    for(const w of G.wars.slice()){const C=[CTY[w.p[0]],CTY[w.p[1]]];
+      E.commod=clamp(E.commod*1.03,.5,3);E.oil=(E.oil||80)*1.04;E.sent=clamp(E.sent-.03,-1,1);
+      for(const k2 of ['energy','material','semi','mfg','logi','auto'])E.trend[k2]=clamp((E.trend[k2]||1)*(k2==='energy'||k2==='material'?1.02:.985),.5,2);
+      if(S.gl){for(const c2 of w.p){S.gl.cty[c2].unrest=Math.min(1,(S.gl.cty[c2].unrest||0)+.25);S.gl.cty[c2].g-=.4;}}
+      if(S.month-w.m>=w.dur){G.wars=G.wars.filter(x=>x!==w);G.ten[w.k]=25;
+        News.add('世界経済',`${C[0].n}と${C[1].n}が停戦に合意`,'復興需要が生まれ、建設・インフラ・物流に追い風となる。',null,1,{lv:2,imp:['資源価格は落ち着きます','建設・素材・物流に復興需要','進出企業には再投資の好機']});
+        for(const k2 of ['mfg','logi','material','re'])E.trend[k2]=clamp((E.trend[k2]||1)*1.08,.5,2);chron(`${C[0].n}と${C[1].n}が停戦`,'世界');}}
+    if(R()<.05){const k=pick(Object.keys(CTY)),C=CTY[k],G2=S.gl?S.gl.cty[k]:null;const kind=pick(['election','tax','nation','open','sanction']);
+      if(kind==='election'){if(G2)G2.g+=rn(-.6,.8);News.add('世界経済',`${C.fl}${C.n}で政権交代`,'経済政策の変更が見込まれる。',null,0,{lv:1});}
+      if(kind==='tax'&&G2){C.tax=clamp(C.tax+rn(-.04,.05),.05,.45);News.add('世界経済',`${C.fl}${C.n}が法人税率を変更（${pctp(C.tax,0)}）`,'進出企業の税負担が変わる。',null,C.tax<.25?1:-1,{lv:1});}
+      if(kind==='nation'&&G2&&S.gl&&S.gl.ops[k]){const o=S.gl.ops[k],loss=Math.round(o.fixed*.5);o.fixed-=loss;S.flows.extraLoss+=loss;
+        News.add('速報',`${C.fl}${C.n}で外資規制が強化。現地資産の一部が接収`,`${yen(loss)}円を特別損失に計上。`,null,-1,{lv:2,imp:['政情リスクの高い国は合弁が安全です']});}
+      if(kind==='open'&&G2){G2.rg=Math.max(.1,G2.rg-.1);News.add('世界経済',`${C.fl}${C.n}が規制緩和、外資に門戸`,'進出のチャンスが広がる。',null,1,{lv:1});}
+      if(kind==='sanction'&&G2){G2.tariff=Math.min(.4,G2.tariff+.06);News.add('世界経済',`${C.fl}${C.n}に経済制裁。関税が引き上げ`,'輸出企業には逆風。',null,-1,{lv:1});}}
+    G.infl=Influence.score();},
+  wars(){return this.st().wars;}
+};
+/* 世界影響力（0〜1000）：資産・企業・技術・金融・情報・インフラ・海外・スポーツなどから算出 */
+const INFT=[[0,'地方企業'],[60,'国内企業'],[140,'全国企業'],[250,'国際企業'],[380,'世界企業'],[520,'グローバル企業グループ'],[680,'世界経済の主要プレイヤー'],[850,'世界最大級の企業帝国']];
+const Influence={
+  parts(){const C=Co.cons(),H=Syn.have(),M=Me.st(),mnet=Me.net();
+    const f=(v,d)=>clamp(Math.log10(Math.max(1,v/d))*40,0,160);
+    return{資産:f(C.assets,1e10),売上:f(C.rev,1e10),個人資産:f(mnet,1e9)*.6,
+      海外:clamp((S.gl?Global.n():0)*8,0,120),株式:clamp(Object.keys(S.hold||{}).length*3+Object.keys(M.hold||{}).length*2,0,90),
+      技術:clamp(['semi','aiB','cloud','space','pharma'].filter(k=>H.has(k)).length*22,0,110),
+      金融:clamp((H.has('finB')?45:0)+((S.vc&&VC.port().length)?20:0)+((S.nation&&S.nation.jgb)?25:0),0,90),
+      情報:clamp((H.has('media')?30:0)+(H.has('ad')?15:0)+(H.has('gameB')?15:0)+((S.ip||[]).length*3),0,90),
+      インフラ:clamp(['energyB','telecom','logi','mining','city'].filter(k=>H.has(k)).length*20,0,100),
+      スポーツ:clamp((S.sp&&S.sp.team)?25+(S.sp.team.champs||0)*8:0,0,60),
+      国家:clamp((S.nation&&S.nation.hist?S.nation.hist.length*18:0),0,90)};},
+  score(){const p=this.parts();return Math.round(clamp(sum(Object.values(p),v=>v),0,1000));},
+  tier(){const v=this.score();let n=INFT[0][1];for(const t of INFT)if(v>=t[0])n=t[1];return n;}
+};
+
+/* =====================================================================
    MODULE: Nation — 国家規模・世界規模のプロジェクト（超巨大企業向け）
    ===================================================================== */
 const Nation={
@@ -2552,7 +2632,7 @@ const Game={
     News.add('自社',`${cfg.name}、${cfg.city}で創業`,`代表取締役 ${cfg.ceo}。資本金${yen(D.cash)}円で${t.n}事業からスタート。`,null,1);
     News.add('経済',`景気は「${S.econ.phase}」局面。政策金利は${pctp(S.econ.rate/100,2)}`,Econ.phaseHint(S.econ.phase));},
   week(){Market.weekly();if(S.week>=4){this.monthClose();S.week=1;return true;}S.week++;return false;},
-  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
+  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Geo.monthly();Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
     S.co.peak=Math.max(S.co.peak,rec.value);S.lastRec=rec;
     S.m++;if(S.m>12){S.m=1;S.y++;}
     if(!S.over)Store.save('auto');},
@@ -3000,6 +3080,22 @@ const Tut={
       <div class="btns">${s2.next||s2.fin?`<button class="btn sp" data-act="tutNext">${s2.fin?'自分の人生を始める':'次へ'}</button>`:'<span class="mut" style="font-size:12px;align-self:center">光っているところをタップしてください</span>'}<button class="sk" data-act="tutSkip">スキップ</button></div></div>`;}
 };
 
+/* ---------- 世界情勢（WORLD） ---------- */
+function shWorld(){return()=>{const G=Geo.st(),E=S.econ,W=S.gl||{};
+  const ten=Geo.pairs.map(p=>({p,t:Math.round(G.ten[Geo.key(p)]??0),war:G.wars.some(w=>w.k===Geo.key(p))})).sort((a,b)=>b.t-a.t);
+  const rows=Object.keys(CTY).map(k=>{const C=CTY[k],c=W.cty?W.cty[k]:null,o=W.ops?W.ops[k]:null;
+    return `<button class="nl" data-act="gC" data-v="${k}"><span class="tm">${C.fl}</span><span class="sp"><span class="hd">${C.n}${o?` <span class="tag">${GMODE[o.mode].n}</span>`:''}${(c&&c.unrest>.3)?' <span class="tag b">政情不安</span>':''}</span>
+     <span class="mt"><span>成長 ${c?pct(c.g/100,1):'—'}</span><span>関税 ${c?pctp(c.tariff,0):'—'}</span><span>法人税 ${pctp(C.tax,0)}</span><span>市場 ${stars(C.size)}</span>${o?`<span>シェア ${pctp(o.sh,1)}</span>`:''}</span></span></button>`;}).join('');
+  return ['🌐 世界情勢',`<div class="view" data-k="world">
+   <div class="card"><div class="row"><div class="sp"><b>世界影響力</b><div class="mut" style="font-size:12px">${Influence.tier()}</div></div><b class="num" style="font-size:22px">${Influence.score()}</b></div><div class="bar" style="margin-top:6px"><i style="width:${Influence.score()/10}%"></i></div></div>
+   ${worldHTML()}
+   ${G.wars.length?`<h3>⚠️ 進行中の武力衝突</h3><div class="card">${G.wars.map(w=>`<div class="row" style="font-size:12.5px"><span class="sp">${CTY[w.p[0]].fl}${CTY[w.p[0]].n} × ${CTY[w.p[1]].fl}${CTY[w.p[1]].n}</span><span class="mut3">${S.month-w.m}ヶ月目</span></div>`).join('')}
+    <p class="note" style="margin-bottom:0">資源とエネルギーの価格が上がり、物流と半導体が混乱します。停戦後は復興需要が生まれます。</p></div>`:''}
+   <h3>国家間の緊張</h3><div class="card">${ten.slice(0,6).map(x=>`<div style="margin-bottom:8px"><div class="row" style="font-size:12.5px"><span class="sp">${CTY[x.p[0]].fl}${CTY[x.p[0]].n} × ${CTY[x.p[1]].fl}${CTY[x.p[1]].n}</span><b class="num ${x.war?'dn':x.t>60?'dn':''}">${x.war?'衝突中':x.t}</b></div><div class="shg"><i style="width:${x.t}%;${x.t>60?'background:var(--dn)':''}"></i></div></div>`).join('')}
+    <p class="note" style="margin-bottom:0">緊張が高まると関税・輸出規制・制裁が起こりやすくなります。80を超えると衝突に発展することがあります。</p></div>
+   <h3>国・地域</h3><div class="nbox">${rows}</div>
+   <h3>📜 世界の歴史</h3><div class="nbox">${(S.chron||[]).slice(0,15).map(h=>`<div class="nl"><span class="tm">${h.y}</span><span class="sp"><span class="hd">${esc(h.e)}</span><span class="mt"><span class="lvb l1">${esc(h.tag||'記録')}</span><span>${h.y}年${h.m}月</span></span></span></div>`).join('')||'<div class="empty">まだ記録はありません</div>'}</div></div>`];};}
+
 /* ---------- 個人（👤） ---------- */
 function vMe(){const M=Me.st(),q=S.eq,net=Me.net(),ownPct=Eq.founderPct(),hs2=Object.entries(M.hold);
   const cell=(k,v,c='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${c}">${v}</b></div>`;
@@ -3025,6 +3121,14 @@ function vMe(){const M=Me.st(),q=S.eq,net=Me.net(),ownPct=Eq.founderPct(),hs2=Ob
    ${M.role==='CEO'?`<p class="note" style="margin-top:0">CEOを退任して会長や大株主になっても、株式と配当はあなたのものです。会社は役員が動かします。</p>
     ${Object.keys(Exec.st()).length?Object.keys(Exec.st()).map(r=>`<div class="ctl"><div class="lb"><b>${r}の${esc(Exec.st()[r].name)}氏にCEOを譲る</b><span>能力${Exec.st()[r].ab}・${Exec.st()[r].pol}</span></div><button class="btn sm sub" data-act="meResign" data-v="${r}">退任</button></div>`).join(''):'<p class="note">後継者にできる役員がいません。CFO・COOなどを招へいしてください。</p>'}`
     :`<div class="row" style="font-size:12.5px"><span class="mut sp">現在の立場</span><b>${M.role}</b></div><button class="btn w" data-act="meRetake" style="margin-top:8px">CEOに復帰する</button>`}</div>
+  ${!Life.hasCo()?`<div class="card" style="border:1px solid var(--ai)"><b style="font-size:15px">会社を持っていません</b>
+   <p class="note" style="margin:6px 0 10px">${(S.lost||[]).length?`${S.lost[0].y}年に「${esc(S.lost[0].name)}」を失いました（${esc(S.lost[0].kind)}）。個人資産は残っています。`:''}個人資産 ${yen(Me.st().cash)}円から、もう一度会社を作れます。投資家として株や不動産だけで生きる道もあります。</p>
+   <span class="lbl" style="font-size:12px">最初の事業を選ぶ</span><div class="chips">${Object.keys(BT).filter(k=>BT[k].start*S.econ.pIdx<=Me.st().cash*.9).slice(0,8).map(k=>`<button class="chip ${UI.reType===k?'on':''}" data-act="reType" data-v="${k}">${BT[k].ic} ${BT[k].n}（${yen(BT[k].start*S.econ.pIdx)}）</button>`).join('')||'<span class="mut" style="font-size:12px">資金が足りません。個人で株を売って資金を作りましょう</span>'}</div>
+   <button class="btn w" data-act="reFound" ${UI.reType?'':'disabled'} style="margin-top:8px">新しい会社を創業する</button></div>`:''}
+  <h3 class="row"><span class="sp">🌐 世界影響力</span><span class="num">${Influence.score()} / 1000</span></h3>
+  <div class="card"><div class="bar"><i style="width:${Influence.score()/10}%"></i></div><div style="font-size:13px;font-weight:700;margin-top:6px">${Influence.tier()}</div>
+   <div class="wp-lg" style="padding:8px 0 0">${Object.entries(Influence.parts()).filter(x=>x[1]>=1).map(([k,v])=>`<span><i style="--c:var(--ai)"></i>${k} ${Math.round(v)}</span>`).join('')}</div>
+   <button class="btn sub w sm" data-act="world" style="margin-top:8px">🌐 世界の情勢を見る</button></div>
   <h3>あなたが個人で持つ会社</h3><div class="card">
    ${Me.cos().length?Me.cos().map(c=>`<div class="ctl"><div class="lb"><b>${esc(c.name)}${c.priv?'<span class="tag g">非上場</span>':'<span class="tag">上場</span>'}</b><span>${SECTORS[c.sec].n}・年商${yen(c.rev)}・持分${pctp(c.meOwn,0)}・現金${yen(c.cash)}</span></div><button class="btn sm" data-act="coSel" data-v="${c.t}">経営画面</button></div>`).join(''):'<p class="note" style="margin:0">個人で持つ会社はありません。本体とは別に、自分の会社を作れます。</p>'}
    <button class="btn w sub" style="margin-top:8px" data-act="meFound" ${M.cash<3e7?'disabled':''}>個人で新会社を設立（${yen(Math.max(3e7,Math.round(M.cash*.2)))}円）</button></div>
@@ -3543,7 +3647,7 @@ function vMarket(){const E=S.econ;const secCh={};
   return `<h2>市場</h2>
   ${nkHero()}
    ${candles(S.mkt,UI.mktRange,'mkt')}${rangeChips('mktRange',UI.mktRange,[[13,'3ヶ月'],[52,'1年'],[260,'5年']])}<div class="row mut3" style="font-size:11px"><span class="sp"></span><span>中央値PER ${S.mkt.pe.toFixed(1)}倍・金利${pctp(E.rate/100,2)}</span></div></div>
-  ${worldHTML()}${calHTML()}
+  ${worldHTML()}<button class="btn sub w sm" data-act="world" style="margin-bottom:10px">🌐 世界情勢・国家間の緊張を見る</button>${calHTML()}
   <h3>業種別（1ヶ月の騰落）</h3>
   <div class="heat">${Object.keys(SECTORS).map(s=>`<div style="${heat(secCh[s])}" role="button" tabindex="0" data-act="mktSec" data-v="${s}">${SECTORS[s].n}<b class="num">${pct(secCh[s],1)}</b></div>`).join('')}</div>
   <h3>銘柄を探す</h3>
@@ -3748,7 +3852,7 @@ function vCmd(){const C=Co.cons(),st=Stage.of(),H=S.co.hist,pa=H.length>1?H[H.le
   const ICO={food:'🍽️',retail:'🛒',ec:'📦',mfg:'🏭',it:'💻',saas:'☁️',ad:'📣',logi:'🚚',re:'🏢',ent:'🎬',fin:'🏦',energy:'⚡',semi:'🔬',health:'🏥',material:'🧪',ai:'🤖',auto:'🚗'};
   const rows=[...S.biz.map(b=>({ic:ICO[b.type]||'🏢',n:`${S.player.name}（${BT[b.type].n}事業）`,rev:(b.last?.rev||0)*12,g:null,act:'wpB',v:b.id})),...subs.map(c=>({ic:ICO[c.sec]||'🏢',n:c.name,rev:c.rev,g:c.g,act:'corp',t:c.t})),...grand.map(c=>({ic:ICO[c.sec]||'🏢',n:'└ '+c.name,rev:c.rev,g:c.g,act:'corp',t:c.t}))].slice(0,8);
   const h=S.mkt.hist,pv=h.length>1?h[h.length-2]:S.mkt.idx,d=S.mkt.idx-pv;
-  return `<div class="cmd card-enter"><div class="row">${logoEl(S.player,36)}<div class="sp" style="min-width:0"><div class="nm">${esc(pName())}</div><div class="ti">${esc(S.player.ceo)}・${st.title}${Global.n()?`・🌎 ${Global.gName().split('（')[0]}（${Global.n()}ヶ国）`:''}</div></div><span class="tag">Stage ${st.n}</span></div>
+  return `<div class="cmd card-enter"><div class="row">${logoEl(S.player,36)}<div class="sp" style="min-width:0"><div class="nm">${esc(pName())}</div><div class="ti">${esc(S.player.ceo)}・${st.title}${Global.n()?`・🌎 ${Global.gName().split('（')[0]}（${Global.n()}ヶ国）`:''}</div></div><span class="tag">Stage ${st.n}</span>${Influence.score()>=60?`<button class="tag" data-act="world" style="border:0">🌐 ${Influence.score()}</button>`:''}</div>
    <div class="stg"><span class="stp">${[0,1,2,3,4].map(i=>`<i class="${i<=st.i?'on':''}"></i>`).join('')}</span><b>${st.name}</b>${st.next?`<div class="bar"><i style="width:${Math.round(st.p*100)}%"></i></div><span class="mut3">次：${st.need}</span>`:''}</div>
    <div class="kp"><div><small>総資産</small><b>${N(C.assets)}</b>${chA!=null?`<small class="${tone(chA)}">${chA>=0?'▲':'▼'}${pct(chA)}</small>`:''}</div><div><small>従業員</small><b>${N(C.emp,'nf')}</b><small>人</small></div><div><small>企業</small><b>${1+subs.length+grand.length}</b><small>社</small></div><div><small>上場企業</small><b>${listedN}</b><small>社</small></div></div>
    <button class="gco" data-act="tab" data-v="me" style="border-top:1px solid var(--line);margin-top:6px"><span class="ic">👤</span><span class="sp">${esc(S.player.ceo)}（${Me.st().age}歳・${Me.st().role}）</span><span class="num">個人 ${yen(Me.net())}</span></button>
@@ -3954,6 +4058,9 @@ const A={
   meTob:d=>{const c=CM[d.t],P=Me.tobCost(d.t,.51);approveBox({kind:'ma',title:`個人による${c.name}のTOB（51%取得）`,amount:P.cost,rows:[['起案','個人'],['買付価格',nf(P.px)+'円（+30%）'],['取得株数',nf(P.need)+'株'],['必要な個人資金',yen(P.cost)+'円'],['個人現金',yen(Me.st().cash)+'円']],note:'会社の資金ではなく、あなた個人の資金で買います。取得後は個人の傘下企業になります。',ok:()=>{if(!err(Me.tob(d.t,.51)))toast('取得しました');render();}});},
   meSucceed:d=>approveBox({kind:'succeed',title:'後継者への世代交代',amount:0,rows:[['後継者',Me.heirs()[+d.v].name+`（${Me.heirs()[+d.v].rel}・${Me.heirs()[+d.v].age}歳）`],['能力',String(Me.heirs()[+d.v].ab)],['相続税','個人資産の40%'],['あなたの年齢',Me.st().age+'歳']],note:'引き継ぐと、あなたは次の世代の経営者としてゲームを続けます。会社と株式はそのまま引き継がれます。',ok:()=>{if(!err(Me.succeed(+d.v)))toast('世代交代しました');render();}}),
   chron:()=>openSheet(()=>['📜 年表',`<div class="nbox">${(S.chron||[]).map(h=>`<div class="nl"><span class="tm">${h.y}</span><span class="sp"><span class="hd">${esc(h.e)}</span><span class="mt"><span class="lvb l1">${esc(h.tag||'記録')}</span><span>${h.y}年${h.m}月</span></span></span></div>`).join('')||'<div class="empty">まだ記録はありません</div>'}</div>`]),
+  world:()=>openSheet(shWorld()),reType:d=>{UI.reType=d.v;render();},
+  reFound:()=>{const t=BT[UI.reType];const nm=prompt('新しい会社の名前',S.player.name)||S.player.name;
+    approveBox({kind:'biz',title:`新会社「${nm}」の創業（${t.n}事業）`,amount:Math.max(3e6,Math.round(Me.st().cash*.5)),rows:[['起案','あなた'],['資本金',yen(Math.min(Math.max(3e6,Math.round(Me.st().cash*.5)),Me.st().cash))+'円'],['最初の事業',t.n],['個人現金',yen(Me.st().cash)+'円']],note:'個人資産の半分を資本金として、新しい会社を立ち上げます。残りは個人資産のままです。',ok:()=>{if(!err(Life.found(nm,UI.reType))){UI.tab='home';toast('創業しました');}render();}});},
   meSal:d=>{err(Me.setSalary(+d.v));render();},
   meSellOwn:d=>{const p=+d.v;approveBox({kind:'own',title:`創業者による自社株${p}%の売却`,amount:0,rows:[['起案','個人'],['売却株数',nf(Math.round(S.eq.founder*p/100))+'株'],['手取り（税引後）',yen(S.eq.founder*p/100*S.eq.price*.78)+'円'],['売却後の持株比率',pctp((S.eq.founder*(1-p/100))/S.eq.shares,1),(S.eq.founder*(1-p/100))/S.eq.shares<.5?'dn':'']],note:'創業者の売却はニュースになり、株価と信用に影響します。持株比率が下がると経営権を失うリスクが高まります。',ok:()=>{if(!err(Me.sellOwn(p)))toast('売却しました');render();}});},
   meInv:d=>confirmBox(`個人資金 ${yen(+d.v)}円を会社に出資します。`,()=>{if(!err(Me.invest(+d.v)))toast('出資しました');render();},'出資する'),
