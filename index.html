@@ -751,7 +751,11 @@ const Events={
       if(e.stage==='rumor'&&e.t>=e.warn){
         if(R()<(d.fizzle||0)){e.stage='done';News.add('経済',`懸念されていた「${this.fill(d.name,e)}」は回避された模様`,'兆候は見られたが、実際の影響は限定的との見方が広がった。',null,1);}
         else this.begin(e);
-      }else if(e.stage==='active'&&e.t>=e.dur){e.stage='done';this.finish(e);}
+      }else if(e.stage==='active'&&e.t>=Math.round(e.dur*.35)){e.stage='peak';e.t=0;
+        News.add('経済',`「${this.fill(EVD[e.id].name,e)}」の影響が拡大`,'当初の想定を超えて広がっており、関連業種の変動が大きくなっている。',null,(EVD[e.id].m.g||0)<0?-1:1,{lv:2,imp:this.impact(EVD[e.id],e,0),ev:e.id});
+      }else if(e.stage==='peak'&&e.t>=Math.round(e.dur*.4)){e.stage='fade';e.t=0;
+        News.add('経済',`「${this.fill(EVD[e.id].name,e)}」はピークを越えた模様`,'影響は残るものの、落ち着きに向かい始めている。',null,(EVD[e.id].m.g||0)<0?1:-1,{lv:1,ev:e.id});
+      }else if(e.stage==='fade'&&e.t>=Math.round(e.dur*.35)){e.stage='done';this.finish(e);}
     }
     S.events=S.events.filter(e=>e.stage!=='done');
     for(const d of EVDEF){
@@ -776,10 +780,10 @@ const Events={
   },
   finish(e){const d=EVD[e.id];News.add('経済',this.fill(d.end,e),'',null,0,{lv:1,ev:e.id,imp:['出来事の影響は徐々に薄れていく',d.endSec?'期待で上がっていた銘柄は反落しやすい':'落ち込んでいた業種は回復に向かう']});if(d.endSec)Market.shock(0,d.endSec);if(d.reCrash)S.econ.reIdx*=d.reCrash;},
   mods(){const o={g:0,i:0,c:0,s:0,re:0,ease:0,credit:1,trend:{}};
-    for(const e of S.events){if(e.stage!=='active')continue;const m=EVD[e.id].m;
-      o.g+=m.g||0;o.i+=m.i||0;o.c+=m.c||0;o.s+=m.s||0;o.re+=m.re||0;o.ease+=m.ease||0;o.credit*=m.credit||1;
-      if(m.trend)for(const k in m.trend)o.trend[k]=(o.trend[k]||1)*m.trend[k];
-      if(m.trendS&&e.sec)o.trend[e.sec]=(o.trend[e.sec]||1)*m.trendS;}
+    for(const e of S.events){if(!['active','peak','fade'].includes(e.stage))continue;const m=EVD[e.id].m,w=e.stage==='peak'?1.45:e.stage==='fade'?.5:1;   /* 段階で強さが変わる */
+      o.g+=(m.g||0)*w;o.i+=(m.i||0)*w;o.c+=(m.c||0)*w;o.s+=(m.s||0)*w;o.re+=(m.re||0)*w;o.ease+=(m.ease||0)*w;o.credit*=1-(1-(m.credit||1))*w;
+      if(m.trend)for(const k in m.trend)o.trend[k]=(o.trend[k]||1)*(1+(m.trend[k]-1)*w);
+      if(m.trendS&&e.sec)o.trend[e.sec]=(o.trend[e.sec]||1)*(1+(m.trendS-1)*w);}
     return o;}
 };
 
@@ -1299,7 +1303,7 @@ const MA={
   subs(){return S.cos.filter(c=>Trade.own(c.t)>.5);},
   merged(){return S.cos.filter(c=>c.merged);},
   // 完全子会社を吸収合併して本体の事業部にする（損益は単体の決算に直接入る）
-  absorb(t){const c=CM[t],h=S.hold[t];if(!c||!h||Trade.own(t)<.999)return '完全子会社（100%）だけが吸収合併できます';if(this.kids(t).length)return '孫会社がある会社は合併できません';
+  absorb(t){const c=CM[t],h=S.hold[t];if(c)Rival.add(c,'absorb');if(!c||!h||Trade.own(t)<.999)return '完全子会社（100%）だけが吸収合併できます';if(this.kids(t).length)return '孫会社がある会社は合併できません';
     const mv=c.price*h.q,gain=c.cash-c.debt;S.co.cash+=c.cash;if(c.debt>0){const r=Co.rate();S.co.loans.push({id:'L'+(S.bid++),p:c.debt,bal:c.debt,rate:r,term:120,mp:c.debt/120,m0:S.month});}
     S.co.mfixed=(S.co.mfixed||0)+h.cost;S.co.retained+=gain;delete S.hold[t];c.merged=true;c.priv=true;c.cash=0;c.debt=0;
     News.add('自社',`${S.player.name}、${c.name}を吸収合併`,`${c.name}は${S.player.name}の事業部となり、損益は本体の決算に直接計上される。`,null,1,{lv:2});
@@ -1352,6 +1356,7 @@ const MA={
     const cb=MA.snap();S.co.cash-=total;S.flows.buy+=total;const h=S.hold[T.t]||(S.hold[T.t]={q:0,cost:0});h.q+=T.need;h.cost+=total;
     const own=Trade.own(T.t);
     if(!T.friendly){c.mood-=.1;c.emp=Math.round(c.emp*.96);c.tOpm-=.01;}
+    Rival.add(c,T.friendly?'tob':'hostile');
     if(own>=.999){c.priv=true;h.q=c.shares;News.add('速報',`${S.player.name}、${c.name}を完全子会社化。${c.name}は上場廃止へ`,`取得総額 ${yen(total)}円。${T.friendly?'':'敵対的買収のため、人材流出と統合コストが懸念される。'}`,c.t,1);}
     else{c.jump+=Math.log(.94);News.add('速報',`${S.player.name}のTOBが成立。${c.name}株を${pctp(own,1)}保有（${Trade.tier(own)}）`,`取得総額 ${yen(total)}円。${own>.5?'連結子会社となり、経営を指揮できるようになった。':''}${T.friendly?'':'敵対的買収のため、人材流出と統合コストが懸念される。'}`,c.t,1);}
     chron(`${c.name}を子会社化（TOB成立）`,'M&A');S.flash.push(`${c.name}へのTOBが成立しました`);if(Trade.own(T.t)>.5)(S.fx||(S.fx=[])).push({k:'deal',buyer:pName(),target:c.name,pct:Trade.own(T.t),b:cb,a:MA.snap(),share:Market.share(c)});},
@@ -1746,9 +1751,15 @@ const CTY={
  ph:{n:'フィリピン',en:'PHILIPPINES',fl:'🇵🇭',reg:'アジア',cur:'PHP',pop:115,gdp:60,g:5.5,inc:55,size:.35,wage:.15,tax:.25,px:.4,tariff:.08,rg:.5,comp:.4,risk:.35,entry:8e7,lon:122,lat:12},
  in:{n:'インド',en:'INDIA',fl:'🇮🇳',reg:'アジア',cur:'INR',pop:1430,gdp:520,g:6.5,inc:40,size:2.2,wage:.12,tax:.25,px:.35,tariff:.15,rg:.7,comp:.6,risk:.3,entry:1.5e8,lon:78,lat:22},
  ae:{n:'UAE',en:'UAE',fl:'🇦🇪',reg:'中東',cur:'AED',pop:10,gdp:75,g:3.5,inc:900,size:.3,wage:1.0,tax:.09,px:1.1,tariff:.05,rg:.35,comp:.5,risk:.2,entry:1.5e8,lon:54,lat:24},
+ arc:{n:'アルカディア共和国',en:'ARCADIA',fl:'🛡️',reg:'アルカディア圏',cur:'ARD',pop:90,gdp:420,g:3.4,inc:620,size:1.5,wage:.9,tax:.2,px:1,tariff:.04,rg:.3,comp:.55,risk:.15,entry:2.2e8,lon:-30,lat:32},
+ nor:{n:'ノルディア連邦',en:'NORDIA',fl:'❄️',reg:'ノルディア圏',cur:'NOK2',pop:55,gdp:360,g:2.2,inc:880,size:1.1,wage:1.5,tax:.28,px:1.4,tariff:.03,rg:.35,comp:.6,risk:.1,entry:2.8e8,lon:18,lat:66},
+ eas:{n:'東方連合',en:'EASTERN UNION',fl:'🐉',reg:'東方圏',cur:'EAU',pop:520,gdp:900,g:4.2,inc:200,size:3.2,wage:.4,tax:.25,px:.7,tariff:.12,rg:.7,comp:.8,risk:.45,entry:3.2e8,lon:88,lat:48},
+ sou:{n:'サウスランド',en:'SOUTHLAND',fl:'🌅',reg:'南方圏',cur:'SLD',pop:210,gdp:240,g:5.2,inc:110,size:1.0,wage:.25,tax:.22,px:.5,tariff:.1,rg:.5,comp:.45,risk:.4,entry:1.1e8,lon:25,lat:-18},
+ val:{n:'ヴァレンティア',en:'VALENTIA',fl:'🍇',reg:'欧州',cur:'VLT',pop:48,gdp:280,g:1.8,inc:700,size:.8,wage:1.2,tax:.26,px:1.2,tariff:.04,rg:.5,comp:.6,risk:.15,entry:2e8,lon:-8,lat:41},
+ gra:{n:'グランディア',en:'GRANDIA',fl:'⚜️',reg:'アルカディア圏',cur:'GRD',pop:130,gdp:520,g:2.8,inc:520,size:1.8,wage:.8,tax:.23,px:.95,tariff:.06,rg:.4,comp:.7,risk:.2,entry:2.6e8,lon:-58,lat:14},
  au:{n:'オーストラリア',en:'AUSTRALIA',fl:'🇦🇺',reg:'オセアニア',cur:'AUD',pop:27,gdp:250,g:2.2,inc:850,size:.8,wage:1.4,tax:.3,px:1.3,tariff:.03,rg:.35,comp:.65,risk:.08,entry:2e8,lon:134,lat:-25}};
 // 為替：1通貨あたりの円。beta はドル円への連動度、r はその国の金利
-const CUR={USD:{b:150,beta:1,r:4},EUR:{b:162,beta:.6,r:3},GBP:{b:190,beta:.6,r:4},CNY:{b:21,beta:.8,r:2.5},KRW:{b:.11,beta:.7,r:3},TWD:{b:4.7,beta:.8,r:1.8},SGD:{b:112,beta:.7,r:3},THB:{b:4.2,beta:.6,r:2},VND:{b:.006,beta:.7,r:4.5},
+const CUR={ARD:{b:120,beta:.6,r:3.5},NOK2:{b:90,beta:.5,r:2.5},EAU:{b:16,beta:.7,r:3},SLD:{b:5,beta:.5,r:7},VLT:{b:140,beta:.6,r:3},GRD:{b:35,beta:.5,r:6},USD:{b:150,beta:1,r:4},EUR:{b:162,beta:.6,r:3},GBP:{b:190,beta:.6,r:4},CNY:{b:21,beta:.8,r:2.5},KRW:{b:.11,beta:.7,r:3},TWD:{b:4.7,beta:.8,r:1.8},SGD:{b:112,beta:.7,r:3},THB:{b:4.2,beta:.6,r:2},VND:{b:.006,beta:.7,r:4.5},
   MYR:{b:32,beta:.6,r:3},IDR:{b:.0095,beta:.6,r:6},PHP:{b:2.6,beta:.6,r:6},INR:{b:1.8,beta:.6,r:6.5},AED:{b:41,beta:1,r:4},AUD:{b:98,beta:.6,r:4},CAD:{b:110,beta:.8,r:4},MXN:{b:8.7,beta:.5,r:9},BRL:{b:27,beta:.4,r:10}};
 const GMODE={export:{n:'輸出',st:1,cost:.12,up:.1,cap:.004,own:1,risk:.6,d:'日本で作って販売。関税と物流費がかかる'},branch:{n:'海外支店',st:2,cost:.4,up:.4,cap:.012,own:1,risk:.8,d:'現地に営業拠点を置く'},
   jv:{n:'合弁会社',st:3,cost:.5,up:.5,cap:.03,own:.5,risk:.5,d:'現地企業と50%ずつ出資。費用とリスクを分け合い、利益も半分'},sub:{n:'現地法人',st:3,cost:1,up:1,cap:.045,own:1,risk:1,d:'完全子会社で本格展開'}};
@@ -2464,11 +2475,41 @@ const Life={
 };
 
 /* =====================================================================
+   MODULE: Rival — 因縁：買収された会社の創業者が、後に強力なライバルになる
+   ===================================================================== */
+const Rival={
+  st(){if(!S.rivals)S.rivals={list:[]};return S.rivals;},
+  // 会社を買収・吸収したときに、その創業者を記録する
+  add(c,how){if(!c||!c.pf)return;const R2=this.st();if(R2.list.some(x=>x.name===c.pf.ceo))return;
+    R2.list.push({name:c.pf.ceo,from:c.name,sec:c.sec,how,m:S.month,due:S.month+ri(18,60),grudge:how==='hostile'?2:1,t:null});},
+  monthly(){const R2=this.st();
+    for(const r of R2.list){
+      if(!r.t&&S.month>=r.due&&R()<.25){   /* 復活：新会社を立ち上げる */
+        const c=Market.make(r.sec,'growth',S.month%3);c.name=r.name.split(' ')[0]+pick(['ホールディングス','テクノロジーズ','インダストリー','パートナーズ','キャピタル']);
+        c.pf&&(c.pf.ceo=r.name);c.ceoN=r.name;c.edge=(c.edge??0)+.06+r.grudge*.02;c.rival=1;
+        S.cos.push(c);CM[c.t]=c;Prof.make(c,S.y);c.pf.ceo=r.name;r.t=c.t;
+        News.add('速報',`かつて${esc(r.from)}を率いた${esc(r.name)}氏が新会社「${c.name}」を設立`,`${S.player.name}に買収された過去を持つ経営者の再起。同じ${SECTORS[r.sec].n}で競合する見込み。`,c.t,0,{lv:2,imp:['あなたの事業と市場を奪い合う可能性があります','将来、敵対的な買収を仕掛けてくることもあります']});
+        chron(`${r.name}氏が「${c.name}」を設立（因縁）`,'因縁');continue;}
+      const c=r.t?CM[r.t]:null;if(!c)continue;
+      if(R()<.05){const k=pick(['price','poach','tech','tob']);
+        if(k==='price'){for(const b of S.biz)if(BT[b.type].sec===c.sec){b.pend=(b.pend||0)+ (b.last?.rev||0)*.03;}
+          News.add('企業',`${c.name}、${SECTORS[c.sec].n}で値下げ攻勢`,`${esc(r.name)}氏が${S.player.name}の主力市場に価格で仕掛ける。`,c.t,-1,{lv:1,imp:['同じ業種の事業で利益が圧迫されます']});}
+        if(k==='poach'){const E=Exec.st(),rs=Object.keys(E)[0];if(rs&&R()<.5){const nm=E[rs].name;delete E[rs];
+          News.add('速報',`${c.name}が${S.player.name}の${rs}・${nm}氏を引き抜き`,`${esc(r.name)}氏の誘いに応じた。`,c.t,-1,{lv:2,imp:['役員が抜けた分、自動運営や判断の質が落ちます','早めに後任を招へいしましょう']});}}
+        if(k==='tech'){c.edge=(c.edge??0)+.02;for(const b of S.biz)if(BT[b.type].sec===c.sec)b.quality=Math.max(0,b.quality-2);
+          News.add('企業',`${c.name}が大型の研究開発投資`,'技術面で差を広げにかかっている。',c.t,-1,{lv:1});}
+        if(k==='tob'&&S.eq.listed&&Eq.founderPct()<.5&&c.price*c.shares>Co.value()*.8&&!S.eq.hTob){
+          S.eq.hTob={a:c.t,px:S.eq.price*1.4,m:S.month+2};S.eq.jump+=.18;
+          News.add('速報',`${c.name}、${S.player.name}に敵対的TOB`,`${esc(r.name)}氏による報復とも取れる買収提案。1株${nf(S.eq.price*1.4)}円。`,c.t,-1,{lv:2,imp:['2ヶ月後に成否が決まります','自社株買いで持株を50%以上にすれば防げます']});chron(`${r.name}氏が敵対的TOBを仕掛ける`,'因縁');}}}},
+  list(){return this.st().list;}
+};
+
+/* =====================================================================
    MODULE: Geo — 架空世界の地政学（緊張・戦争・政変が経済と企業に波及する）
    ===================================================================== */
-const Geo={
+const Geo={   /* 架空国家も含めた地政学 */
   st(){if(!S.geo)S.geo={ten:{},wars:[],hist:[],infl:0};return S.geo;},
-  pairs:[['us','cn'],['cn','tw'],['de','cn'],['in','cn'],['us','ae'],['br','mx'],['gb','de'],['kr','cn']],
+  pairs:[['us','cn'],['cn','tw'],['de','cn'],['in','cn'],['us','ae'],['br','mx'],['gb','de'],['kr','cn'],['nor','eas'],['arc','eas'],['gra','sou'],['val','nor'],['arc','gra'],['eas','sou']],
   key(p){return p[0]+'-'+p[1];},
   monthly(){const G=this.st(),E=S.econ;
     for(const p of this.pairs){const k=this.key(p);let t=G.ten[k]??ri(5,25);
@@ -2632,7 +2673,7 @@ const Game={
     News.add('自社',`${cfg.name}、${cfg.city}で創業`,`代表取締役 ${cfg.ceo}。資本金${yen(D.cash)}円で${t.n}事業からスタート。`,null,1);
     News.add('経済',`景気は「${S.econ.phase}」局面。政策金利は${pctp(S.econ.rate/100,2)}`,Econ.phaseHint(S.econ.phase));},
   week(){Market.weekly();if(S.week>=4){this.monthClose();S.week=1;return true;}S.week++;return false;},
-  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Geo.monthly();Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
+  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Geo.monthly();Rival.monthly();Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
     S.co.peak=Math.max(S.co.peak,rec.value);S.lastRec=rec;
     S.m++;if(S.m>12){S.m=1;S.y++;}
     if(!S.over)Store.save('auto');},
@@ -3080,6 +3121,28 @@ const Tut={
       <div class="btns">${s2.next||s2.fin?`<button class="btn sp" data-act="tutNext">${s2.fin?'自分の人生を始める':'次へ'}</button>`:'<span class="mut" style="font-size:12px;align-self:center">光っているところをタップしてください</span>'}<button class="sk" data-act="tutSkip">スキップ</button></div></div>`;}
 };
 
+/* ---------- 🌑 SHADOW EMPIRE（間接支配のネットワーク） ---------- */
+function shShadow(){return()=>{const M=Me.st(),rows=[];
+  const add=(n,path,pct,rev,emp,t)=>rows.push({n,path,pct,rev,emp,t});
+  // 本体グループ
+  if(Life.hasCo()){const C=Co.cons();add(pName(),'あなた → 本体',Eq.founderPct(),C.rev,C.emp,null);
+    for(const c of MA.subs()){add(c.name,`${pName()} → 子会社`,Trade.own(c.t)*Eq.founderPct(),c.rev,c.emp,c.t);
+      for(const g of MA.kids(c.t))add(g.name,`${pName()} → ${c.name} → 孫会社`,Trade.own(c.t)*(g.parOwn||1)*Eq.founderPct(),g.rev,g.emp,g.t);}
+    for(const c of MA.affs())add(c.name,`${pName()} → 持分法`,Trade.own(c.t)*Eq.founderPct(),c.rev,c.emp,c.t);
+    for(const t in S.hold){const c=CM[t];if(!c||Trade.own(t)<.05||Trade.own(t)>.5)continue;add(c.name,`${pName()} → 株式保有`,Trade.own(t)*Eq.founderPct(),c.rev,c.emp,t);}}
+  // 個人が直接持つ会社・株式
+  for(const c of Me.cos())add(c.name,'あなた → 個人所有',c.meOwn||1,c.rev,c.emp,c.t);
+  for(const t in M.hold){const c=CM[t];if(!c)continue;const p=M.hold[t].q/c.shares;if(p<.02)continue;add(c.name,'あなた → 個人の持株',p,c.rev,c.emp,t);}
+  rows.sort((a,b)=>b.pct*b.rev-a.pct*a.rev);
+  const rev=sum(rows,r=>r.rev*r.pct),emp=Math.round(sum(rows,r=>r.emp*r.pct)),n=rows.length;
+  const al=(S.ally&&S.ally.list)||[];
+  return ['🌑 SHADOW EMPIRE',`<div class="view" data-k="shadow">
+   <div class="card" style="background:linear-gradient(135deg,color-mix(in srgb,var(--ink) 12%,var(--sf)),var(--sf))"><div class="grid3" style="font-size:12px"><div><div class="mut3">実質支配の売上</div><b class="num">${yen(rev)}</b></div><div><div class="mut3">実質の従業員</div><b class="num">${nf(emp)}人</b></div><div><div class="mut3">関係する企業</div><b class="num">${n}社</b></div></div>
+    <p class="note" style="margin-bottom:0">あなた個人の持分をたどって、間接的に支配・影響している企業を集計しています（持株比率×売上）。表向きは別々の会社でも、たどればひとつのネットワークです。</p></div>
+   <h3>支配のネットワーク</h3><div class="nbox">${rows.slice(0,30).map(r=>`<button class="nl" ${r.t?`data-act="stock" data-t="${r.t}"`:''}><span class="tm">${pctp(r.pct,1)}</span><span class="sp"><span class="hd">${esc(r.n)}</span><span class="mt"><span>${esc(r.path)}</span><span>売上 ${yen(r.rev)}</span><span>${nf(r.emp)}人</span></span></span></button>`).join('')||'<div class="empty">まだネットワークはありません</div>'}</div>
+   ${al.length?`<h3>提携関係</h3><div class="card" style="font-size:12.5px">${al.map(a=>`<div class="row"><span class="sp">${esc(a.n)}</span><span class="mut3">残り${a.m}ヶ月</span></div>`).join('')}</div>`:''}
+   ${Rival.list().length?`<h3>因縁のある経営者</h3><div class="nbox">${Rival.list().map(r=>`<div class="nl"><span class="tm">${r.t?'🔥':'—'}</span><span class="sp"><span class="hd">${esc(r.name)}${r.t&&CM[r.t]?` → ${esc(CM[r.t].name)}`:'（再起を準備中）'}</span><span class="mt"><span>元 ${esc(r.from)}</span><span>${SECTORS[r.sec].n}</span><span>${r.how==='hostile'?'敵対的買収された':'買収された'}</span></span></span></div>`).join('')}</div>`:''}</div>`];};}
+
 /* ---------- 世界情勢（WORLD） ---------- */
 function shWorld(){return()=>{const G=Geo.st(),E=S.econ,W=S.gl||{};
   const ten=Geo.pairs.map(p=>({p,t:Math.round(G.ten[Geo.key(p)]??0),war:G.wars.some(w=>w.k===Geo.key(p))})).sort((a,b)=>b.t-a.t);
@@ -3128,7 +3191,7 @@ function vMe(){const M=Me.st(),q=S.eq,net=Me.net(),ownPct=Eq.founderPct(),hs2=Ob
   <h3 class="row"><span class="sp">🌐 世界影響力</span><span class="num">${Influence.score()} / 1000</span></h3>
   <div class="card"><div class="bar"><i style="width:${Influence.score()/10}%"></i></div><div style="font-size:13px;font-weight:700;margin-top:6px">${Influence.tier()}</div>
    <div class="wp-lg" style="padding:8px 0 0">${Object.entries(Influence.parts()).filter(x=>x[1]>=1).map(([k,v])=>`<span><i style="--c:var(--ai)"></i>${k} ${Math.round(v)}</span>`).join('')}</div>
-   <button class="btn sub w sm" data-act="world" style="margin-top:8px">🌐 世界の情勢を見る</button></div>
+   <div class="row" style="gap:8px;margin-top:8px"><button class="btn sub sp sm" data-act="world">🌐 世界の情勢</button><button class="btn sub sp sm" data-act="shadow">🌑 SHADOW EMPIRE</button></div></div>
   <h3>あなたが個人で持つ会社</h3><div class="card">
    ${Me.cos().length?Me.cos().map(c=>`<div class="ctl"><div class="lb"><b>${esc(c.name)}${c.priv?'<span class="tag g">非上場</span>':'<span class="tag">上場</span>'}</b><span>${SECTORS[c.sec].n}・年商${yen(c.rev)}・持分${pctp(c.meOwn,0)}・現金${yen(c.cash)}</span></div><button class="btn sm" data-act="coSel" data-v="${c.t}">経営画面</button></div>`).join(''):'<p class="note" style="margin:0">個人で持つ会社はありません。本体とは別に、自分の会社を作れます。</p>'}
    <button class="btn w sub" style="margin-top:8px" data-act="meFound" ${M.cash<3e7?'disabled':''}>個人で新会社を設立（${yen(Math.max(3e7,Math.round(M.cash*.2)))}円）</button></div>
@@ -3826,17 +3889,19 @@ function shNews(id){return()=>{const n=S.news.find(x=>x.id===id);if(!n)return['�
    <div style="margin-bottom:4px"><span class="lvb l${nLv(n)}">${LVN[nLv(n)]}</span> <span class="mut3" style="font-size:11px">${nGrp(n)}・${nTime(n)}配信</span></div><div style="font-size:16px;font-weight:700;line-height:1.5">${n.tn>0?'<span class="up">▲</span> ':n.tn<0?'<span class="dn">▼</span> ':''}${esc(n.title)}</div>
    ${n.body?`<p style="font-size:14px;line-height:1.75;color:var(--ink2);margin:8px 0 0">${esc(n.body)}</p>`:''}
    ${n.imp?`<h3>あなたへの影響</h3><div class="card"><ul class="impl" style="font-size:13px">${n.imp.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
-   ${evc?`<div class="alert w" style="margin-top:10px"><span class="dot"></span><span>この出来事は現在「${evc.stage==='rumor'?'兆候':'発生中'}」の段階です（ホームの「進行中の出来事」で進み具合を確認できます）。</span></div>`:''}
+   ${evc?`<div class="alert w" style="margin-top:10px"><span class="dot"></span><span>この出来事は現在「${({rumor:'兆候',active:'発生',peak:'拡大',fade:'終息へ'})[evc.stage]||'進行中'}」の段階です（ホームの「進行中の出来事」で進み具合を確認できます）。</span></div>`:''}
    ${mk}${ec}
    ${gl.map(g=>`<h3>解説：${g[1]}</h3><div class="card"><p style="margin:0;font-size:13px;line-height:1.75">${g[2]}</p></div>`).join('')}
    ${rel.length?`<h3>関連ニュース</h3><div class="nbox">${rel.map(newsRow).join('')}</div>`:''}</div>`];};}
 
 /* ---------- 進行中の出来事と重大ニュース ---------- */
+const EVSTG=['兆候','発生','拡大','終息へ'];
 function evCards(){if(!S.events.length)return '';
-  return `<h3>進行中の出来事</h3>`+S.events.map(e=>{const d=EVD[e.id],pre=e.stage==='rumor',p=pre?(e.warn?Math.min(1,e.t/e.warn):1):Math.min(1,e.t/e.dur);
-    const imp=Events.impact(d,e,pre);const st=pre?0:1;
-    return `<div class="ev"><div class="row"><b class="sp" style="font-size:14px">${esc(Events.fill(d.name,e))}</b><span class="tag ${pre?'':'b'}">${pre?'兆候':'発生中'}</span></div>
-     <div class="steps">${[0,1,2].map(i=>`<i class="${i<st?'f':i===st?'c':''}" style="--p:${Math.round(p*100)}%"></i>`).join('')}</div><div class="stl">${['兆候','発生中','終息'].map((x,i)=>i===st?`<b>${x}</b>`:`<span>${x}</span>`).join('')}</div>
+  return `<h3>進行中の出来事</h3>`+S.events.map(e=>{const d=EVD[e.id],pre=e.stage==='rumor',st={rumor:0,active:1,peak:2,fade:3}[e.stage]??1;
+    const seg=[e.warn||1,Math.round(e.dur*.35),Math.round(e.dur*.4),Math.round(e.dur*.35)][st]||1,p=Math.min(1,e.t/seg);
+    const imp=Events.impact(d,e,pre);
+    return `<div class="ev"><div class="row"><b class="sp" style="font-size:14px">${esc(Events.fill(d.name,e))}</b><span class="tag ${pre?'':'b'}">${EVSTG[st]}</span></div>
+     <div class="steps">${[0,1,2,3].map(i=>`<i class="${i<st?'f':i===st?'c':''}" style="--p:${Math.round(p*100)}%"></i>`).join('')}</div><div class="stl">${EVSTG.map((x,i)=>i===st?`<b>${x}</b>`:`<span>${x}</span>`).join('')}</div>
      <ul class="impl">${imp.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;}).join('');}
 function impNews(){const L=S.news.filter(n=>n.lv&&(S.y*12+S.m)-(n.y*12+n.m)<=2).slice(0,3);if(!L.length)return '';
   return `<h3 class="row"><span class="sp">重要ニュース</span><button class="btn sub sm" data-act="impAll">すべて見る</button></h3><div class="nbox">${L.map(newsRow).join('')}</div>`;}
@@ -4058,7 +4123,7 @@ const A={
   meTob:d=>{const c=CM[d.t],P=Me.tobCost(d.t,.51);approveBox({kind:'ma',title:`個人による${c.name}のTOB（51%取得）`,amount:P.cost,rows:[['起案','個人'],['買付価格',nf(P.px)+'円（+30%）'],['取得株数',nf(P.need)+'株'],['必要な個人資金',yen(P.cost)+'円'],['個人現金',yen(Me.st().cash)+'円']],note:'会社の資金ではなく、あなた個人の資金で買います。取得後は個人の傘下企業になります。',ok:()=>{if(!err(Me.tob(d.t,.51)))toast('取得しました');render();}});},
   meSucceed:d=>approveBox({kind:'succeed',title:'後継者への世代交代',amount:0,rows:[['後継者',Me.heirs()[+d.v].name+`（${Me.heirs()[+d.v].rel}・${Me.heirs()[+d.v].age}歳）`],['能力',String(Me.heirs()[+d.v].ab)],['相続税','個人資産の40%'],['あなたの年齢',Me.st().age+'歳']],note:'引き継ぐと、あなたは次の世代の経営者としてゲームを続けます。会社と株式はそのまま引き継がれます。',ok:()=>{if(!err(Me.succeed(+d.v)))toast('世代交代しました');render();}}),
   chron:()=>openSheet(()=>['📜 年表',`<div class="nbox">${(S.chron||[]).map(h=>`<div class="nl"><span class="tm">${h.y}</span><span class="sp"><span class="hd">${esc(h.e)}</span><span class="mt"><span class="lvb l1">${esc(h.tag||'記録')}</span><span>${h.y}年${h.m}月</span></span></span></div>`).join('')||'<div class="empty">まだ記録はありません</div>'}</div>`]),
-  world:()=>openSheet(shWorld()),reType:d=>{UI.reType=d.v;render();},
+  world:()=>openSheet(shWorld()),shadow:()=>openSheet(shShadow()),reType:d=>{UI.reType=d.v;render();},
   reFound:()=>{const t=BT[UI.reType];const nm=prompt('新しい会社の名前',S.player.name)||S.player.name;
     approveBox({kind:'biz',title:`新会社「${nm}」の創業（${t.n}事業）`,amount:Math.max(3e6,Math.round(Me.st().cash*.5)),rows:[['起案','あなた'],['資本金',yen(Math.min(Math.max(3e6,Math.round(Me.st().cash*.5)),Me.st().cash))+'円'],['最初の事業',t.n],['個人現金',yen(Me.st().cash)+'円']],note:'個人資産の半分を資本金として、新しい会社を立ち上げます。残りは個人資産のままです。',ok:()=>{if(!err(Life.found(nm,UI.reType))){UI.tab='home';toast('創業しました');}render();}});},
   meSal:d=>{err(Me.setSalary(+d.v));render();},
@@ -4163,7 +4228,7 @@ const A={
   auto:()=>{setAuto(!UI.auto);render();},
   speed:()=>{const s=[1,2,5,10];UI.speed=s[(s.indexOf(UI.speed)+1)%4];if(UI.auto)setAuto(true);render();},
   setSpeed:d=>{UI.speed=+d.v;if(UI.auto)setAuto(true);render();},
-  biz:d=>openSheet(shBiz(d.id)),newbiz:()=>openSheet(shNewBiz()),
+  biz:d=>openSheet(shBiz(d.id)),newbiz:()=>openSheet(shNewBiz()),newBiz:()=>openSheet(shNewBiz()),   /* 新規事業ボタン（表記ゆれ対応） */
   bPrice:d=>{Biz.setPrice(S.biz.find(b=>b.id===d.id),+d.v);render();},
   bAd:d=>{Biz.setAd(S.biz.find(b=>b.id===d.id),+d.v);render();},
   bRd:d=>{Biz.setRd(S.biz.find(b=>b.id===d.id),+d.v);render();},
