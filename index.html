@@ -409,6 +409,10 @@ nav span{font-size:9.5px}
 .ex .ab{height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:4px}
 .ex .ab i{display:block;height:100%;background:var(--ai);transition:width .6s}
 /* 企業ツリー */
+.cosel{display:flex;gap:4px;overflow-x:auto;margin-bottom:8px;scrollbar-width:none}.cosel::-webkit-scrollbar{display:none}
+.cosel button{flex:none;height:26px;padding:0 8px;border-radius:8px;border:1px solid var(--line);background:var(--sf);color:var(--ink2);font-size:11px;white-space:nowrap}
+.cosel button.on{background:var(--ai);border-color:var(--ai);color:#fff;font-weight:700}
+.cosel .lb2{font-size:10.5px;color:var(--ink3);align-self:center;flex:none;margin-right:2px}
 .tree{font-size:13px}
 .tree .nd{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--sf);border:1px solid var(--line);cursor:pointer;width:100%;text-align:left;color:inherit;font:inherit}
 .tree .nd .pc{font-family:var(--fn);font-weight:700;color:var(--ai);min-width:44px}
@@ -2351,6 +2355,40 @@ const Me={
   pGlExit(t,k){const c=CM[t];if(!c.glc||!c.glc.includes(k))return '進出していません';c.glc=c.glc.filter(x=>x!==k);c.ovs=Math.max(0,(c.ovs||0)-.06);
     c.cash+=Math.round(CTY[k].entry*S.econ.pIdx*.2);News.add('企業',`${c.name}、${CTY[k].n}から撤退`,'選択と集中を進める。',c.t,-1);return null;}
 ,
+  // 個人で持つ会社の役員会議（議題→役員の意見→社長決裁→即実行）
+  pAgendas(t){const c=CM[t],A=[];if(!c)return A;
+    if(c.cash>c.rev*.12)A.push({k:'grow',n:'成長投資による事業拡大',amt:Math.round(c.rev*.08),why:`現金${yen(c.cash)}円に余裕がある`});
+    if(c.opm<c.tOpm-.01&&c.cash>c.rev*.08)A.push({k:'equip',n:'設備投資による利益率の改善',amt:Math.round(c.rev*.06),why:`利益率${pctp(c.opm)}は目標を下回る`});
+    if(c.g>.12&&c.cash>c.rev*.03)A.push({k:'hire',n:'増員による供給能力の拡大',amt:Math.round(c.rev*.02),why:`成長率${pct(c.g,0)}に人員が追いついていない`});
+    if(c.opm<0)A.push({k:'cut',n:'人員削減による収益改善',amt:0,why:'営業赤字が続いている'});
+    if((c.ovs||0)<.3&&c.cash>c.rev*.15)A.push({k:'gl',n:'海外展開',amt:Math.round(c.rev*.1),why:`海外売上比率は${pctp(c.ovs||0,0)}にとどまる`});
+    if(c.cash>c.rev*.6)A.push({k:'ma',n:'同業他社の買収',amt:Math.round(c.rev*.5),why:'手元資金で規模を一気に広げられる'});
+    if(c.priv&&c.rev>=1e9)A.push({k:'ipo',n:'新規上場（IPO）',amt:0,why:'年商10億円を超え、上場の条件を満たした'});
+    if(c.debt>c.equity*1.2)A.push({k:'repay',n:'借入の圧縮',amt:0,why:`有利子負債が純資産の${(c.debt/Math.max(1,c.equity)).toFixed(1)}倍`});
+    return A;},
+  // 役員の意見（その会社の役員の能力・性格で変わる）
+  pOps(t,ag){const c=CM[t],ex=c.pex||{},L=[];const cash=c.cash;
+    const tx={CFO:{grow:[`現金${yen(cash)}円に対し投資額は${pctp(ag.amt/Math.max(1,cash),0)}。回収期間を見れば許容できます。`,`投資後の手元資金が薄くなります。半分に抑えるべきです。`],
+        equip:['設備更新は利益率の改善に直結します。賛成です。','減価償却が増える点は見ておく必要があります。'],hire:['人件費は固定費です。需要が続く前提なら賛成します。','採用より外部委託のほうが安全です。'],
+        cut:['短期的には費用がかさみますが、収益構造は改善します。','削減しすぎると回復局面で人が足りなくなります。'],gl:['為替と現地の税制を踏まえると、回収に時間がかかります。','海外の売上が増えれば収益の振れ幅は小さくなります。'],
+        ma:[`買収額${yen(ag.amt)}円は現金の${pctp(ag.amt/Math.max(1,cash),0)}。のれんの負担に注意が必要です。`,'相手の財務が健全なら、資金効率の面で妥当です。'],ipo:['調達した資金を成長に回せます。上場コストは増えます。','財務体質を整えてからでも遅くありません。'],repay:['金利負担が重く、まず借入を減らすべきです。','返済より投資に回したほうが利回りは高いはずです。']},
+      COO:{grow:['現場は受け入れられます。立ち上げ要員は内部で回します。','いまの体制では手が回りません。人を先に入れてください。'],equip:['生産能力の制約が外れます。強く賛成します。','導入期は一時的に稼働が落ちます。'],hire:['現場は限界です。採用は急務です。','教育の負担が大きく、いきなり増やすのは危険です。'],
+        cut:['配置転換で対応できます。','現場の士気が下がる点は避けられません。'],gl:['現地の物流と人材の確保が課題です。','拠点さえ作れば運営はできます。'],ma:['統合には人員の再配置が必要です。','販売網を取り込めれば効率は上がります。'],ipo:['管理体制の整備に時間が要ります。','内部統制はすでに整えつつあります。'],repay:['投資を止めれば現場は停滞します。','財務が安定すれば、長期の計画が立てやすくなります。']},
+      CTO:{grow:['技術的な障壁はありません。','先に基盤の刷新が必要です。'],equip:['自動化を同時に進めるべきです。','既存設備でもまだ戦えます。'],hire:['技術者の確保が難しい状況です。','育成の仕組みは整っています。'],cut:['開発部門は削らないでください。','非効率な工程は整理できます。'],
+        gl:['現地対応の開発工数が増えます。','技術は横展開できます。'],ma:['システム統合に半年はかかります。','相手の技術は当社に足りない部分を埋めます。'],ipo:['監査対応の工数が必要です。','システム面の準備はできています。'],repay:['研究開発費が削られるのは避けたい。','財務の安定は長期の開発に効きます。']},
+      CMO:{grow:['需要は十分あります。広告も合わせて強化しましょう。','認知が追いついていません。まず市場を作るべきです。'],equip:['品質が上がれば価格も上げられます。','顧客は設備より体験を見ています。'],hire:['販売現場の人手が足りていません。','固定費より広告に回すべきです。'],
+        cut:['ブランドへの影響が心配です。','不採算の整理は顧客にも伝わります。'],gl:['現地のブランド構築には時間と広告費がかかります。','海外の需要は確実に伸びています。'],ma:['顧客基盤を一気に広げられます。','ブランドの統合が難しい相手です。'],ipo:['上場は信用力になり、法人顧客が増えます。','いまは事業の成長を優先すべきです。'],repay:['販促を止めるとシェアを失います。','健全な財務はブランドの一部です。']}};
+    for(const r of ['CFO','COO','CTO','CMO']){const e=ex[r];if(!e)continue;const good=e.ab>=60?0:1,alt=(hs(t+r+ag.k+S.month)%2);
+      const arr=(tx[r]||{})[ag.k]||['判断はお任せします。','特に異論はありません。'];const i=(good+alt)%arr.length;
+      const st=(i===0?1:-1)*(e.ab>=70?2:1);L.push({r,name:e.name,st:clamp(st,-2,2),tx:arr[i]});}
+    return L;},
+  pDecide(t,ag,ok){const c=CM[t];if(!ok){this.st().hist&&0;return null;}
+    const e=this.act(t,ag.k==='ipo'?'x':ag.k);
+    const r=ag.k==='ipo'?this.listCo(t):e;
+    if(!r){if(!c.pboard)c.pboard=[];c.pboard.unshift({y:S.y,m:S.m,n:ag.n,res:'承認'});if(c.pboard.length>20)c.pboard.length=20;
+      News.add('企業',`${c.name}、${ag.n}を決定`,'取締役会での審議を経て決定した。',c.t,1,{lv:1});}
+    return r;}
+,
   act(t,k,v){const c=CM[t],M=this.st();if(!c||!c.meOwn)return '個人の会社ではありません';const cash=c.cash;
     const pay=(x,lab)=>{if(cash<x)return `${c.name}の現金が足りません（必要 ${yen(x)}円）`;c.cash-=x;return null;};
     if(k==='grow'){const x=Math.round(c.rev*.08);const e=pay(x);if(e)return e;c.edge=(c.edge??0)+.03;c.boost+=.02;c.opm-=.004;M.hist.unshift({y:S.y,m:S.m,e:`${c.name}に成長投資 ${yen(x)}円`});return null;}
@@ -2967,18 +3005,17 @@ function rankList(metric){const C=Co.cons();
   const L=Market.listed().filter(c=>Trade.own(c.t)<=.5).map(c=>({name:c.name,t:c.t,rev:c.rev,op:c.rev*c.opm,ni:Market.ni(c),cap:c.price*c.shares,assets:c.equity+c.debt+c.rev*.15,emp:c.emp,g:c.qh.length>4?c.qh[c.qh.length-1].rev/c.qh[c.qh.length-5].rev-1:c.g}));
   L.push(me);return L.sort((a,b)=>b[metric]-a[metric]);}
 // 会社セレクター：本体と、個人で持つ会社を切り替える
-function coSelector(){const L=Me.cos();if(!L.length)return '';
-  const cur=UI.coSel&&CM[UI.coSel]?UI.coSel:'ME';
-  return `<div class="chips" style="margin-bottom:8px"><span class="mut" style="font-size:12px;align-self:center;margin-right:2px">🏢 経営会社</span>
-   <button class="chip ${cur==='ME'?'on':''}" data-act="coSel" data-v="ME">${esc(pName())}</button>
-   ${L.map(c=>`<button class="chip ${cur===c.t?'on':''}" data-act="coSel" data-v="${c.t}">${esc(c.name)}${c.meCeo?'（CEO：あなた）':''}</button>`).join('')}</div>`;}
+function coSelector(act){const L=Me.cos();if(!L.length)return '';const a='coSel';
+  const k=UI.coSel&&CM[UI.coSel]?UI.coSel:'ME';
+  return `<div class="cosel"><span class="lb2">🏢</span><button class="${k==='ME'?'on':''}" data-act="${a}" data-v="ME">${esc(pName())}</button>
+   ${L.map(c=>`<button class="${k===c.t?'on':''}" data-act="${a}" data-v="${c.t}">${esc(c.name)}</button>`).join('')}</div>`;}
 function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が見つかりません</div>';const seg=UI.pSeg||'over',ni=Market.ni(c),ta=c.equity+c.debt+c.rev*.15;
-  const tabs=[['over','概要'],['mng','経営'],['res','業績'],['sh','株主']];
+  const tabs=[['over','概要'],['mtg','会議'],['mng','経営'],['res','業績'],['sh','株主']];
   const cell=(k,v,cl='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${cl}">${v}</b></div>`;
-  let h=`${UI.tab==='biz'?'':coSelector()}<h2 class="row"><span class="sp">${esc(c.name)}</span><span class="chip">${c.priv?'非上場':'上場'}・持分${pctp(c.meOwn||0,0)}</span></h2>
+  let h=`${coSelector(UI.tab==='biz'?'bizSel':'coSel')}<h2 class="row"><span class="sp">${esc(c.name)}</span><span class="chip">${c.priv?'非上場':'上場'}・持分${pctp(c.meOwn||0,0)}</span></h2>
    <div class="seg">${tabs.map(x=>`<button class="${seg===x[0]?'on':''}" data-act="pSeg" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
   if(seg==='over'){h+=`${WP.html({id:c.t,key:c.sec,emp:c.emp,g:c.g,ni,name:c.name,city:c.pf?.city})}
-   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('代表者',esc(c.meCeo?S.player.ceo+'（あなた）':c.ceoN||c.pf?.ceo||'—'))}${cell('売上高（年）',yen(c.rev))}${cell('営業利益',yen(c.rev*c.opm),tone(c.opm))}${cell('純利益',yen(ni),tone(ni))}${cell('利益率',pctp(c.opm))}${cell('成長率',pct(c.g,1),tone(c.g))}${cell('現金',yen(c.cash))}${cell('純資産',yen(c.equity))}${cell('有利子負債',yen(c.debt))}${cell('従業員',nf(c.emp)+'人')}${cell('市場シェア',pctp(Market.share(c),2))}${cell('海外売上比率',pctp(c.ovs||0,0))}</div></div>
+   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('代表者',esc(c.meCeo?(Me.st().role==='CEO'?S.player.ceo+'（あなた）':S.player.ceo):(c.ceoN||c.pf?.ceo||'—')))}${cell('売上高（年）',yen(c.rev))}${cell('営業利益',yen(c.rev*c.opm),tone(c.opm))}${cell('純利益',yen(ni),tone(ni))}${cell('利益率',pctp(c.opm))}${cell('成長率',pct(c.g,1),tone(c.g))}${cell('現金',yen(c.cash))}${cell('純資産',yen(c.equity))}${cell('有利子負債',yen(c.debt))}${cell('従業員',nf(c.emp)+'人')}${cell('市場シェア',pctp(Market.share(c),2))}${cell('海外売上比率',pctp(c.ovs||0,0))}</div></div>
    ${!c.priv?`<div class="card"><div class="row"><div class="sp"><div class="mut" style="font-size:12px">株価</div><div class="num" style="font-size:24px;font-weight:600">${nf(c.price)}円</div></div><div class="r"><div class="num">${yen(c.price*c.shares)}</div><div class="mut3" style="font-size:11px">時価総額</div></div></div>${candles(c,52,'pco'+t,1)}
     <button class="btn sub w" style="margin-top:8px" data-act="stock" data-t="${t}">市場での銘柄ページを見る</button></div>`:''}`;}
   if(seg==='mng'){const A=(k,lab,d,dis)=>`<div class="ctl"><div class="lb"><b>${lab}</b><span>${d}</span></div><button class="btn sm ${dis?'sub':''}" data-act="pAct" data-t="${t}" data-v="${k}" ${dis?'disabled':''}>実行</button></div>`;
@@ -3000,12 +3037,22 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
     ${c.meCeo?A('ceo','外部から代表を招く','あなたは株主として残る（自動で運営されます）'):A('ceoMe','自分が代表に戻る','再び自分で経営する')}
     ${A('sell','この会社を売却する','売却益の8割が個人資産になります')}
     ${S.biz.length?`<div class="ctl"><div class="lb"><b>本体の事業を移す（スピンオフ）</b><span>個人タブから実行できます。反発のリスクがあります</span></div><button class="btn sm sub" data-act="meCo" data-t="${t}">開く</button></div>`:''}</div>`;}
+  if(seg==='mtg'){const ex=Object.keys(c.pex||{}).length,A=Me.pAgendas(t);
+    h+=`<div class="card"><div class="row"><div class="sp"><b>🏛️ ${esc(c.name)}の経営会議</b><div class="mut" style="font-size:12px">${S.y}年${S.m}月・出席 ${ex+1}名（代表：${esc(c.meCeo?S.player.ceo:(c.ceoN||'—'))}）</div></div><span class="tag">${A.length}件</span></div>
+     ${ex?'':'<p class="note" style="margin-bottom:0">役員がいないため、社長ひとりで判断します。「経営」タブから役員を招へいすると意見が聞けます。</p>'}</div>
+     ${A.map((ag,i)=>{const ops=Me.pOps(t,ag),sum2=sum(ops,o=>o.st);
+       return `<div class="mtg"><div class="hd2"><span class="sp">議題</span>${ag.amt?`<span class="num">${yen(ag.amt)}円</span>`:''}</div><div class="ag">${esc(ag.n)}</div>
+        <div class="mut" style="font-size:12px;margin-bottom:4px">${esc(ag.why)}</div>
+        ${ops.map(o=>`<div class="spk"><span class="rl ${o.r.toLowerCase()}">${o.r}</span><span class="sp"><b>${esc(o.name)}</b><span class="stn ${o.st>0?'y':o.st<0?'n':''}">${Board.stName(o.st)}</span><div style="margin-top:2px;color:var(--ink2);line-height:1.6">${esc(o.tx)}</div></span></div>`).join('')}
+        <div class="rsl ${sum2>0?'ok':sum2<0?'ng':'ce'}">会議の結論：${ops.length?(sum2>=2?'承認を推奨':sum2>0?'条件付きで賛成':sum2<=-2?'見送りを推奨':'意見が分かれています'):'社長の判断に委ねます'}</div>
+        <div class="row" style="gap:8px;margin-top:8px"><button class="btn sub sp" data-act="pmNo" data-t="${t}" data-v="${i}">見送る</button><button class="btn sp" data-act="pmYes" data-t="${t}" data-v="${i}">承認して実行</button></div></div>`;}).join('')||'<p class="note">いまは会議にかける議題がありません。時間を進めると状況が変わります。</p>'}
+     ${(c.pboard||[]).length?`<h3>会議の履歴</h3><div class="nbox">${c.pboard.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.n)}</span><span class="mt"><span class="lvb l2">${x.res}</span><span>${x.y}年${x.m}月</span></span></span></div>`).join('')}</div>`:''}`;}
   if(seg==='res')h+=resHTML(c)+discListCo(c);
   if(seg==='sh')h+=holdersHTML(c);
   return h;}
 function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meOwn)return vPCo(UI.coSel);const seg=UI.coSeg;
   const tabs=[['overview','概要'],['board','会議'],['res','決算'],['fs','財務'],['group','連結'],['global','海外'],['stock','株式'],['loan','融資'],['rank','順位']];
-  let h=`${coSelector()}<h2>会社</h2><div class="seg">${tabs.map(t=>`<button class="${seg===t[0]?'on':''}" data-act="coSeg" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>`;
+  let h=`${coSelector('coSel')}<h2>会社</h2><div class="seg">${tabs.map(t=>`<button class="${seg===t[0]?'on':''}" data-act="coSeg" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>`;
   const hist=S.co.hist,last=hist[hist.length-1];
   if(seg==='overview'){
     h+=`<div class="card"><div class="row">${logoEl(S.player,44)}<div class="sp"><b style="font-size:16px">${esc(pName())}</b><div class="mut" style="font-size:12.5px">代表 ${esc(S.player.ceo)}・${esc(S.player.city)}・創業${S.month}ヶ月</div></div></div>
@@ -3391,13 +3438,15 @@ function myWorkplace(){const bz=S.biz.slice().sort((a,b)=>(b.last?.rev||0)-(a.la
   const o=b?{id:b.id,key:b.type,emp:Math.max(1,b.staff),g:Co.growth(),ni:b.last?.op??0,name:`${S.player.name}・${BT[b.type].n}事業`,city:S.player.city,util:b.util,equip:b.equip,fac:fac(b)}
     :{id:'me',key:bz[0]?.type||'it',emp:Co.emp(),g:Co.growth(),ni:last?.pl.ni??0,name:pName(),city:S.player.city+'本社',util:bz[0]?.util,equip:bz[0]?.equip,fac:[['🏢','本社',1],...S.biz.map(x=>[{food:'🍽️',retail:'🏪',ec:'📦',mfg:'🏭',it:'💻',saas:'☁️',ad:'📣',logi:'🚚',re:'🏢',ent:'🎬'}[x.type]||'🏬',BT[x.type].n,Math.max(1,x.locs||1)]),...(MA.subs().length?[['🤝','子会社',MA.subs().length]]:[]),...(Global.n()?[['🌐','海外拠点',sum(Global.ops(),([k,o])=>o.locs||1)]]:[])]};
   return `${S.biz.length>1?`<div class="chips">${[['all','会社全体'],...bz.map(x=>[x.id,BT[x.type].n])].map(x=>`<button class="chip ${sel===x[0]?'on':''}" data-act="wpB" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`:''}${WP.html(o)}`;}
-function exRow(r,e,me){const col={CEO:'var(--ai)',CFO:'#C28A1B',CTO:'#0E8C8C',COO:'#34405E',CMO:'#D24C8F'}[r];
+function exRow(r,e,me){const col={CEO:'var(--ai)',株主:'#8A6D1E',CFO:'#C28A1B',CTO:'#0E8C8C',COO:'#34405E',CMO:'#D24C8F'}[r];
+  if(!EXR[r]&&!e)return '';
   if(!e)return `<div class="ex"><span class="av" style="--c:var(--line);color:var(--ink3)">${r}</span><div class="sp"><b>${r}（空席）</b><div class="mut" style="font-size:11.5px">${EXR[r].n}：${EXR[r].fx}</div></div><button class="btn sm sub" data-act="exC" data-v="${r}">候補者</button></div>`;
-  const ten=me?'創業者':e.yrs!=null?`在籍${e.yrs}年`:`在籍${Math.max(0,S.month-e.since)}ヶ月`;
+  const ten=me?(r==='株主'?'創業者':'創業者・CEO'):e.yrs!=null?`在籍${e.yrs}年`:`在籍${Math.max(0,S.month-e.since)}ヶ月`;
   return `<div class="ex"><span class="av" style="--c:${col}">${r}</span><div class="sp"><b>${esc(e.name)}</b>${me?' <span class="tag">あなた</span>':''} <span class="mut3" style="font-size:11px">${e.pol||''}・${ten}</span>
     <div class="ab"><i style="width:${e.ab||0}%"></i></div><div class="mut" style="font-size:11px;margin-top:3px">${!me&&e.since!=null&&e.kn?`知識 製造${Math.round(e.kn.mfg)}・技術${Math.round(e.kn.tech)}・財務${Math.round(e.kn.fin)}・海外${Math.round(e.kn.gl)}・市場${Math.round(e.kn.mkt)}<br>`:''}能力 ${e.ab??'—'}${e.sal?`・年俸 ${yen(e.sal)}円`:''}${EXR[r]&&!me&&e.since!=null?`・${EXR[r].fx}（効果 ${Math.round(Exec.eff(r)*100)}%）`:''}</div></div>
     ${!me&&e.since!=null?`<button class="btn sm dng" data-act="exF" data-v="${r}">退任</button>`:''}</div>`;}
-function myExecs(){const E=Exec.st();return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:'オーナー経営'},1)}${['CFO','CTO','COO','CMO'].map(r=>exRow(r,E[r])).join('')}</div>
+function myExecs(){const E=Exec.st(),M=Me.st(),mine=M.role==='CEO';
+  return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:mine?'オーナー経営':'招へい経営者'},mine)}${mine?'':exRow('株主',{name:S.player.ceoOld||esc(M.name||'あなた'),ab:null,pol:`${M.role}・持株${pctp(Eq.founderPct(),1)}`},1)}${['CFO','CTO','COO','CMO'].map(r=>exRow(r,E[r])).join('')}</div>
   <p class="note">役員報酬は人件費に含まれます。着任から半年ほどで本来の力を発揮し、在籍が長いほど能力が伸びます。役員報酬の合計 月${yen(Exec.pay())}円。</p>`;}
 function shExec(role){return()=>{const L=Exec.cands(role);return [`${role}の候補者`,`<p class="note" style="margin-top:0">${EXR[role].n}：${EXR[role].fx}。候補者は半年ごとに入れ替わります。</p>
   <div class="list">${L.map((c,i)=>`<div class="li"><div class="sp"><div class="t">${esc(c.name)}（${c.age}歳）<span class="tag">${c.pol}</span></div><div class="ex" style="padding:4px 0 0;border:0"><div class="sp"><div class="ab"><i style="width:${c.ab}%"></i></div><div class="s">能力 ${c.ab}・年俸 ${yen(c.sal)}円・効果の強さ ×${EXP[c.pol].e}</div></div></div></div><button class="btn sm" data-act="exH" data-v="${role}" data-t="${i}">招へい</button></div>`).join('')||'<div class="empty">今期の候補者はいません</div>'}</div>`];};}
@@ -3649,11 +3698,8 @@ function shProp(id){return()=>{const p=S.props.find(x=>x.id===id);if(!p)return n
 
 const BCAT={食品:['food'],'ゲーム・IP':['gameB','park'],'都市・宇宙':['city','space'],小売:['retail','ec'],'IT・AI':['it','saas','cloud','aiB','telecom'],製造:['mfg','semi','battery','autoM','pharma'],エネルギー資源:['energyB','mining'],物流:['logi'],金融:['finB'],不動産:['re'],'メディア・エンタメ':['ad','ent','media'],スポーツ:['sports']};
 function bCat(t){for(const k in BCAT)if(BCAT[k].includes(t))return k;return 'その他';}
-function bizSelector(){const L=Me.cos();if(!L.length)return '';const cur=UI.bizSel&&CM[UI.bizSel]?UI.bizSel:'ME';
-  return `<div class="chips" style="margin-bottom:8px"><span class="mut" style="font-size:12px;align-self:center;margin-right:2px">🏢</span>
-   <button class="chip ${cur==='ME'?'on':''}" data-act="bizSel" data-v="ME">${esc(pName())}</button>
-   ${L.map(c=>`<button class="chip ${cur===c.t?'on':''}" data-act="bizSel" data-v="${c.t}">${esc(c.name)}</button>`).join('')}</div>`;}
-function vBiz(){if(UI.bizSel&&UI.bizSel!=='ME'&&CM[UI.bizSel]&&CM[UI.bizSel].meOwn)return bizSelector()+vPCo(UI.bizSel);
+function bizSelector(){return coSelector('bizSel');}
+function vBiz(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meOwn)return vPCo(UI.coSel);
   const sl=Co.slots(),q=(UI.bq||'').trim(),f=UI.bf||'all';
   const cat={};for(const b of S.biz){const c=bCat(b.type);(cat[c]=cat[c]||[]).push(b);}
   const pass=b=>{const l=b.last||{},t=BT[b.type];
@@ -3664,7 +3710,7 @@ function vBiz(){if(UI.bizSel&&UI.bizSel!=='ME'&&CM[UI.bizSel]&&CM[UI.bizSel].meO
     return BCAT[f]?BCAT[f].includes(b.type):true;};
   const L=S.biz.filter(pass),n=UI.bn||24;
   const tot=sum(S.biz,b=>b.last?.rev||0),op=sum(S.biz,b=>b.last?.op||0);
-  return `${bizSelector()}<h2 class="row"><span class="sp">事業ポートフォリオ</span><span class="chip">${S.biz.length} / ${sl}事業</span></h2>
+  return `${coSelector('bizSel')}<h2 class="row"><span class="sp">事業ポートフォリオ</span><span class="chip">${S.biz.length} / ${sl}事業</span></h2>
   <div class="card" style="font-size:12.5px"><div class="grid3"><div><div class="mut3">月商（合計）</div><b class="num">${yen(tot)}</b></div><div><div class="mut3">営業利益</div><b class="num ${tone(op)}">${yen(op)}</b></div><div><div class="mut3">責任者あり</div><b class="num">${S.biz.filter(b=>b.mg).length}事業</b></div></div>
    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(cat).sort((a,b)=>b[1].length-a[1].length).map(([k,v])=>`<button class="chip ${f===k?'on':''}" data-act="bFil" data-v="${k}">${k} ${v.length}</button>`).join('')}</div>
    <p class="note" style="margin-bottom:0">事業枠は会社の規模・役員・事業責任者の数で増えます。責任者を置いた事業は自動で運営されます。</p></div>
@@ -3727,10 +3773,10 @@ function vInvest(){const hs=Object.entries(S.hold);const mv=Co.secMV(),cost=Co.s
    <div class="mut" style="font-size:12px;margin-top:10px">投資に使える現金 <b class="num">${yen(S.co.cash)}円</b></div></div>
   <h3>保有銘柄</h3>
   <div class="list">${hs.map(([t,h])=>{const a=asset(t);if(!a)return '';const v=a.price*h.q,own=a.fund?0:h.q/a.shares,tr=Trade.tier(own);
-    return `<button class="li" data-act="stock" data-t="${t}"><div class="sp"><div class="t">${esc(a.name)}${kb(a)}</div><div class="s">${nf(h.q)}${a.fund?'口':'株'}・平均${nf(h.cost/h.q)}円${own>=.001?`・${pctp(own,2)}保有`:''} ${own>.5?`<span class="tag">${a.priv?'完全子会社':'子会社'}</span>`:tr?`<span class="tag">${tr}</span>`:''}</div></div><div class="r"><div class="num">${yen(v)}</div><div class="num ${tone(v-h.cost)}" style="font-size:12px">${pct(v/h.cost-1)}</div></div></button>`;}).join('')||'<div class="empty">まだ何も保有していません。市場タブで企業を探すか、下のファンドから始めましょう。</div>'}</div>
+    return `<div class="li" style="gap:6px"><button data-act="stock" data-t="${t}" style="display:flex;gap:10px;flex:1;min-width:0;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0"><div class="sp"><div class="t">${esc(a.name)}${kb(a)}</div><div class="s">${nf(h.q)}${a.fund?'口':'株'}・平均${nf(h.cost/h.q)}円${own>=.001?`・${pctp(own,2)}保有`:''} ${own>.5?`<span class="tag">${a.priv?'完全子会社':'子会社'}</span>`:tr?`<span class="tag">${tr}</span>`:''}</div></div><div class="r"><div class="num">${yen(v)}</div><div class="num ${tone(v-h.cost)}" style="font-size:12px">${pct(v/h.cost-1)}</div></div></button><div style="display:flex;flex-direction:column;gap:4px;flex:none"><button class="btn sm sub" data-act="qSell" data-t="${t}" data-v="half" style="padding:0 8px;height:26px;font-size:11px">半分</button><button class="btn sm dng" data-act="qSell" data-t="${t}" data-v="all" style="padding:0 8px;height:26px;font-size:11px">全部</button></div></div>`;}).join('')||'<div class="empty">まだ何も保有していません。市場タブで企業を探すか、下のファンドから始めましょう。</div>'}</div>
   ${(()=>{const M=Me.st(),ph=Object.entries(M.hold);if(!ph.length)return '';const v=Me.secMV(),c0=sum(ph,([t,h])=>h.cost);
     return `<h3>👤 個人で保有する株式</h3><div class="card" style="font-size:12.5px"><div class="grid3"><div><div class="mut3">評価額</div><b class="num">${yen(v)}</b></div><div><div class="mut3">取得原価</div><b class="num">${yen(c0)}</b></div><div><div class="mut3">損益</div><b class="num ${tone(v-c0)}">${yen(v-c0)}</b></div></div></div>
-    <div class="list">${ph.map(([t,h])=>{const a=asset(t);if(!a)return '';const pv=a.price*h.q;return `<button class="li" data-act="stock" data-t="${t}"><div class="sp"><div class="t">${esc(a.name)} <span class="tag">個人</span></div><div class="s">${nf(h.q)}株・平均${nf(h.cost/h.q)}円</div></div><div class="r"><div class="num">${yen(pv)}</div><div class="num ${tone(pv-h.cost)}" style="font-size:12px">${yen(pv-h.cost)}</div></div></button>`;}).join('')}</div>`;})()}
+    <div class="list">${ph.map(([t,h])=>{const a=asset(t);if(!a)return '';const pv=a.price*h.q;return `<div class="li" style="gap:6px"><button data-act="stock" data-t="${t}" style="display:flex;gap:10px;flex:1;min-width:0;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0"><div class="sp"><div class="t">${esc(a.name)} <span class="tag">個人</span></div><div class="s">${nf(h.q)}株・平均${nf(h.cost/h.q)}円</div></div><div class="r"><div class="num">${yen(pv)}</div><div class="num ${tone(pv-h.cost)}" style="font-size:12px">${yen(pv-h.cost)}</div></div></button><div style="display:flex;flex-direction:column;gap:4px;flex:none"><button class="btn sm sub" data-act="qSellMe" data-t="${t}" data-v="half" style="padding:0 8px;height:26px;font-size:11px">半分</button><button class="btn sm dng" data-act="qSellMe" data-t="${t}" data-v="all" style="padding:0 8px;height:26px;font-size:11px">全部</button></div></div>`;}).join('')}</div>`;})()}
   ${q.listed?(()=>{const ch=chg(q.price,q.prev),cap=q.price*q.shares,ni=Co.cons().ni,fv=q.founder*q.price;
    return `<h3>自社株（${esc(pName())}）</h3><button class="card" style="display:block;width:100%;text-align:left;border:0" data-act="coSeg" data-v="stock">
     <div class="row"><div class="sp"><div class="mut" style="font-size:12px">上場企業・${SECTORS[Eq.sector()].n}</div><div class="num" style="font-size:24px;font-weight:600">${N(q.price,'nf')}<span style="font-size:13px">円</span></div></div><div class="r"><div class="num ${tone(ch)}">${ch>=0?'▲':'▼'}${pct(ch)}</div><div class="mut3" style="font-size:11px">前週比</div></div></div>
@@ -4206,14 +4252,16 @@ const A={
   spName:()=>{const t=Sports.st().team;const v=prompt('新しい球団名',t.name);if(v){Sports.rename(v);toast('球団名を変更しました');render();}},
   spBuild:()=>approveBox({kind:'sports',title:'新球場の建設',amount:Sports.stadCost(),rows:[['起案','スポーツ事業本部'],['投資額',yen(Sports.stadCost())+'円'],['収容人数','45,000人'],['年間維持費',yen(50e8)+'円']],note:'球場を自社で持つことで使用料がなくなり、入場料とグッズの収入が増えます。',ok:()=>{if(!err(Sports.build()))toast('新球場を建設しました');render();}}),
   spSell:()=>confirmBox('球団を売却します。スポーツ事業から撤退します。',()=>{if(!err(Sports.sell())){closeSheet();toast('売却しました');}render();},'売却する',true),
-  bizSel:d=>{UI.bizSel=d.v;UI.pSeg='over';UI.tab='biz';render();$('main').scrollTop=0;},
-  coSel:d=>{UI.coSel=d.v;UI.pSeg='over';UI.tab='co';render();$('main').scrollTop=0;},pSeg:d=>{UI.pSeg=d.v;render();$('main').scrollTop=0;},
+  bizSel:d=>{UI.coSel=d.v;UI.bizSel=d.v;UI.pSeg='over';render();$('main').scrollTop=0;},
+  coSel:d=>{UI.coSel=d.v;UI.bizSel=d.v;UI.pSeg='over';render();$('main').scrollTop=0;},pSeg:d=>{UI.pSeg=d.v;render();$('main').scrollTop=0;},
   pAct:d=>{const c=CM[d.t],lab={grow:'成長投資',rd:'研究開発の強化',equip:'設備投資',hire:'採用',cut:'人員削減',price:'値上げ',price2:'値下げ',gl:'海外展開',ma:'他社の買収',borrow:'借入',repay:'繰上返済',ceo:'代表の交代',ceoMe:'自分が代表に戻る',sell:'会社の売却'}[d.v];
     confirmBox(`${c.name}で「${lab}」を実行します。`,()=>{if(!err(Me.act(d.t,d.v)))toast(lab+'を実行しました');render();},'実行する');},
   pexH:d=>{if(!err(Me.pexHire(d.t,d.v)))toast(d.v+'が就任しました');render();},pexF:d=>{err(Me.pexFire(d.t,d.v));render();},
   pAuto:d=>{Me.pAuto(d.t);render();},
   pGl:d=>confirmBox(`${CM[d.t].name}が${CTY[d.v].n}へ進出します（${yen(CTY[d.v].entry*S.econ.pIdx*.6)}円）。`,()=>{if(!err(Me.pGl(d.t,d.v)))toast('進出しました');render();},'進出する'),
   pGlX:d=>{if(!err(Me.pGlExit(d.t,d.v)))toast('撤退しました');render();},
+  pmYes:d=>{const t=d.t,ag=Me.pAgendas(t)[+d.v];if(!ag)return;approveBox({kind:'biz',title:`${CM[t].name}：${ag.n}`,amount:ag.amt,rows:[['起案',`${CM[t].name} 経営会議`],['投資額',ag.amt?yen(ag.amt)+'円':'—'],['理由',esc(ag.why)],['会社の現金',yen(CM[t].cash)+'円'],...Me.pOps(t,ag).map(o=>[o.r+'（'+o.name+'）',Board.stName(o.st),o.st>0?'up':o.st<0?'dn':''])],note:'この会社の資金で実行します。本体の資金は使いません。',ok:()=>{const e=Me.pDecide(t,ag,true);if(!err(e))toast('実行しました');render();}});},
+  pmNo:d=>{const c=CM[d.t],ag=Me.pAgendas(d.t)[+d.v];if(c&&ag){if(!c.pboard)c.pboard=[];c.pboard.unshift({y:S.y,m:S.m,n:ag.n,res:'見送り'});}toast('見送りました');render();},
   pPay:d=>{err(Me.act(d.t,'pay',+d.v));render();},
   spPick:d=>{const L=UI.spSel||[];UI.spSel=L.includes(d.v)?L.filter(x=>x!==d.v):[...L,d.v];render();},
   spGo:d=>{const ids=UI.spSel||[];const nm=prompt('新会社の名前','');approveBox({kind:'spin',title:'会社分割（分社化）',amount:0,rows:[['対象事業',ids.map(i=>bizName(S.biz.find(b=>b.id===i))).join('・')],['方式',{sub:'100%子会社として保有',me:'個人の会社にする',sell:'分社して売却'}[d.v]]],note:'選んだ事業は本体から切り離され、新会社に移ります。売却を選ぶと現金が入りますが、その事業の利益は今後入りません。',ok:()=>{if(!err(Me.spinOff(ids,nm,d.v))){UI.spSel=[];toast('分社化しました');}render();}});},
@@ -4296,6 +4344,10 @@ const A={
   tq:d=>{UI.trade.q=+d.v;renderSheets();},
   tqMax:d=>{if(UI.acct==='me'){const a2=asset(d.t);UI.trade.q=Math.max(100,Math.floor(Me.st().cash/(a2.price*1.001)/100)*100);return renderSheets();}UI.trade.q=Math.max(Trade.lot(asset(d.t)),Trade.maxBuy(d.t));renderSheets();},
   acct:d=>{UI.acct=d.v;renderSheets();},
+  qSell:d=>{const h=S.hold[d.t],a=asset(d.t);if(!h||!a)return;const q=d.v==='all'?h.q:Math.max(a.fund?1:100,Math.floor(h.q/2/(a.fund?1:100))*(a.fund?1:100));const o=Trade.quote(d.t,q,'sell');
+    confirmBox(`${a.name}を${nf(q)}${a.fund?'口':'株'}売却します（概算 ${yen(o.total)}円・損益 ${yen(o.total-h.cost*q/h.q)}円）。`,()=>{if(!err(Trade.sell(d.t,q)))FX.trade('sell',a,q,o.total/q,o.total);render();},'売却する');},
+  qSellMe:d=>{const M=Me.st(),h=M.hold[d.t],a=asset(d.t);if(!h||!a)return;const q=d.v==='all'?h.q:Math.max(100,Math.floor(h.q/2/100)*100);const tot=a.price*q*.999;
+    confirmBox(`個人の保有から${a.name}を${nf(q)}株売却します（概算 ${yen(tot)}円）。`,()=>{if(!err(Me.sell(d.t,q)))FX.trade('sell',a,q,a.price,tot);render();},'売却する');},
   buy:d=>{const a=asset(d.t),q=UI.trade.q,o=Trade.quote(d.t,q,'buy'),pers=UI.acct==='me';
     confirmBox(`${pers?'個人の資金で':'会社の資金で'}${a.name}を${nf(q)}${a.fund?'口':'株'}、約${yen(o.total)}円で買います。`,()=>{const e=pers?Me.buy(d.t,q):Trade.buy(d.t,q);if(!err(e))FX.trade('buy',a,q,o.total/q,o.total);render();});},
   sell:d=>{const pers=UI.acct==='me',hold=pers?(Me.st().hold[d.t]?.q||0):(S.hold[d.t]?.q||0),a=asset(d.t),q=Math.min(UI.trade.q,hold),o=Trade.quote(d.t,q,'sell');
