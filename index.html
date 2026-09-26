@@ -958,7 +958,7 @@ const Market={
     if(c.strat==='growth'){if(c.cash>c.rev*.1){c.cash-=c.rev*.05;c.edge=(c.edge??c.g)+.004*Math.max(0,1-(c.edge??c.g)/.25);c.opm-=.006;}else if(c.debt<c.equity*2){c.debt+=c.rev*.05;c.cash+=c.rev*.05;}}
     else if(c.strat==='stable'){if(c.cash>c.rev*.2&&c.debt>0){const x=Math.min(c.debt,c.rev*.05);c.debt-=x;c.cash-=x;}}
     else if(c.strat==='dividend'){c.payout+=.2*(.6-c.payout);
-      if(c.cash>c.rev*.3&&!c.priv&&R()<.25){const x=cap*.02;c.cash-=x;const n0=c.shares;c.shares=Math.round(c.shares*.98);c.jump+=.03;News.add('企業',`${c.name}、自社株買いを発表（発行済株式の2%）`,'1株あたり利益の押し上げ効果が見込まれる。',c.t,1);
+      if(c.cash>c.rev*.3&&!c.priv&&R()<.25){const x=cap*.02;c.cash-=x;const n0=c.shares;c.treasQ=(c.treasQ||0)+Math.round(c.shares*.02);c.shares=Math.round(c.shares*.98);c.treasQ=0;   /* 取得した自己株式は消却 */c.jump+=.03;News.add('企業',`${c.name}、自社株買いを発表（発行済株式の2%）`,'1株あたり利益の押し上げ効果が見込まれる。',c.t,1);
         Disc.add(c.t,'資本政策','自己株式の消却に関するお知らせ',{tn:1,sum:`取得した自己株式${nf(n0-c.shares)}株を消却します。`,tab:[['発行済株式数',c.shares,n0,null,null,1]],sec:[['株主への影響','発行済株式が減り、1株あたりの利益と配当の原資が増えます。']]});}}
     else if(c.strat==='investor'){c.mood=clamp(c.mood+(S.mkt.idx/S.mkt.m0-1)*.5,-.5,.5);}
     if(['food','retail'].includes(c.sec)&&S.econ.commod>1.15&&R()<.08){c.opm+=.01;c.edge=(c.edge??c.g)-.01;News.add('企業',`${c.name}、主力商品を値上げ`,'原材料高を価格に転嫁。客離れを懸念する声も。',c.t,0);}
@@ -1240,10 +1240,10 @@ const Trade={
   buy(t,q){const a=asset(t);if(!a)return '銘柄が見つかりません';if(a.priv)return '非上場のため市場では売買できません';if(q<=0)return '数量を指定してください';
     const o=this.quote(t,q,'buy');if(o.total>S.co.cash)return '現金が不足しています';
     const before=this.own(t);S.co.cash-=o.total;S.flows.buy+=o.total;const h=S.hold[t]||(S.hold[t]={q:0,cost:0});h.q+=q;h.cost+=o.total;
-    if(!a.fund){a.price*=1+o.im/2;const after=this.own(t);
+    if(!a.fund){Cap.log(t,{who:pName(),act:'購入',q,px:a.price,pct:Cap.ownCo(t)});a.price*=1+o.im/2;const after=this.own(t);
       for(const th of [.05,.2,1/3,.5])if(before<th&&after>=th+(th===.5?1e-9:0))News.add('自社',`${S.player.name}、${a.name}株を${pctp(after,1)}保有（${this.tier(after)||'大量保有'}）`,'大量保有報告書を提出。市場の注目が集まる。',t,1);}
     return null;},
-  sell(t,q){const a=asset(t),h=S.hold[t];if(!h||q<=0)return '保有していません';if(a&&a.lock>S.month)return `ロックアップ期間中です（あと${a.lock-S.month}ヶ月）`;if(a.priv)return '非上場のため市場では売れません。グループ経営の「売却」を使ってください';q=Math.min(q,h.q);
+  sell(t,q){const a=asset(t),h=S.hold[t];if(!h||q<=0)return '保有していません';if(a&&!a.fund)setTimeout(()=>{try{Cap.log(t,{who:pName(),act:'売却',q,px:a.price,pct:Cap.ownCo(t)});}catch(e){}},0);if(a&&a.lock>S.month)return `ロックアップ期間中です（あと${a.lock-S.month}ヶ月）`;if(a.priv)return '非上場のため市場では売れません。グループ経営の「売却」を使ってください';q=Math.min(q,h.q);
     const o=this.quote(t,q,'sell'),cp=h.cost*q/h.q;S.co.cash+=o.total;S.flows.sell+=o.total;S.flows.realized+=o.total-cp;h.q-=q;h.cost-=cp;
     if(h.q<=0)delete S.hold[t];if(!a.fund)a.price*=1-o.im/2;return null;},
   own(t){const a=CM[t];return a&&S.hold[t]?S.hold[t].q/a.shares:0;}
@@ -1304,7 +1304,7 @@ const Prof={
    MODULE: MA — M&A（TOB・子会社経営・完全子会社化・売却・買収提案への対応）
    ===================================================================== */
 const MA={
-  subs(){return S.cos.filter(c=>Trade.own(c.t)>.5);},
+  subs(){return S.cos.filter(c=>Cap.ownCo(c.t)>.5);},
   merged(){return S.cos.filter(c=>c.merged);},
   // 完全子会社を吸収合併して本体の事業部にする（損益は単体の決算に直接入る）
   absorb(t){const c=CM[t],h=S.hold[t];if(c)Rival.add(c,'absorb');if(!c||!h||Trade.own(t)<.999)return '完全子会社（100%）だけが吸収合併できます';if(this.kids(t).length)return '孫会社がある会社は合併できません';
@@ -1483,7 +1483,7 @@ const Eq={
   bbPlan(pct){const q=S.eq,n=Math.round(q.shares*pct/100)*100;return{n,cost:n*q.price*1.04};},
   buyback(pct){const q=S.eq;if(!q.listed)return '上場後に実施できます';const P=this.bbPlan(pct);if(S.co.cash<P.cost)return '現金が不足しています';
     if(q.shares-P.n<=q.founder)return 'これ以上は買い戻せません';
-    S.co.cash-=P.cost;S.co.treas=(S.co.treas||0)+P.cost;S.flows.buyback+=P.cost;q.shares-=P.n;q.jump+=pct*.6+.01;q.bbM=S.month;
+    S.co.cash-=P.cost;S.co.treas=(S.co.treas||0)+P.cost;S.flows.buyback+=P.cost;q.shares-=P.n;q.treasQ=0;   /* 取得後ただちに消却するため自己株式は残らない */q.jump+=pct*.6+.01;q.bbM=S.month;
     News.add('自社',`${S.player.name}、自社株買いを実施（発行済株式の${pctp(pct,0)}）`,`取得総額 ${yen(P.cost)}円。1株あたりの価値が高まり、社長の持株比率は${pctp(this.founderPct(),1)}に。`,null,1);
     Disc.add('ME','資本政策','自己株式の消却に関するお知らせ',{tn:1,sum:`取得した自己株式${nf(P.n)}株を消却しました。`,tab:[['発行済株式数',q.shares,q.shares+P.n,null,null,1]],sec:[['株主への影響','発行済株式が減り、1株あたりの価値が高まります。']]});return null;},
   poPlan(pct){const q=S.eq,n=Math.round(q.shares*pct/100)*100,px=q.price*.93;return{n,px,net:n*px*.97};},
@@ -2208,10 +2208,10 @@ const Me={
   // 個人での株式売買（会社の投資とは別勘定）
   buy(t,q2){const a=asset(t),M=this.st();if(!a)return '銘柄が見つかりません';if(a.priv)return '非上場のため売買できません';
     const cost=a.price*q2*1.001;if(cost>M.cash)return `個人資金が足りません（必要 ${yen(cost)}円）`;
-    M.cash-=cost;const h=M.hold[t]||(M.hold[t]={q:0,cost:0});h.q+=q2;h.cost+=cost;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株購入`});return null;},
+    M.cash-=cost;const h=M.hold[t]||(M.hold[t]={q:0,cost:0});h.q+=q2;h.cost+=cost;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株購入`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'購入',q:q2,px:a.price,pct:Cap.ownMe(t)});return null;},
   sell(t,q2){const a=asset(t),M=this.st(),h=M.hold[t];if(!h||q2>h.q)return '保有していません';
     const pr=a.price*q2*.999;M.cash+=pr;const cb=h.cost*q2/h.q;h.cost-=cb;h.q-=q2;if(h.q<=0)delete M.hold[t];
-    M.inc.sell+=pr-cb;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株売却（損益 ${yen(pr-cb)}円）`});return null;},
+    M.inc.sell+=pr-cb;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株売却（損益 ${yen(pr-cb)}円）`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'売却',q:q2,px:a.price,pct:Cap.ownMe(t)});return null;},
   // 自社株を売って個人資産にする（持株比率は下がる）
   sellOwn(pct){const q=S.eq,M=this.st();if(!q.listed)return '上場後に売却できます';const n=Math.floor(q.founder*pct/100/100)*100;
     if(n<100||n>=q.founder)return '売却できる株数がありません';const pr=n*q.price*.97;
@@ -2541,6 +2541,55 @@ const Life={
     Store.auto(true);return null;},
   hasCo(){return S.biz.length>0||S.co.cumRev>0||S.co.cash>0;}
 };
+
+/* =====================================================================
+   MODULE: Cap — 株式の唯一の台帳。誰が何株持っているかから、持株比率・議決権・
+   大株主・支配関係・子会社判定をすべて計算する（表示用の別データは持たない）
+   ===================================================================== */
+const Cap={
+  shares(c){return Math.max(1,c===ME?S.eq.shares:c.shares);},
+  treas(c){return Math.max(0,(c===ME?(S.eq.treasQ||0):(c.treasQ||0)));},
+  voting(c){return Math.max(1,this.shares(c)-this.treas(c));},
+  // 実データから株主を組み立てる（会社・個人・親会社・創業者・自己株式・その他）
+  list(c){if(!c)return[];const L=[],N=this.shares(c);
+    if(c===ME||c==='ME'){const q=S.eq;L.push({n:`${S.player.ceo}（あなた）`,q:q.founder,k:'創業者',me:1});
+      if(q.treasQ>0)L.push({n:'自己株式',q:q.treasQ,k:'自己株式',self:1});
+      const rest=Math.max(0,N-sum(L,x=>x.q));   /* 市場に流通している分 */
+      if(rest>0&&q.listed){const seed=hs('meh'+S.y);
+        L.push({n:'日本信託銀行（信託口）',q:Math.round(rest*.18),k:'金融'});L.push({n:'みらい生命保険',q:Math.round(rest*.09),k:'金融'});
+        L.push({n:'GLOBAL FUND MANAGEMENT',q:Math.round(rest*.12),k:'外国'});L.push({n:'取引先持株会',q:Math.round(rest*.06),k:'事業法人'});
+        L.push({n:'従業員持株会',q:Math.round(rest*.04),k:'創業者'});}}
+    else{
+      const g=S.hold[c.t];if(g&&g.q>0)L.push({n:pName(),q:g.q,k:'事業法人',co:1,cost:g.cost});
+      const m=Me.st().hold[c.t];if(m&&m.q>0)L.push({n:`${S.player.ceo}（あなた・個人）`,q:m.q,k:'個人',me:1,cost:m.cost});
+      if(c.meOwn>0&&!(Me.st().hold[c.t])){L.push({n:`${S.player.ceo}（あなた・個人）`,q:Math.round(N*c.meOwn),k:'個人',me:1});}
+      if(c.par&&CM[c.par])L.push({n:CM[c.par].name,q:Math.round(N*(c.parOwn||0)),k:'親会社',pa:1});
+      if(c.treasQ>0)L.push({n:'自己株式',q:c.treasQ,k:'自己株式',self:1});
+      // 残りは四季報の大株主（合計が発行済株式数に一致するよう按分）
+      const used=sum(L,x=>x.q),rest=Math.max(0,N-used);
+      if(rest>0&&c.pf&&c.pf.sh){const base=sum(c.pf.sh,h=>h[1])||1;
+        for(const h of c.pf.sh){const q=Math.round(rest*(h[1]/base)*.72);if(q>0)L.push({n:h[0],q,k:h[2]});}}
+    }
+    const fl=Math.max(0,N-sum(L,x=>x.q));if(fl>0)L.push({n:'その他（浮動株）',q:fl,k:'個人',float:1});   /* 残りは浮動株として必ず埋める */
+    for(const x of L){x.pct=x.q/N;x.vote=x.self?0:x.q/this.voting(c);}
+    return L.sort((a,b)=>b.q-a.q);},
+  top(c,n){return this.list(c).filter(x=>!x.float).slice(0,n||10);},
+  // 保有比率（会社・個人・任意の株主）
+  ownCo(t){const c=CM[t];if(!c)return 0;const h=S.hold[t];return h?h.q/this.shares(c):0;},
+  ownMe(t){const c=CM[t];if(!c)return 0;const h=Me.st().hold[t];return (h?h.q/this.shares(c):0)+(c.meOwn&&!h?c.meOwn:0);},
+  lead(c){const L=this.list(c).filter(x=>!x.self&&!x.float);return L[0]||null;},
+  control(c){const L=this.list(c).filter(x=>!x.self&&!x.float);const t=L.find(x=>x.pct>.5);return t||null;},
+  rel(c){const o=this.ownCo(c.t);return o>=.999?'完全子会社':o>.5?'連結子会社':o>=.2?'持分法適用関連会社':o>=.05?'主要株主':o>0?'投資先':'';},
+  // 取引履歴
+  log(t,e){if(!S.shlog)S.shlog={};const L=S.shlog[t]||(S.shlog[t]=[]);L.unshift({y:S.y,m:S.m,w:S.week,...e});if(L.length>24)L.length=24;
+    if(Object.keys(S.shlog).length>80){const ks=Object.keys(S.shlog);delete S.shlog[ks[0]];}},
+  hist(t){return (S.shlog&&S.shlog[t])||[];},
+  // 整合性チェック（合計が発行済株式数と合わない場合はコンソールに出す）
+  check(c){const L=this.list(c),N=this.shares(c),q=sum(L,x=>x.q);
+    if(Math.abs(q-N)>Math.max(100,N*.001))console.warn('[CAPITAL 株主の合計が発行済株式数と一致しません]',c.name||pName(),q,N);
+    return{ok:Math.abs(q-N)<=Math.max(100,N*.001),sum:q,shares:N};}
+};
+const ME='ME';
 
 /* =====================================================================
    MODULE: CoGen — すべての会社に同じ詳細構造（事業・部署・施設・従業員・株主・履歴）を持たせる
@@ -3096,16 +3145,19 @@ function coSelector(act){const L=Me.cos();if(!L.length)return '';const a='coSel'
   const k=UI.coSel&&CM[UI.coSel]?UI.coSel:'ME';
   return `<div class="cosel"><span class="lb2">🏢</span><button class="${k==='ME'?'on':''}" data-act="${a}" data-v="ME">${esc(pName())}</button>
    ${L.map(c=>`<button class="${k===c.t?'on':''}" data-act="${a}" data-v="${c.t}">${esc(c.name)}</button>`).join('')}</div>`;}
+// すべての会社で共通の会社ビュー（会社名と数値だけが違う）
 function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が見つかりません</div>';const seg=UI.pSeg||'over',ni=Market.ni(c),ta=c.equity+c.debt+c.rev*.15;
-  const tabs=[['over','概要'],['mtg','会議'],['mng','経営'],['port','事業'],['res','業績'],['fin','財務'],['sh','株主']];const P=CoGen.ensure(c),T=CoGen.totals(c);
+  const own=(c.meOwn>0)||Cap.ownCo(c.t)>.5,mine=c.meOwn>0;   /* 経営できるのは自分の会社・子会社だけ。UIは全社共通 */
+  const tabs=[['over','概要'],['mtg','会議'],['mng','経営'],['port','事業'],['res','業績'],['fin','財務'],['stk','株式'],['sh','株主'],['grp','連結'],['gl','海外'],['loan','融資']];const P=CoGen.ensure(c),T=CoGen.totals(c);
   const cell=(k,v,cl='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${cl}">${v}</b></div>`;
-  let h=`${coSelector(UI.tab==='biz'?'bizSel':'coSel')}<h2 class="row"><span class="sp">${esc(c.name)}</span><span class="chip">${c.priv?'非上場':'上場'}・持分${pctp(c.meOwn||0,0)}</span></h2>
+  let h=`${noSel?'':coSelector(UI.tab==='biz'?'bizSel':'coSel')}<h2 class="row"><span class="sp">${esc(c.name)}</span><span class="chip">${c.priv?'非上場':'上場'}・持分${pctp(c.meOwn||0,0)}</span></h2>
    <div class="seg">${tabs.map(x=>`<button class="${seg===x[0]?'on':''}" data-act="pSeg" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
   if(seg==='over'){h+=`${WP.html({id:c.t,key:c.sec,emp:c.emp,g:c.g,ni,name:c.name,city:c.pf?.city})}
    <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('代表者',esc(c.meCeo?(Me.st().role==='CEO'?S.player.ceo+'（あなた）':S.player.ceo):(c.ceoN||c.pf?.ceo||'—')))}${cell('売上高（年）',yen(c.rev))}${cell('営業利益',yen(c.rev*c.opm),tone(c.opm))}${cell('純利益',yen(ni),tone(ni))}${cell('利益率',pctp(c.opm))}${cell('成長率',pct(c.g,1),tone(c.g))}${cell('現金',yen(c.cash))}${cell('純資産',yen(c.equity))}${cell('有利子負債',yen(c.debt))}${cell('従業員',nf(c.emp)+'人')}${cell('市場シェア',pctp(Market.share(c),2))}${cell('海外売上比率',pctp(c.ovs||0,0))}</div></div>
    ${!c.priv?`<div class="card"><div class="row"><div class="sp"><div class="mut" style="font-size:12px">株価</div><div class="num" style="font-size:24px;font-weight:600">${nf(c.price)}円</div></div><div class="r"><div class="num">${yen(c.price*c.shares)}</div><div class="mut3" style="font-size:11px">時価総額</div></div></div>${candles(c,52,'pco'+t,1)}
     <button class="btn sub w" style="margin-top:8px" data-act="stock" data-t="${t}">市場での銘柄ページを見る</button></div>`:''}`;}
-  if(seg==='mng'){const A=(k,lab,d,dis)=>`<div class="ctl"><div class="lb"><b>${lab}</b><span>${d}</span></div><button class="btn sm ${dis?'sub':''}" data-act="pAct" data-t="${t}" data-v="${k}" ${dis?'disabled':''}>実行</button></div>`;
+  if(seg==='mng'&&!mine){h+=`<div class="card"><p class="note" style="margin:0">この会社はあなたの経営下にありません。経営の操作は、あなたが設立・保有する会社で行えます。株式を取得して支配株主になると、TOBや子会社化を通じて関与できます（会社タブ→株式）。</p></div>`;}
+  else if(seg==='mng'){const A=(k,lab,d,dis)=>`<div class="ctl"><div class="lb"><b>${lab}</b><span>${d}</span></div><button class="btn sm ${dis?'sub':''}" data-act="pAct" data-t="${t}" data-v="${k}" ${dis?'disabled':''}>実行</button></div>`;
    h+=`<div class="card">${A('grow','成長投資',`${yen(c.rev*.08)}円・成長率が上がる`,c.cash<c.rev*.08)}${A('rd','研究開発の強化',`${yen(c.rev*.05)}円・市場の成長期待が上がる`,c.cash<c.rev*.05)}
     ${A('equip','設備投資・効率化',`${yen(c.rev*.06)}円・利益率が上がる`,c.cash<c.rev*.06)}${A('hire','採用',`${yen(c.rev*.02)}円・人員+8%`,c.cash<c.rev*.02)}${A('cut','人員削減','人員-10%・利益率は改善、成長は鈍る')}
     ${A('price','値上げ','利益率+1pt・成長は少し鈍る')}${A('price2','値下げ','成長+・利益率は下がる')}
@@ -3124,7 +3176,8 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
     ${c.meCeo?A('ceo','外部から代表を招く','あなたは株主として残る（自動で運営されます）'):A('ceoMe','自分が代表に戻る','再び自分で経営する')}
     ${A('sell','この会社を売却する','売却益の8割が個人資産になります')}
     ${S.biz.length?`<div class="ctl"><div class="lb"><b>本体の事業を移す（スピンオフ）</b><span>個人タブから実行できます。反発のリスクがあります</span></div><button class="btn sm sub" data-act="meCo" data-t="${t}">開く</button></div>`:''}</div>`;}
-  if(seg==='mtg'){const ex=Object.keys(c.pex||{}).length,A=Me.pAgendas(t);
+  if(seg==='mtg'&&!mine){h+=`<div class="card"><b>🏛️ ${esc(c.name)}の経営会議</b><p class="note" style="margin-bottom:0">この会社の経営権を持っていないため、会議には参加できません。株式を50%超まで取得すると経営に関与できます（現在 ${pctp(Cap.ownCo(c.t)||c.meOwn||0,1)}）。</p></div>`;}
+  else if(seg==='mtg'){const ex=Object.keys(c.pex||{}).length,A=Me.pAgendas(t);
     h+=`<div class="card"><div class="row"><div class="sp"><b>🏛️ ${esc(c.name)}の経営会議</b><div class="mut" style="font-size:12px">${S.y}年${S.m}月・出席 ${ex+1}名（代表：${esc(c.meCeo?S.player.ceo:(c.ceoN||'—'))}）</div></div><span class="tag">${A.length}件</span></div>
      ${ex?'':'<p class="note" style="margin-bottom:0">役員がいないため、社長ひとりで判断します。「経営」タブから役員を招へいすると意見が聞けます。</p>'}</div>
      ${A.map((ag,i)=>{const ops=Me.pOps(t,ag),sum2=sum(ops,o=>o.st);
@@ -3137,8 +3190,13 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
   if(seg==='port'){h+=`<div class="card" style="font-size:12.5px"><div class="grid3"><div><div class="mut3">事業数</div><b class="num">${T.n}</b></div><div><div class="mut3">売上合計（年）</div><b class="num">${yen(T.rev)}</b></div><div><div class="mut3">営業利益</div><b class="num ${tone(T.op)}">${yen(T.op)}</b></div>
     <div><div class="mut3">黒字 / 赤字</div><b class="num">${T.win} / ${T.lose}</b></div><div><div class="mut3">成長中</div><b class="num">${T.grow}</b></div><div><div class="mut3">責任者あり</div><b class="num">${T.mgr}</b></div></div>
     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">${Object.entries(T.cat).map(([k,v])=>`<span class="chip">${k} ${v}</span>`).join('')}</div></div>
-    ${P.biz.map(b=>`<button class="ag-li" data-act="pbD" data-t="${t}" data-v="${b.id}"><span style="font-size:18px">${BT[b.t]?BT[b.t].ic:'🏭'}</span><span class="sp" style="min-width:0"><span class="tt">${esc(b.n)} <span class="tag ${b.op<0?'b':'g'}">${b.status}</span></span><span class="rs">${SECTORS[b.cat]?SECTORS[b.cat].n:b.cat}・${b.mgr?esc(b.mgr.name)+'・':'責任者なし・'}${nf(b.emp)}人・稼働${pctp(b.util,0)}・成長${pct(b.g,0)}</span></span><span class="r"><span class="num ${tone(b.op)}">${yen(b.op)}</span><span class="mut3" style="font-size:10.5px;display:block">売上 ${yen(b.rev)}</span></span></button>`).join('')}
-    <div class="card"><span class="lbl" style="font-size:12px">新しい事業を始める（投資額 ${yen(c.rev*.15+1e7)}円）</span><div class="chips">${[...new Set(Object.keys(BT).filter(k=>BT[k].sec===c.sec||['it','saas','ec','ad'].includes(k)))].slice(0,8).map(k=>`<button class="chip" data-act="pbAdd" data-t="${t}" data-v="${k}">${BT[k].ic} ${BT[k].n}</button>`).join('')}</div></div>
+    <div class="row" style="gap:6px;margin:8px 0"><input data-inp="pq" value="${esc(UI.pq||'')}" placeholder="事業名・責任者で検索" style="flex:1;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:0 10px"/></div>
+    <div class="chips">${[['all','すべて'],['profit','黒字'],['loss','赤字'],['grow','成長中'],['weak','不振'],['mgr','責任者あり']].map(x=>`<button class="chip ${(UI.pf||'all')===x[0]?'on':''}" data-act="pFil" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+    ${P.biz.filter(b=>{const q=(UI.pq||'').trim(),f=UI.pf||'all';
+      if(q&&!(b.n.includes(q)||(b.mgr&&b.mgr.name.includes(q))))return false;
+      if(f==='profit')return b.op>0;if(f==='loss')return b.op<=0;if(f==='grow')return ['成長中','急成長'].includes(b.status);
+      if(f==='weak')return b.util<.6||b.op<0;if(f==='mgr')return !!b.mgr;return true;}).map(b=>`<button class="ag-li" data-act="pbD" data-t="${t}" data-v="${b.id}"><span style="font-size:18px">${BT[b.t]?BT[b.t].ic:'🏭'}</span><span class="sp" style="min-width:0"><span class="tt">${esc(b.n)} <span class="tag ${b.op<0?'b':'g'}">${b.status}</span></span><span class="rs">${SECTORS[b.cat]?SECTORS[b.cat].n:b.cat}・${b.mgr?esc(b.mgr.name)+`（${b.mgr.ab}）・`:'責任者なし・'}${nf(b.emp)}人・稼働${pctp(b.util,0)}・成長${pct(b.g,0)}・事業価値 ${yen(Math.max(0,b.op*8))}</span></span><span class="r"><span class="num ${tone(b.op)}">${yen(b.op)}</span><span class="mut3" style="font-size:10.5px;display:block">売上 ${yen(b.rev)}</span></span></button>`).join('')}
+    ${mine?`<div class="card"><span class="lbl" style="font-size:12px">新しい事業を始める（投資額 ${yen(c.rev*.15+1e7)}円）</span><div class="chips">${[...new Set(Object.keys(BT).filter(k=>BT[k].sec===c.sec||['it','saas','ec','ad'].includes(k)))].slice(0,8).map(k=>`<button class="chip" data-act="pbAdd" data-t="${t}" data-v="${k}">${BT[k].ic} ${BT[k].n}</button>`).join('')}</div></div>`:''}
     <h3>部署</h3><div class="card" style="font-size:12.5px">${P.dept.map(d=>`<div class="row"><span class="mut sp">${d.n}</span><b class="num">${nf(d.emp)}人</b></div>`).join('')||'<span class="mut">未設定</span>'}
      <div class="row" style="border-top:1px solid var(--line);margin-top:4px;padding-top:4px"><span class="mut sp">事業部門</span><b class="num">${nf(T.emp)}人</b></div><div class="row"><span class="sp"><b>合計</b></span><b class="num">${nf(c.emp)}人</b></div></div>
     <h3>施設・拠点</h3><div class="nbox">${P.fac.map(f=>`<div class="nl"><span class="tm">${({hq:'🏢',branch:'🏬',sales:'🧑‍💼',plant:'🏭',lab:'🔬',wh:'📦',store:'🏪',dc:'🖥️',gl:'🌏'})[f.k]||'🏢'}</span><span class="sp"><span class="hd">${esc(f.n)}</span><span class="mt"><span>${esc(f.city)}</span><span>${nf(f.emp)}人</span><span>稼働${pctp(f.util,0)}</span><span>維持費 年${yen(f.up)}</span></span></span></div>`).join('')}</div>
@@ -3151,8 +3209,19 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
      ${row('営業キャッシュフロー',yen(cf)+'円',tone(cf))}${row('累計売上（推計）',yen(c.rev*Math.max(1,(S.month-(c.ipoM||S.month))/12+1))+'円')}</div>
      <h3>事業別の内訳</h3><div class="card" style="overflow-x:auto"><table class="rt"><tr><th>事業</th><th>売上</th><th>営業利益</th><th>利益率</th><th>従業員</th></tr>${P.biz.map(b=>`<tr><td>${esc(b.n)}</td><td class="num">${yen(b.rev)}</td><td class="num ${tone(b.op)}">${yen(b.op)}</td><td class="num">${pctp(b.rev?b.op/b.rev:0,0)}</td><td class="num">${nf(b.emp)}</td></tr>`).join('')}</table></div>
      <h3>経営履歴</h3><div class="nbox">${P.hist.slice().reverse().slice(0,10).map(x=>`<div class="nl"><span class="tm">${x.y}</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span></span></span></div>`).join('')||'<div class="empty">まだ記録はありません</div>'}</div>`;}
+  if(seg==='stk'){const px=c.priv?Market.fair(c)/Math.max(1,c.shares):c.price;
+    h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">上場状況</span><b>${c.priv?'非上場':'上場（'+Prof.market(c)+'）'}</b></div><div class="row"><span class="mut sp">株価</span><b class="num">${c.priv?'—':nf(c.price)+'円'}</b></div><div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(c.shares)}株</b></div><div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(px*c.shares)}円</b></div><div class="row"><span class="mut sp">当社の保有比率</span><b class="num">${pctp(Cap.ownCo(c.t),2)}</b></div><div class="row"><span class="mut sp">個人の保有比率</span><b class="num">${pctp(Cap.ownMe(c.t),2)}</b></div><div class="row"><span class="mut sp">区分</span><b>${Cap.rel(c)||'—'}</b></div></div>
+    ${c.priv?'<p class="note">非上場のため市場では売買できません。</p>':`${candles(c,52,'stk'+t,1)}<button class="btn w sub" data-act="stock" data-t="${t}" style="margin-top:8px">市場の銘柄ページで売買する</button>`}`;}
+  if(seg==='grp'){const kids=MA.kids?MA.kids(c.t):[];
+    h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">親会社</span><b>${c.par&&CM[c.par]?esc(CM[c.par].name)+`（${pctp(c.parOwn||0,1)}）`:(Cap.ownCo(c.t)>.5?pName():'なし')}</b></div><div class="row"><span class="mut sp">子会社</span><b class="num">${kids.length}社</b></div></div>
+    ${kids.length?`<div class="nbox">${kids.map(g=>`<button class="nl" data-act="coOpen" data-t="${g.t}"><span class="tm">${pctp(g.parOwn||1,0)}</span><span class="sp"><span class="hd">${esc(g.name)}</span><span class="mt"><span>${SECTORS[g.sec].n}</span><span>売上 ${yen(g.rev)}</span><span>${nf(g.emp)}人</span></span></span></button>`).join('')}</div>`:'<p class="note">子会社はありません。</p>'}`;}
+  if(seg==='gl'){const gl=(c.glc||[]);h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">海外売上比率</span><b class="num">${pctp(c.ovs||0,1)}</b></div><div class="row"><span class="mut sp">海外売上（年）</span><b class="num">${yen(c.rev*(c.ovs||0))}円</b></div><div class="row"><span class="mut sp">進出国</span><b class="num">${gl.length}ヶ国</b></div></div>
+    ${gl.length?`<div class="nbox">${gl.map(k=>`<div class="nl"><span class="tm">${CTY[k].fl}</span><span class="sp"><span class="hd">${CTY[k].n}</span><span class="mt"><span>市場規模 日本の約${CTY[k].size.toFixed(1)}倍</span><span>法人税 ${pctp(CTY[k].tax,0)}</span></span></span></div>`).join('')}</div>`:'<p class="note">海外拠点はありません（該当なし）。</p>'}`;}
+  if(seg==='loan'){const it=c.debt*(S.econ.rate+1.2)/100;
+    h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">有利子負債</span><b class="num">${yen(c.debt)}円</b></div><div class="row"><span class="mut sp">純資産</span><b class="num">${yen(c.equity)}円</b></div><div class="row"><span class="mut sp">負債比率</span><b class="num">${(c.debt/Math.max(1,c.equity)).toFixed(2)}倍</b></div><div class="row"><span class="mut sp">支払利息（年・推計）</span><b class="num">${yen(it)}円</b></div><div class="row"><span class="mut sp">借入余力（推計）</span><b class="num">${yen(Math.max(0,c.equity*1.2-c.debt))}円</b></div></div>
+     ${mine?'<p class="note">借入と返済は「経営」タブから実行できます。</p>':'<p class="note">この会社の融資はあなたの操作対象ではありません（該当なし）。</p>'}`;}
   if(seg==='res')h+=resHTML(c)+discListCo(c);
-  if(seg==='sh'){h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(c.shares)}株</b></div><div class="row"><span class="mut sp">株価</span><b class="num">${c.priv?'非上場':nf(c.price)+'円'}</b></div><div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(c.priv?Market.fair(c):c.price*c.shares)}円</b></div><div class="row"><span class="mut sp">上場状況</span><b>${c.priv?'非上場':'上場（東証）'}</b></div></div>
+  if(seg==='sh'){h+=holdersHTML(c);if(0)h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(c.shares)}株</b></div><div class="row"><span class="mut sp">株価</span><b class="num">${c.priv?'非上場':nf(c.price)+'円'}</b></div><div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(c.priv?Market.fair(c):c.price*c.shares)}円</b></div><div class="row"><span class="mut sp">上場状況</span><b>${c.priv?'非上場':'上場（東証）'}</b></div></div>
     <h3>株主構成</h3><div class="card" style="font-size:12.5px">${(CoGen.ensure(c).sh||[]).map(x=>`<div style="margin-bottom:6px"><div class="row"><span class="sp">${esc(x.n)} <span class="mut3">${x.kind}</span></span><b class="num">${pctp(x.pct,1)}</b></div><div class="shg"><i style="width:${Math.round(x.pct*100)}%"></i></div></div>`).join('')}</div>`;
     if(!c.priv)h+=holdersHTML(c);}
   return h;}
@@ -3168,7 +3237,7 @@ function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meO
      <h3>企業グループ</h3><div class="list"><div class="li"><div class="sp"><b>${esc(S.player.name)}</b></div><span class="s">本社</span></div>${S.biz.map(b=>`<button class="li" data-act="biz" data-id="${b.id}"><span style="width:14px"></span>${BT[b.type].ic}<div class="sp"><div class="t">${BT[b.type].n}事業</div></div><span class="num ${tone(b.last?.op||0)}">${b.last?yen(b.last.op):'—'}</span></button>`).join('')}${MA.subs().map(c=>`<button class="li" data-act="corp" data-t="${c.t}"><span style="width:14px"></span>🏢<div class="sp"><div class="t">${esc(c.name)}</div><div class="s">子会社・${pctp(Trade.own(c.t),0)}保有</div></div><span class="num ${tone(c.opm)}">${yen(c.rev*c.opm/12)}</span></button>`).join('')}</div>
      <p class="note">子会社は「グループ」で連結業績と一緒に確認できます。事業の数字は月次、子会社の数字は年換算の月割りです。</p>`;}
   if(seg==='group')h+=vGroup();
-  if(seg==='stock')h+=vEquity();
+  if(seg==='stock')h+=vEquity()+holdersHTML(ME);
   if(seg==='global')h+=vGlobal();
   if(seg==='res')h+=vMyRes();
   if(seg==='board')h+=vBoard();
@@ -3391,6 +3460,8 @@ function shFound(){return()=>{const M=Me.st(),cap=clamp(Math.round(M.cash*.2),3e
    <p class="note">選んだ事業内容によって、成長のしやすさ・利益率・競合の強さが変わります。設立後は「事業」タブの会社切り替えから経営できます。</p>
    <button class="btn w" data-act="mfGo" ${M.cash<3e7?'disabled':''}>${M.cash<3e7?'個人資金が3,000万円必要です':'この内容で設立する'}</button></div>`];};}
 
+function shCompany(t){return()=>{const c=CM[t];if(!c)return null;return [esc(c.name),`<div class="view" data-k="cv${t}${UI.pSeg}">${vPCo(t,1)}</div>`];};}
+
 function shPBiz(t,id){return()=>{const c=CM[t];if(!c||!c.port)return null;const b=c.port.biz.find(x=>x.id===id);if(!b)return null;
   const cell=(k,v,cl='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${cl}">${v}</b></div>`;
   return [`${esc(b.n)}（${esc(c.name)}）`,`<div class="view" data-k="pb${id}">
@@ -3401,9 +3472,9 @@ function shPBiz(t,id){return()=>{const c=CM[t];if(!c||!c.port)return null;const 
     ${cell('海外売上',yen(b.gl)+'円')}${cell('設備投資',yen(b.capex)+'円')}${cell('研究開発費',yen(b.rd)+'円')}${cell('人件費',yen(b.labor)+'円')}
     ${cell('固定費',yen(b.fixed)+'円')}${cell('変動費',yen(b.varc)+'円')}${cell('開始',`${Math.floor((S.month-b.since)/12)}年${(S.month-b.since)%12}ヶ月前`)}${cell('責任者',b.mgr?esc(b.mgr.name)+`（${b.mgr.ab}）`:'なし')}</div></div>
    <h3>競合</h3><div class="card" style="font-size:12.5px">${Market.listed().filter(x=>x.sec===b.cat&&x!==c).sort((x,y)=>y.rev-x.rev).slice(0,4).map(x=>`<div class="row"><span class="sp">${esc(x.name)}</span><b class="num">${yen(x.rev)}</b></div>`).join('')||'<span class="mut">同業の上場企業はありません</span>'}</div>
-   <h3>この事業でできること</h3><div class="card">
+   ${!(CM[t]&&CM[t].meOwn)?'':`<h3>この事業でできること</h3><div class="card">
     ${b.mgr?'':`<div class="ctl"><div class="lb"><b>事業責任者を置く</b><span>能力に応じて成長率が上がり、運営が安定します</span></div><button class="btn sm" data-act="pbMg" data-t="${t}" data-v="${id}">任命</button></div>`}
-    <div class="ctl"><div class="lb"><b>この事業から撤退</b><span>売上と従業員が会社から減り、資産の一部を現金化します</span></div><button class="btn sm dng" data-act="pbX" data-t="${t}" data-v="${id}">撤退</button></div></div></div>`];};}
+    <div class="ctl"><div class="lb"><b>この事業から撤退</b><span>売上と従業員が会社から減り、資産の一部を現金化します</span></div><button class="btn sm dng" data-act="pbX" data-t="${t}" data-v="${id}">撤退</button></div></div>`}</div>`];};}
 
 function shMeCo(t){return()=>{const c=CM[t],M=Me.st();if(!c)return null;const biz=S.biz.filter(b=>1);
   return [`👤 ${esc(c.name)}`,`<div class="view" data-k="mc${t}"><div class="row" style="gap:6px;margin-bottom:8px"><span class="tag">${c.priv?'非上場':'上場'}</span><span class="tag g">${SECTORS[c.sec].n}</span><span class="tag g">持分 ${pctp(c.meOwn,0)}</span></div>
@@ -4048,6 +4119,7 @@ function shStock(t){return()=>{const a=asset(t);if(!a){toast('この銘柄はす
   ${rangeChips('range',UI.trade.range)}
   ${a.fund?`<p class="note">${esc(a.desc)}</p>`:''}${fund}
   ${a.fund||a.priv?'':`${Me.st().cash>a.price*a.shares*.55?`<div class="ctl"><div class="lb"><b>👤 個人でTOB（経営権の取得）</b><span>個人資金で51%を取得・約${yen(Me.tobCost(t,.51).cost)}円</span></div><button class="btn sm" data-act="meTob" data-t="${t}">実行</button></div>`:''}`}
+  ${a.fund?'':`<button class="btn w sub" data-act="coOpen" data-t="${t}" style="margin-bottom:10px">🏢 ${esc(a.name)}の会社ページを開く（事業・財務・株主）</button>`}
   ${a.fund?'':maHTML(a)}
   ${a.priv?'':`<h3>売買</h3>
   <div class="card">
@@ -4180,17 +4252,30 @@ function shikiHTML(a){const pf=a.pf,Y=Prof.years(a),hd=Prof.headline(a),cap=a.pr
   <h3>株価指標</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('予想PER',f1&&f1.eps>0?(a.price/f1.eps).toFixed(1)+'倍':'—')}${row('実績PBR',(cap/a.equity).toFixed(2)+'倍')}${row('予想配当利回り',f1?pctp(f1.dps/a.price,2):'—')}${row('時価総額',yen(cap))}${row('52週高値',nf(hi))}${row('52週安値',nf(lo))}${row('発行済株式',nf(a.shares)+'株')}${row('売買単位','100株')}${row('最低購入額',yen(a.price*100)+'円')}${row('決算期',pf.fy+'月')}</div></div>
   <h3>財務（百万円）</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('総資産',m(ta))}${row('自己資本',m(a.equity))}${row('自己資本比率',pctp(a.equity/ta))}${row('有利子負債',m(a.debt))}${row('現金同等物',m(a.cash))}${row('ROE',pctp(ni/a.equity))}${row('ROA',pctp(ni/ta))}${row('配当性向',pctp(a.payout,0))}</div></div>
   <h3>会社概要</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('代表者',esc(pf.ceo))}${row('設立',pf.est+'年')}${row('上場',pf.lst+'年')}${row('本社',esc(pf.city))}${row('従業員',nf(a.emp)+'人')}${row('平均年齢',pf.age+'歳')}${row('平均年収',nf(pf.sal)+'万円')}${row('経営方針',STRAT[a.strat])}</div></div>`;}
-function holdersHTML(a){const H=Prof.holders(a),top=H.top.slice(0,10),mx=top[0]?.p||1,cap=a.price*a.shares;
-  const cats=[['金融','金融機関','var(--ai)'],['外国','外国法人等','#0E7C86'],['事業法人','事業法人','var(--warn)'],['個人','個人・その他','var(--ink3)']];
-  const me=H.top.find(h=>h.me);
-  return `<div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px"><div class="row"><span class="mut sp">株主数</span><b class="num">${nf(a.pf.nh)}名</b></div><div class="row"><span class="mut sp">浮動株比率</span><b class="num">${pctp(H.float,1)}</b></div><div class="row"><span class="mut sp">外国人持株比率</span><b class="num">${pctp(H.cat.外国,1)}</b></div><div class="row"><span class="mut sp">大株主上位10名</span><b class="num">${pctp(sum(top,h=>h.p),1)}</b></div></div>
-   <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:12px">${cats.map(c=>`<i style="flex:${H.cat[c[0]]};background:${c[2]}"></i>`).join('')}</div>
-   <div style="font-size:11px;margin-top:6px;display:flex;gap:4px 10px;flex-wrap:wrap">${cats.map(c=>`<span><span style="color:${c[2]}">●</span> ${c[1]} ${pctp(H.cat[c[0]],1)}</span>`).join('')}</div></div>
-  <h3>大株主</h3><div class="list">${top.map((h,i)=>`<div class="li" style="${h.me?'background:var(--ai2)':''}"><span class="num mut3" style="width:18px">${i+1}</span><div class="sp"><div class="t">${esc(h.n)}${h.me?' <span class="tag">あなた</span>':''}</div><div class="bar" style="margin-top:4px"><i style="width:${h.p/mx*100}%"></i></div></div><div class="r"><div class="num">${pctp(h.p,2)}</div><div class="mut3 num" style="font-size:11px">${nf(Math.round(h.p*a.shares/1e3))}千株</div></div></div>`).join('')}</div>
-  ${me&&!top.includes(me)?`<p class="note">あなたの保有 ${pctp(me.p,3)}（${nf(S.hold[a.t].q)}株）は上位10名の圏外です。</p>`:''}
-  <p class="note">信託銀行（信託口）は年金・投資信託などの資産を管理する名義で、実際の投資家は多数います。創業家や取引先などの安定株主が多いほど、TOBで株を集めにくくなります。敵対的TOBでは安定株主の比率が高いほど成立しにくくなります。保有を増やすと、あなたも大株主としてこの一覧に載ります。</p>`;}
+function holdersHTML(a){const isMe=a===ME||a==='ME',c=isMe?ME:a;const N=Cap.shares(isMe?ME:a),L=Cap.list(isMe?ME:a),top=L.filter(x=>!x.float).slice(0,12);
+  const px=isMe?S.eq.price:a.price,cap=px*N,lead=Cap.lead(isMe?ME:a),ctl=Cap.control(isMe?ME:a),chk=Cap.check(isMe?ME:a);
+  const fl=L.filter(x=>x.float||x.k==='個人'&&!x.me),flp=sum(fl,x=>x.pct);
+  const cats=[['金融','金融機関','var(--ai)'],['外国','外国法人等','#0E7C86'],['事業法人','事業法人','var(--warn)'],['親会社','親会社','#8A6D1E'],['創業者','創業者・経営陣','#D24C8F'],['個人','個人・その他','var(--ink3)'],['自己株式','自己株式','var(--line)']];
+  const cat={};for(const x of L)cat[x.k]=(cat[x.k]||0)+x.pct;
+  const hist=isMe?[]:Cap.hist(a.t);
+  return `<div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">
+   <div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(N)}株</b></div>
+   <div class="row"><span class="mut sp">自己株式</span><b class="num">${nf(Cap.treas(isMe?ME:a))}株</b></div>
+   <div class="row"><span class="mut sp">株価</span><b class="num">${isMe&&!S.eq.listed?'非上場':nf(px)+'円'}</b></div>
+   <div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(cap)}円</b></div>
+   <div class="row"><span class="mut sp">浮動株比率</span><b class="num">${pctp(flp,1)}</b></div>
+   <div class="row"><span class="mut sp">筆頭株主</span><b style="font-size:12px">${lead?esc(lead.n)+`（${pctp(lead.pct,1)}）`:'—'}</b></div>
+   ${ctl?`<div class="row"><span class="mut sp">支配株主</span><b style="font-size:12px">${esc(ctl.n)}</b></div><div class="row"><span class="mut sp">区分</span><b>${ctl.pct>=.999?'完全子会社':'連結子会社'}</b></div>`:''}</div>
+   <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:12px">${cats.filter(x=>cat[x[0]]).map(x=>`<i style="flex:${cat[x[0]]};background:${x[2]}"></i>`).join('')}</div>
+   <div style="font-size:11px;margin-top:6px;display:flex;gap:4px 10px;flex-wrap:wrap">${cats.filter(x=>cat[x[0]]).map(x=>`<span><span style="color:${x[2]}">●</span> ${x[1]} ${pctp(cat[x[0]],1)}</span>`).join('')}</div>
+   ${chk.ok?'':`<p class="note" style="margin-bottom:0;color:var(--dn)">株主の合計（${nf(chk.sum)}株）が発行済株式数（${nf(chk.shares)}株）と一致していません。</p>`}</div>
+  <h3>大株主</h3><div class="list">${top.map((h,i)=>{const own=h.co||h.me;const val=h.q*px,pl=h.cost!=null?val-h.cost:null;
+    return `<div class="li" style="${own?'background:var(--ai2)':''}"><span class="num mut3" style="width:18px">${i+1}</span><div class="sp"><div class="t">${esc(h.n)}${h.co?' <span class="tag">自社</span>':h.me?' <span class="tag">あなた</span>':h.pa?' <span class="tag">親会社</span>':h.self?' <span class="tag">自己株</span>':''}</div>
+     <div class="s">${nf(h.q)}株・議決権 ${pctp(h.vote,2)}${h.cost!=null?`・取得単価 ${nf(h.cost/Math.max(1,h.q))}円・評価額 ${yen(val)}円・<span class="${tone(pl)}">${yen(pl)}円</span>`:`・${h.k}`}</div>
+     <div class="bar" style="margin-top:4px"><i style="width:${Math.min(100,h.pct*100)}%"></i></div></div><b class="num">${pctp(h.pct,2)}</b></div>`;}).join('')}</div>
+  ${hist.length?`<h3>株式の取引履歴</h3><div class="nbox">${hist.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.who)}が${nf(x.q)}株を${x.act}</span><span class="mt"><span>${x.y}年${x.m}月第${x.w}週</span><span>@${nf(x.px)}円</span><span>取引後 ${pctp(x.pct,2)}</span></span></span></div>`).join('')}</div>`:''}
+  ${isMe?'':`<p class="note">持株比率は「保有株数 ÷ 発行済株式数」から毎回計算しています。議決権比率は自己株式を除いた株数が母数です。</p>`}`;}
 
-/* ---------- M&A 画面 ---------- */
 function maHTML(a){const t=a.t,own=Trade.own(t),h=S.hold[t];
   const offers=S.offers.map((o,i)=>[o,i]).filter(x=>x[0].t===t);
   let s=offers.map(([o,i])=>`<div class="alert w"><span class="dot"></span><span class="sp">${esc(CM[o.a]?.name||'')}から買収提案：1株${nf(o.px)}円（${S.m}月末まで）</span></div><div class="row" style="margin-bottom:10px"><button class="btn sub sp" data-act="offerN" data-v="${i}">拒否する</button><button class="btn sp" data-act="offerY" data-v="${i}">応じる</button></div>`).join('');
@@ -4380,6 +4465,8 @@ const A={
   pAuto:d=>{Me.pAuto(d.t);render();},
   pGl:d=>confirmBox(`${CM[d.t].name}が${CTY[d.v].n}へ進出します（${yen(CTY[d.v].entry*S.econ.pIdx*.6)}円）。`,()=>{if(!err(Me.pGl(d.t,d.v)))toast('進出しました');render();},'進出する'),
   pGlX:d=>{if(!err(Me.pGlExit(d.t,d.v)))toast('撤退しました');render();},
+  coOpen:d=>{UI.pSeg='over';openSheet(shCompany(d.t));},
+  pFil:d=>{UI.pf=d.v;renderSheets();render();},
   pbD:d=>openSheet(shPBiz(d.t,d.v)),
   pbAdd:d=>{const c=CM[d.t],cost=Math.round(c.rev*.15+1e7);confirmBox(`${c.name}で${BT[d.v].n}事業を始めます（投資額 ${yen(cost)}円）。`,()=>{if(!err(Me.addBiz(d.t,d.v)))toast('事業を始めました');render();},'開始する');},
   pbX:d=>confirmBox('この事業から撤退します。',()=>{if(!err(Me.closeBiz(d.t,d.v))){closeSheet();toast('撤退しました');}render();},'撤退する',true),
@@ -4504,6 +4591,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('input',e=>{const k=e.target.dataset?.inp;if(!k)return;const v=e.target.value;
   if(k==='ngname')UI.ng.name=v;else if(k==='ngceo')UI.ng.ceo=v;
   else if(k==='mfName'){UI.mfName=v;}
+    else if(k==='pq'){UI.pq=v;renderSheets();render();}
     else if(k==='bq'){UI.bq=v;UI.bn=24;render();}
     else if(k==='nYM'){UI.nYM=v;render();}
     else if(k==='mq'){UI.mkt.q=v;UI.mkt.n=40;const l=$('#mlist');if(l)morph(l,mktList());}
