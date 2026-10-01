@@ -2325,11 +2325,12 @@ const Me={
     if(log.length){M.hrLog=log.slice(0,3);News.add('自社',`秘書の${a.name}氏が役員人事をまとめる`,log.join('、')+'を起用した。',null,1,{lv:0});}},
   // 秘書による役員の自動採用（本社・子会社・個人の会社すべて）
   advHireRun(){const M=this.st(),a=M.adv;if(!a||!M.advHire)return;const log=[];
+    const mode=M.advHireMode||'aggr',mul=mode==='full'?1.05:mode==='aggr'?2:6,once=mode==='save';   /* 常に満員：資金が足りる限り全席／積極的：余裕があれば／慎重：十分な余裕があるときに1人ずつ */
     if(Life.hasCo()){const E=Exec.st();for(const r of ['CFO','COO','CTO','CMO','CIO']){if(E[r])continue;const C=Exec.cands(r);if(!C.length)continue;
       const i=C.map((k,ix)=>[k,ix]).sort((x,y)=>(y[0].ab-y[0].sal/1e7)-(x[0].ab-x[0].sal/1e7))[0][1];
-      if(S.co.cash>C[i].sal*3&&!Exec.hire(r,i)){log.push(`${pName()}の${r}に${C[i].name}氏`);break;}}}
+      if(S.co.cash>C[i].sal*mul&&!Exec.hire(r,i)){log.push(`${pName()}の${r}に${C[i].name}氏`);if(once)break;}}}
     for(const c of (S.cos||[]).filter(x=>(x.meOwn||0)>.5||Cap.ownCo(x.t)>.5)){if(!c.pex)c.pex={};
-      for(const r of ['CFO','COO','CTO','CMO']){if(c.pex[r])continue;const k=this.pexCands(c.t).find(x=>x.role===r);if(k&&c.cash>k.sal*3&&!this.pexHire(c.t,r)){log.push(`${c.name}の${r}に${k.name}氏`);c.pauto=true;break;}}}
+      for(const r of ['CFO','COO','CTO','CMO']){if(c.pex[r])continue;const k=this.pexCands(c.t).find(x=>x.role===r);if(k&&c.cash>k.sal*mul&&!this.pexHire(c.t,r)){log.push(`${c.name}の${r}に${k.name}氏`);c.pauto=true;if(once)break;}}}
     if(log.length){M.advHireLog=log.slice(0,3);News.add('自社',`秘書の${a.name}氏が役員を手配`,log.join('、')+'。',null,0,{lv:0});}},
   advRun(){const M=this.st(),a=M.adv;this.advHireRun();if(!a||!M.advAuto)return;const sk=clamp(a.ab/100,.3,.95),log=[];this.advHire();
     a.exp=(a.exp||0)+1;if(a.exp%12===0){a.ab=Math.min(99,a.ab+1);a.sk.sele=Math.min(99,a.sk.sele+2);a.sk.risk=Math.min(99,a.sk.risk+1);a.sk.re=Math.min(99,a.sk.re+1);
@@ -4039,7 +4040,8 @@ function vMe(){const M=Me.st(),q=S.eq,net=Me.net(),ownPct=Eq.founderPct(),hs2=Ob
     <p class="note">売れば個人資産は増えますが、持株比率が下がります。50%を下回ると株主総会での解任や敵対的買収のリスクが生まれます。</p>`:'<p class="note">上場すると、自社株を売って個人資産に換えられます。</p>'}
    <span class="lbl" style="font-size:12px;display:block">会社へ出資する（持株比率が上がります）</span><div class="chips">${[1e6,1e7,1e8].filter(v=>v<=M.cash).map(v=>`<button class="chip" data-act="meInv" data-v="${v}">${yen(v)}円を出資</button>`).join('')||'<span class="mut" style="font-size:12px">出資できる現金がありません</span>'}</div></div>
   <h3>秘書（個人で雇う）</h3><div class="card">${M.adv?`<div class="ex" style="padding:6px 0;border:0"><span class="av" style="--c:#C28A1B">秘書</span><div class="sp"><b>${esc(M.adv.name)}</b> <span class="mut3" style="font-size:11px">${M.adv.pol}・在籍${S.month-M.adv.since}ヶ月・年俸${yen(M.adv.sal)}円</span><div class="ab"><i style="width:${M.adv.ab}%"></i></div><div class="mut" style="font-size:11px;margin-top:3px">能力 ${M.adv.ab}／銘柄選び${M.adv.sk.sele}・リスク管理${M.adv.sk.risk}・相場観${M.adv.sk.macro}・不動産${M.adv.sk.re}・経験${Math.round((M.adv.exp||0)/12)}年${(M.props||[]).length?`<br>個人の不動産 ${(M.props||[]).length}件（月${yen(sum(M.props,p=>p.rent*.7))}円）`:''}${M.advLog?'<br>先月：'+esc(M.advLog.join('、')):''}</div></div><button class="btn sm dng" data-act="advF">解任</button></div>
-   <div class="ctl"><div class="lb"><b>役員の採用を任せる</b><span>本社・子会社・個人の会社で空いている役員の席を、秘書が候補から選んで採用します${M.advHireLog?'<br>先月：'+esc(M.advHireLog.join('、')):''}</span></div><button class="btn sm ${M.advHire?'':'sub'}" data-act="advHT">${M.advHire?'オン':'オフ'}</button></div>
+   <div class="ctl"><div class="lb"><b>役員の採用を任せる</b><span>本社・子会社・個人の会社の空いた役員席を秘書が埋めます${M.advHireLog?'<br>先月：'+esc(M.advHireLog.join('、')):''}</span></div><button class="btn sm ${M.advHire?'':'sub'}" data-act="advHT">${M.advHire?'オン':'オフ'}</button></div>
+   ${M.advHire?`<div class="chips" style="margin:-2px 0 6px">${[['full','常に満員'],['aggr','積極的'],['save','お金を気にして慎重']].map(x=>`<button class="chip ${(M.advHireMode||'aggr')===x[0]?'on':''}" data-act="advHM" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`:''}
    <div class="ctl"><div class="lb"><b>運用を任せる</b><span>あなたの個人資金で、割安な株・不動産・スタートアップに投資します（生活費1年分は残します）${M.advN?`・これまで${nf(M.advN)}件`:''}</span></div><button class="btn sm ${M.advAuto?'':'sub'}" data-act="advT">${M.advAuto?'オン':'オフ'}</button></div>
    <div class="ctl"><div class="lb"><b>役員の採用も任せる</b><span>本体と、経営権のある子会社・個人の会社で、空席の役員を自動で招へいします${M.hrLog?'<br>先月：'+esc(M.hrLog.join('、')):''}</span></div><button class="btn sm ${M.advHR?'':'sub'}" data-act="advHR">${M.advHR?'オン':'オフ'}</button></div>`
    :`${Me.advCands().map((k,i)=>`<div class="ctl"><div class="lb"><b>${esc(k.name)}・能力${k.ab}（${k.pol}）</b><span>年俸 ${yen(k.sal)}円／銘柄選び${k.sk.sele}・リスク管理${k.sk.risk}・相場観${k.sk.macro}</span></div><button class="btn sm" data-act="advH" data-v="${i}" ${M.cash<k.sal?'disabled':''}>起用</button></div>`).join('')}
@@ -5213,7 +5215,7 @@ const A={
     approveBox({kind:'biz',title:`新会社「${nm}」の創業（${t.n}事業）`,amount:Math.max(3e6,Math.round(Me.st().cash*.5)),rows:[['起案','あなた'],['資本金',yen(Math.min(Math.max(3e6,Math.round(Me.st().cash*.5)),Me.st().cash))+'円'],['最初の事業',t.n],['個人現金',yen(Me.st().cash)+'円']],note:'個人資産の半分を資本金として、新しい会社を立ち上げます。残りは個人資産のままです。',ok:()=>{if(!err(Life.found(nm,UI.reType))){UI.tab='home';toast('創業しました');}render();}});},
   advH:d=>{const k=Me.advCands()[+d.v];confirmBox(`${k.name}氏（能力${k.ab}）を個人の秘書にします。年俸${yen(k.sal)}円は個人資金から支払います。`,()=>{if(!err(Me.hireAdv(+d.v)))toast('秘書を起用しました');render();},'起用する');},
   advF:()=>confirmBox('秘書を解任します。',()=>{err(Me.fireAdv());render();},'解任する',true),
-  advT:()=>{err(Me.advToggle());render();},advHT:()=>{err(Me.advHireToggle());render();},advHR:()=>{err(Me.advHRToggle());render();},
+  advT:()=>{err(Me.advToggle());render();},advHT:()=>{err(Me.advHireToggle());render();},advHM:d=>{Me.st().advHireMode=d.v;toast('採用方針を変更しました');render();},advHR:()=>{err(Me.advHRToggle());render();},
   meStock:()=>openSheet(shMeStock()),
   clearBase:()=>{Life.clearBase();toast('本体に戻しました');render();},
   setBase:d=>confirmBox(`${CM[d.v].name}を経営の拠点にします。会社タブと画面上部の数値がこの会社のものになります。`,()=>{if(!err(Life.setBase(d.v))){UI.tab='co';toast('拠点を移しました');}render();},'拠点にする'),
@@ -5316,7 +5318,9 @@ const A={
   subBuyL:d=>openSheet(shSubBuy(d.t)),
   subBuy:d=>{const p=MA.subPlan(d.t,d.v);confirmBox(`${CM[d.t].name}が${CM[d.v].name}を${yen(p.cost)}円で買収し、孫会社にします。資金は${CM[d.t].name}の現金と借入から出します。`,()=>{if(!err(MA.subBuy(d.t,d.v))){openSheet(shCorp(d.t));toast('買収しました');}render();},'買収する');},
   toHD:()=>confirmBox('持株会社体制へ移行します。子会社から毎月、売上の0.5%を経営指導料として受け取ります。',()=>{if(!err(MA.toHD()))toast('持株会社になりました');render();},'移行する'),
-  coSeg:d=>{const map={overview:'over',board:'mtg',fs:'fin',group:'grp',stock:'stk',holders:'sh',biz:'port',global:'gl'};UI.coSeg=map[d.v]||d.v;UI.pSeg=UI.coSeg;render();$('main').scrollTop=0;},
+  coSeg:d=>{const map={overview:'over',board:'mtg',fs:'fin',group:'grp',stock:'stk',holders:'sh',biz:'port',global:'gl'};UI.coSeg=map[d.v]||d.v;UI.pSeg=UI.coSeg;if(!UI.sheet||UI.tab!=='co'){UI.tab='co';closeSheet();}render();$('main').scrollTop=0;},
+  pSeg:d=>{UI.pSeg=d.v;render();renderSheets();const b=$('#layer .sh-b');if(b)b.scrollTop=0;else $('main').scrollTop=0;},
+  sv:d=>{UI.sv=d.v;renderSheets();const b=$('#layer .sh-b');if(b)b.scrollTop=0;},eqRange:d=>{UI.eqRange=+d.v;UI.cdl=null;render();},
   ipoPct:d=>{UI.ipo.pct=+d.v;render();},ipoDisc:d=>{UI.ipo.disc=+d.v;render();},
   ipoGo:()=>{const P=Eq.ipoPlan(UI.ipo.pct,UI.ipo.disc);approveBox({kind:'ipo',title:'新規上場（IPO）の実施',amount:0,rows:[['起案','経営企画部・主幹事証券'],['公開価格',nf(P.px)+'円'],['発行株数',nf(P.newQ)+'株'],['手取り調達額',yen(P.net)+'円'],['上場時の時価総額',yen(P.cap)+'円'],['上場後の社長持株',pctp(P.founder,1),P.founder<.5?'dn':'']],note:'上場後は株価が毎週動き、四半期ごとに決算を発表し、毎年6月に株主総会が開かれます。社長の持株が50%を下回ると、解任や敵対的買収のリスクが生まれます。',
     ok:()=>{if(!err(Eq.ipo(UI.ipo.pct,UI.ipo.disc)))toast('上場しました');render();}});},
