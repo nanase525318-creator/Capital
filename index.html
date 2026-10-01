@@ -881,7 +881,13 @@ const Market={
       const L=c.lastQ,op=L.opY==null?(L.opPos?'黒字転換':'赤字継続'):(!L.opPos?'赤字転落':`営業利益 前年比${pct(L.opY,0)}`);
       const sub=Trade.own(c.t)>.5||(c.par&&Trade.own(c.par)>.5),mine=!!S.hold[c.t],big=Math.abs(s)>.3&&c.price*c.shares>3e12;
       News.add('決算',`${c.name} 決算：売上高 前年比${pct(L.yoy,0)}、${op}`,s>.03?'市場予想を上回る':s<-.03?'市場予想を下回る':'概ね市場予想通り',c.t,s>.03?1:s<-.03?-1:0,(sub||mine||big)&&Math.abs(s)>.03?{lv:sub||big?2:1,earn:{rev:L.rev,revY:L.yoy,op:L.op,opY:L.opY,eOp:L.eOp,s}}:null);}},
-  weekly(){this.reports();const E=S.econ,D=DIFF[S.diff];
+  // 大株主（機関投資家・親会社・政府系など）の大口売買
+  bigFlow(){if(R()>.05)return;const L=this.listed().filter(c=>!c.crisis&&c.shares>0);if(!L.length)return;
+    const c=pick(L),st=Cap.stock(c),who=pick(['大手機関投資家','海外ファンド','親会社','政府系ファンド','創業家','取引先企業']);
+    const side=R()<.5?'buy':'sell',q=Math.round(st.float*rn(.01,.12)/100)*100;if(q<100)return;
+    Cap.flow(c.t,q,side,who);
+    if(side==='sell'&&R()<.3)Cap.evt(c,'ロックアップ解除','大株主の売却制限が解けた');},
+  weekly(){this.reports();this.bigFlow();const E=S.econ,D=DIFF[S.diff];
     const ms=gauss()*.017*D.vol+(E.sent-S.mkt.ls)*.06;S.mkt.ls=E.sent;
     const ss={};for(const s in SECTORS)ss[s]=gauss()*.012*D.vol;
     let o=0,n=0;
@@ -1233,7 +1239,11 @@ const Co={
 const Trade={
   fee:.001,
   lot(a){return a.fund?1:100;},
-  impact(a,q){return a.fund?0:Math.min(.2,q/a.shares*2.5);},
+  // 需給インパクト：出来高と浮動株に対する大きさで決まる（固定値ではない）
+  impact(a,q){if(a.fund)return 0;const st=Cap.stock(a);
+    const vRatio=q/Math.max(1,st.avgVol),fRatio=q/Math.max(1,st.float);
+    const vol=(a.vol||.3)+(S.econ?Math.max(0,.3-S.econ.sent*.2):0);
+    return Math.min(.35,(Math.sqrt(vRatio)*.012+Math.pow(fRatio,.75)*.55)*(1+vol));},
   quote(t,q,side){const a=asset(t);const im=this.impact(a,q);const px=a.price*(1+(side==='buy'?im:-im));return{px,total:px*q*(side==='buy'?1+this.fee:1-this.fee),im};},
   maxBuy(t){const a=asset(t),lot=this.lot(a);let lo=0,hi=Math.floor(S.co.cash/(a.price*(1+this.fee))/lot);
     while(lo<hi){const m=Math.ceil((lo+hi)/2);if(this.quote(t,m*lot,'buy').total<=S.co.cash)lo=m;else hi=m-1;}return lo*lot;},
@@ -1241,10 +1251,11 @@ const Trade={
   buy(t,q){const a=asset(t);if(!a)return '銘柄が見つかりません';if(a.priv)return '非上場のため市場では売買できません';if(q<=0)return '数量を指定してください';
     const o=this.quote(t,q,'buy');if(o.total>S.co.cash)return '現金が不足しています';
     const before=this.own(t);S.co.cash-=o.total;S.flows.buy+=o.total;const h=S.hold[t]||(S.hold[t]={q:0,cost:0});h.q+=q;h.cost+=o.total;
-    if(!a.fund){Cap.log(t,{who:pName(),act:'購入',q,px:a.price,pct:Cap.ownCo(t)});a.price*=1+o.im/2;const after=this.own(t);
+    if(!a.fund){const b4=before;Cap.log(t,{who:pName(),act:'購入',q,px:a.price,pct:Cap.ownCo(t)});Cap.flow(t,q,'buy',pName());Cap.milestone(t,b4,Cap.ownCo(t),pName());a.price*=1+o.im/2;const after=this.own(t);
       for(const th of [.05,.2,1/3,.5])if(before<th&&after>=th+(th===.5?1e-9:0))News.add('自社',`${S.player.name}、${a.name}株を${pctp(after,1)}保有（${this.tier(after)||'大量保有'}）`,'大量保有報告書を提出。市場の注目が集まる。',t,1);}
     return null;},
-  sell(t,q){const a=asset(t),h=S.hold[t];if(!h||q<=0)return '保有していません';if(a&&!a.fund)setTimeout(()=>{try{Cap.log(t,{who:pName(),act:'売却',q,px:a.price,pct:Cap.ownCo(t)});}catch(e){}},0);if(a&&a.lock>S.month)return `ロックアップ期間中です（あと${a.lock-S.month}ヶ月）`;if(a.priv)return '非上場のため市場では売れません。グループ経営の「売却」を使ってください';q=Math.min(q,h.q);
+  sell(t,q){const a=asset(t),h=S.hold[t];if(!h||q<=0)return '保有していません';const b4=a&&!a.fund?Cap.ownCo(t):0;
+    if(a&&!a.fund)setTimeout(()=>{try{Cap.log(t,{who:pName(),act:'売却',q,px:a.price,pct:Cap.ownCo(t)});Cap.flow(t,q,'sell',pName());Cap.milestone(t,b4,Cap.ownCo(t),pName());}catch(e){}},0);if(a&&a.lock>S.month)return `ロックアップ期間中です（あと${a.lock-S.month}ヶ月）`;if(a.priv)return '非上場のため市場では売れません。グループ経営の「売却」を使ってください';q=Math.min(q,h.q);
     const o=this.quote(t,q,'sell'),cp=h.cost*q/h.q;S.co.cash+=o.total;S.flows.sell+=o.total;S.flows.realized+=o.total-cp;h.q-=q;h.cost-=cp;
     if(h.q<=0)delete S.hold[t];if(!a.fund)a.price*=1-o.im/2;return null;},
   own(t){const a=CM[t];return a&&S.hold[t]?S.hold[t].q/a.shares:0;}
@@ -2209,10 +2220,10 @@ const Me={
   // 個人での株式売買（会社の投資とは別勘定）
   buy(t,q2){const a=asset(t),M=this.st();if(!a)return '銘柄が見つかりません';if(a.priv)return '非上場のため売買できません';
     const cost=a.price*q2*1.001;if(cost>M.cash)return `個人資金が足りません（必要 ${yen(cost)}円）`;
-    M.cash-=cost;const h=M.hold[t]||(M.hold[t]={q:0,cost:0});h.q+=q2;h.cost+=cost;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株購入`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'購入',q:q2,px:a.price,pct:Cap.ownMe(t)});return null;},
+    M.cash-=cost;const h=M.hold[t]||(M.hold[t]={q:0,cost:0});h.q+=q2;h.cost+=cost;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株購入`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'購入',q:q2,px:a.price,pct:Cap.ownMe(t)});Cap.flow(t,q2,'buy',`${S.player.ceo}氏`);return null;},
   sell(t,q2){const a=asset(t),M=this.st(),h=M.hold[t];if(!h||q2>h.q)return '保有していません';
     const pr=a.price*q2*.999;M.cash+=pr;const cb=h.cost*q2/h.q;h.cost-=cb;h.q-=q2;if(h.q<=0)delete M.hold[t];
-    M.inc.sell+=pr-cb;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株売却（損益 ${yen(pr-cb)}円）`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'売却',q:q2,px:a.price,pct:Cap.ownMe(t)});return null;},
+    M.inc.sell+=pr-cb;M.hist.unshift({y:S.y,m:S.m,e:`個人で${a.name}を${nf(q2)}株売却（損益 ${yen(pr-cb)}円）`});Cap.log(t,{who:`${S.player.ceo}（個人）`,act:'売却',q:q2,px:a.price,pct:Cap.ownMe(t)});Cap.flow(t,q2,'sell',`${S.player.ceo}氏`);return null;},
   // 自社株を売って個人資産にする（持株比率は下がる）
   sellOwn(pct){const q=S.eq,M=this.st();if(!q.listed)return '上場後に売却できます';const n=Math.floor(q.founder*pct/100/100)*100;
     if(n<100||n>=q.founder)return '売却できる株数がありません';const pr=n*q.price*.97;
@@ -2922,6 +2933,28 @@ const Pol={
    ===================================================================== */
 const Cap={
   shares(c){return Math.max(1,c===ME?S.eq.shares:c.shares);},
+  // 株式の基本データ（発行済・自己株式・流通・浮動株・時価総額）を1か所で計算する
+  stock(c){const isMe=c===ME||c==='ME',q=isMe?S.eq:c;const issued=this.shares(isMe?ME:c),treas=this.treas(isMe?ME:c);
+    const out=Math.max(1,issued-treas),L=this.list(isMe?ME:c);
+    const held=sum(L.filter(x=>!x.float&&!x.self&&(x.co||x.me||x.pa||x.k==='創業者')),x=>x.q);
+    const flo=Math.max(0,out-held),px=isMe?(q.listed?q.price:0):(c.priv?Market.fair(c)/issued:c.price);
+    const prev=isMe?q.prev:c.prev,hist=isMe?q.hist:c.hist,vh=(isMe?q.vh:c.vh)||[];
+    const ni=isMe?Co.cons().ni:Market.ni(c),eq=isMe?Co.bs().equity:c.equity,dps=isMe?(q.dps||0):(c.dps||0);
+    return{listed:isMe?!!q.listed:!c.priv,issued,treasury:treas,outstanding:out,float:flo,floatPct:flo/out,
+      price:px,prev,high:Math.max(...(hist||[px]).slice(-52),px),low:Math.min(...(hist||[px]).slice(-52),px),
+      vol:vh[vh.length-1]||0,avgVol:vh.length?sum(vh.slice(-13),x=>x)/Math.min(13,vh.length):Math.max(100,out*.004),
+      cap:px*out,eps:ni/out,per:ni>0?px*out/ni:null,pb:eq>0?px*out/eq:null,dps,yld:px>0?dps/px:0,holders:L.length};},
+  // 開発用：株式データの整合性チェック
+  verify(c){const st=this.stock(c),L=this.list(c===ME?ME:c),q=sum(L,x=>x.q),E=[];
+    if(st.treasury>st.issued)E.push('自己株式が発行済株式数を超えています');
+    if(st.float>st.outstanding+1)E.push('浮動株が流通株式数を超えています');
+    if(Math.abs(q-st.issued)>Math.max(100,st.issued*.001))E.push(`株主の合計(${nf(q)})と発行済(${nf(st.issued)})が一致しません`);
+    if(st.listed&&Math.abs(st.cap-st.price*st.outstanding)>1)E.push('時価総額が株価×流通株式数と一致しません');
+    const pct=sum(L,x=>x.pct);if(Math.abs(pct-1)>.01)E.push(`持株比率の合計が${pctp(pct,1)}です`);
+    if(E.length)console.error('[STOCK DATA ERROR]',(c===ME?pName():c.name),E.join(' / '));
+    return E;},
+  verifyAll(){const E=[];for(const c of [ME,...S.cos.filter(x=>!x.priv)].slice(0,60)){const e=this.verify(c);if(e.length)E.push([c===ME?pName():c.name,e]);}
+    console.log(`[STOCK CHECK] ${E.length?E.length+'件の不整合':'すべて整合しています'}`);return E;},
   treas(c){return Math.max(0,(c===ME?(S.eq.treasQ||0):(c.treasQ||0)));},
   voting(c){return Math.max(1,this.shares(c)-this.treas(c));},
   // 実データから株主を組み立てる（会社・個人・親会社・創業者・自己株式・その他）
@@ -2955,6 +2988,24 @@ const Cap={
   control(c){const L=this.list(c).filter(x=>!x.self&&!x.float);const t=L.find(x=>x.pct>.5);return t||null;},
   rel(c){const o=this.ownCo(c.t);return o>=.999?'完全子会社':o>.5?'連結子会社':o>=.2?'持分法適用関連会社':o>=.05?'主要株主':o>0?'投資先':'';},
   // 取引履歴
+  // 大口の売買を株価と市場に反映する（売却株数・出来高・浮動株・ボラティリティから圧力を計算）
+  flow(t,q,side,who){const a=CM[t];if(!a||a.priv)return;const st=this.stock(a),vR=q/Math.max(1,st.avgVol),fR=q/Math.max(1,st.float);
+    const press=Math.min(.4,(Math.sqrt(vR)*.02+Math.pow(fR,.8)*.6)*(1+(a.vol||.3)));
+    a.jump=(a.jump||0)+(side==='buy'?press:-press);(a.vh||(a.vh=[])).push(Math.round(q));
+    if(a.vh.length>156)a.vh.shift();
+    this.evt(a,side==='buy'?'大口買い':'大口売り',`${who}が${nf(q)}株を${side==='buy'?'取得':'売却'}`);
+    if(press>.04){const strong=press>.15;
+      News.add('市場',side==='buy'?`${a.name}に大量の買い。株価が急伸`:`${a.name}の大株主が大量売却。株価が急落`,
+        side==='buy'?`${who}による買いが出来高の${vR.toFixed(1)}倍に達した。浮動株が減り需給が引き締まっている。`:`${who}による売りが出来高の${vR.toFixed(1)}倍。需給の悪化が意識されている。`,t,side==='buy'?1:-1,
+        {lv:strong?2:1,imp:[`売買規模：浮動株の${pctp(fR,1)}`,`想定インパクト：${pct(side==='buy'?press:-press)}`,strong?'短期筋の追随で値動きが荒くなります':'']});}},
+  // 節目の保有比率を超えたときのイベント
+  milestone(t,before,after,who){const a=CM[t];if(!a)return;const TH=[[.05,'5%'],[.1,'10%'],[.2,'20%'],[1/3,'33.3%'],[.5,'50%'],[2/3,'66.7%'],[.9,'90%'],[.999,'100%']];
+    for(const [th,lab] of TH){
+      if(before<th&&after>=th){const nm=th>=.999?'完全子会社化':th>=.5?'過半数取得（連結子会社化）':th>=2/3?'特別決議に影響する水準':`保有比率${lab}を突破`;
+        News.add('速報',`${who}、${a.name}株の${lab}を取得`,`${nm}。${th>=.5?'経営権を握ることになる。':'大量保有報告書を提出。'}`,t,1,{lv:th>=.5?2:1,imp:[th>=.5?'連結の対象になります':'市場では支配権をめぐる思惑が広がります',`取得後の比率 ${pctp(after,1)}`]});
+        this.evt(a,'大株主の異動',`${who}が${lab}を突破`);if(th>=.5)chron(`${a.name}の過半数を取得`,'株式');}
+      if(before>=th&&after<th&&th>=.2){News.add('企業',`${who}、${a.name}株の保有を${lab}未満に縮小`,'ポジションを縮小した。',t,-1,{lv:1});this.evt(a,'大株主の異動',`${who}が${lab}を下回る`);}}},
+  evt(c,k,d){if(!c.evts)c.evts=[];c.evts.unshift({y:S.y,m:S.m,w:S.week,k,d,px:r2(c.price||0)});if(c.evts.length>40)c.evts.length=40;},
   log(t,e){if(!S.shlog)S.shlog={};const L=S.shlog[t]||(S.shlog[t]=[]);L.unshift({y:S.y,m:S.m,w:S.week,...e});if(L.length>24)L.length=24;
     if(Object.keys(S.shlog).length>80){const ks=Object.keys(S.shlog);delete S.shlog[ks[0]];}},
   hist(t){return (S.shlog&&S.shlog[t])||[];},
@@ -3588,9 +3639,8 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
      ${row('営業キャッシュフロー',yen(cf)+'円',tone(cf))}${row('累計売上（推計）',yen(c.rev*Math.max(1,(S.month-(c.ipoM||S.month))/12+1))+'円')}</div>
      <h3>事業別の内訳</h3><div class="card" style="overflow-x:auto"><table class="rt"><tr><th>事業</th><th>売上</th><th>営業利益</th><th>利益率</th><th>従業員</th></tr>${P.biz.map(b=>`<tr><td>${esc(b.n)}</td><td class="num">${yen(b.rev)}</td><td class="num ${tone(b.op)}">${yen(b.op)}</td><td class="num">${pctp(b.rev?b.op/b.rev:0,0)}</td><td class="num">${nf(b.emp)}</td></tr>`).join('')}</table></div>
      <h3>経営履歴</h3><div class="nbox">${P.hist.slice().reverse().slice(0,10).map(x=>`<div class="nl"><span class="tm">${x.y}</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span></span></span></div>`).join('')||'<div class="empty">まだ記録はありません</div>'}</div>`;}
-  if(seg==='stk'){const px=c.priv?Market.fair(c)/Math.max(1,c.shares):c.price;
-    h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">上場状況</span><b>${c.priv?'非上場':'上場（'+Prof.market(c)+'）'}</b></div><div class="row"><span class="mut sp">株価</span><b class="num">${c.priv?'—':nf(c.price)+'円'}</b></div><div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(c.shares)}株</b></div><div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(px*c.shares)}円</b></div><div class="row"><span class="mut sp">当社の保有比率</span><b class="num">${pctp(Cap.ownCo(c.t),2)}</b></div><div class="row"><span class="mut sp">個人の保有比率</span><b class="num">${pctp(Cap.ownMe(c.t),2)}</b></div><div class="row"><span class="mut sp">区分</span><b>${Cap.rel(c)||'—'}</b></div></div>
-    ${c.priv?'<p class="note">非上場のため市場では売買できません。</p>':`${candles(c,52,'stk'+t,1)}<button class="btn w sub" data-act="stock" data-t="${t}" style="margin-top:8px">市場の銘柄ページで売買する</button>`}`;}
+  if(seg==='stk'){h+=stockHTML(c);if(0){const px=0;
+    }}
   if(seg==='grp'){const kids=MA.kids?MA.kids(c.t):[];
     h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">親会社</span><b>${c.par&&CM[c.par]?esc(CM[c.par].name)+`（${pctp(c.parOwn||0,1)}）`:(Cap.ownCo(c.t)>.5?pName():'なし')}</b></div><div class="row"><span class="mut sp">子会社</span><b class="num">${kids.length}社</b></div></div>
     ${kids.length?`<div class="nbox">${kids.map(g=>`<button class="nl" data-act="coOpen" data-t="${g.t}"><span class="tm">${pctp(g.parOwn||1,0)}</span><span class="sp"><span class="hd">${esc(g.name)}</span><span class="mt"><span>${SECTORS[g.sec].n}</span><span>売上 ${yen(g.rev)}</span><span>${nf(g.emp)}人</span></span></span></button>`).join('')}</div>`:'<p class="note">子会社はありません。</p>'}`;}
@@ -3601,9 +3651,7 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
      ${mine?'<p class="note">借入と返済は「経営」タブから実行できます。</p>':'<p class="note">この会社の融資はあなたの操作対象ではありません（該当なし）。</p>'}`;}
   if(seg==='pol')h+=polHTML(c);
   if(seg==='res')h+=resHTML(c)+discListCo(c);
-  if(seg==='sh'){h+=holdersHTML(c);if(0)h+=`<div class="card" style="font-size:12.5px"><div class="row"><span class="mut sp">発行済株式数</span><b class="num">${nf(c.shares)}株</b></div><div class="row"><span class="mut sp">株価</span><b class="num">${c.priv?'非上場':nf(c.price)+'円'}</b></div><div class="row"><span class="mut sp">時価総額</span><b class="num">${yen(c.priv?Market.fair(c):c.price*c.shares)}円</b></div><div class="row"><span class="mut sp">上場状況</span><b>${c.priv?'非上場':'上場（東証）'}</b></div></div>
-    <h3>株主構成</h3><div class="card" style="font-size:12.5px">${(CoGen.ensure(c).sh||[]).map(x=>`<div style="margin-bottom:6px"><div class="row"><span class="sp">${esc(x.n)} <span class="mut3">${x.kind}</span></span><b class="num">${pctp(x.pct,1)}</b></div><div class="shg"><i style="width:${Math.round(x.pct*100)}%"></i></div></div>`).join('')}</div>`;
-    if(!c.priv)h+=holdersHTML(c);}
+  if(seg==='sh')h+=holdersHTML(c);   /* 株主は必ずここだけで表示する（重複の原因だった旧ブロックを削除） */
   return h;}
 function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meOwn)return vPCo(UI.coSel);const seg=UI.coSeg;
   const hasSub=MA.subs().length>0;   /* 連結会社があるときだけ「連結」タブ */
@@ -3618,7 +3666,7 @@ function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meO
      <h3>企業グループ</h3><div class="list"><div class="li"><div class="sp"><b>${esc(S.player.name)}</b></div><span class="s">本社</span></div>${S.biz.map(b=>`<button class="li" data-act="biz" data-id="${b.id}"><span style="width:14px"></span>${BT[b.type].ic}<div class="sp"><div class="t">${BT[b.type].n}事業</div></div><span class="num ${tone(b.last?.op||0)}">${b.last?yen(b.last.op):'—'}</span></button>`).join('')}${MA.subs().map(c=>`<button class="li" data-act="corp" data-t="${c.t}"><span style="width:14px"></span>🏢<div class="sp"><div class="t">${esc(c.name)}</div><div class="s">子会社・${pctp(Trade.own(c.t),0)}保有</div></div><span class="num ${tone(c.opm)}">${yen(c.rev*c.opm/12)}</span></button>`).join('')}</div>
      <p class="note">子会社は「グループ」で連結業績と一緒に確認できます。事業の数字は月次、子会社の数字は年換算の月割りです。</p>`;}
   if(seg==='group')h+=vGroup();
-  if(seg==='stock')h+=vEquity();
+  if(seg==='stock')h+=(S.eq.listed?stockHTML(ME):'')+vEquity();
   if(seg==='global')h+=vGlobal();
   if(seg==='res')h+=vMyRes();
   if(seg==='biz')h+=vBizPort();
@@ -4726,6 +4774,29 @@ function shikiHTML(a){const pf=a.pf,Y=Prof.years(a),hd=Prof.headline(a),cap=a.pr
   <h3>株価指標</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('予想PER',f1&&f1.eps>0?(a.price/f1.eps).toFixed(1)+'倍':'—')}${row('実績PBR',(cap/a.equity).toFixed(2)+'倍')}${row('予想配当利回り',f1?pctp(f1.dps/a.price,2):'—')}${row('時価総額',yen(cap))}${row('52週高値',nf(hi))}${row('52週安値',nf(lo))}${row('発行済株式',nf(a.shares)+'株')}${row('売買単位','100株')}${row('最低購入額',yen(a.price*100)+'円')}${row('決算期',pf.fy+'月')}</div></div>
   <h3>財務（百万円）</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('総資産',m(ta))}${row('自己資本',m(a.equity))}${row('自己資本比率',pctp(a.equity/ta))}${row('有利子負債',m(a.debt))}${row('現金同等物',m(a.cash))}${row('ROE',pctp(ni/a.equity))}${row('ROA',pctp(ni/ta))}${row('配当性向',pctp(a.payout,0))}</div></div>
   <h3>会社概要</h3><div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${row('代表者',esc(pf.ceo))}${row('設立',pf.est+'年')}${row('上場',pf.lst+'年')}${row('本社',esc(pf.city))}${row('従業員',nf(a.emp)+'人')}${row('平均年齢',pf.age+'歳')}${row('平均年収',nf(pf.sal)+'万円')}${row('経営方針',STRAT[a.strat])}</div></div>`;}
+/* ---------- 株式タブ（全社共通・すべて株式データから計算） ---------- */
+function stockHTML(c){const isMe=c===ME||c==='ME',st=Cap.stock(isMe?ME:c),t=isMe?null:c.t,E=isMe?[]:(c.evts||[]);
+  const row=(k,v,cl='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${cl}">${v}</b></div>`;
+  const ch=st.prev?st.price/st.prev-1:0;
+  return `<div class="card"><div class="row"><div class="sp"><div class="mut" style="font-size:12px">${st.listed?'上場'+(isMe?'':'（'+Prof.market(c)+'）'):'非上場'}</div><div class="num" style="font-size:26px;font-weight:600">${st.listed?nf(st.price):'—'}<span style="font-size:13px">円</span></div></div><div class="r"><div class="num ${tone(ch)}">${st.listed?(ch>=0?'▲':'▼')+pct(ch):''}</div><div class="mut3" style="font-size:11px">前週比</div></div></div>
+   ${st.listed?candles(isMe?S.eq:c,52,'stk'+(t||'me'),1):''}
+   <div class="grid2" style="font-size:12.5px;gap:4px 14px;margin-top:8px">
+    ${row('発行済株式数',nf(st.issued)+'株')}${row('自己株式',nf(st.treasury)+'株')}
+    ${row('流通株式数',nf(st.outstanding)+'株')}${row('浮動株',nf(st.float)+`株（${pctp(st.floatPct,1)}）`)}
+    ${row('時価総額',yen(st.cap)+'円')}${row('出来高（週）',nf(st.vol)+'株')}
+    ${row('平均出来高',nf(Math.round(st.avgVol))+'株')}${row('52週高値',st.listed?nf(st.high)+'円':'—')}
+    ${row('52週安値',st.listed?nf(st.low)+'円':'—')}${row('EPS',nf(st.eps,1)+'円')}
+    ${row('PER',st.per?st.per.toFixed(1)+'倍':'赤字')}${row('PBR',st.pb?st.pb.toFixed(2)+'倍':'—')}
+    ${row('1株配当',nf(st.dps,1)+'円')}${row('配当利回り',pctp(st.yld,2))}
+    ${row('株主数',nf(st.holders)+'名')}${row('ボラティリティ',((isMe?.35:(c.vol||.3))*100).toFixed(0)+'%')}
+    ${isMe?row('社長の持株比率',pctp(Eq.founderPct(),2)):row('当社の保有比率',pctp(Cap.ownCo(c.t),2))}
+    ${isMe?row('自己株式の取得累計',yen(S.co.treas||0)+'円'):row('個人の保有比率',pctp(Cap.ownMe(c.t),2))}
+    ${isMe?'':row('区分',Cap.rel(c)||'—')}</div>
+   <p class="note" style="margin-bottom:0">時価総額は「株価 × 流通株式数（発行済−自己株式）」で計算しています。大口の売買は、出来高と浮動株に対する大きさに応じて株価を動かします。</p></div>
+  ${E.length?`<h3>株式イベント</h3><div class="nbox">${E.slice(0,12).map(e=>`<div class="nl"><span class="tm">${e.m}月</span><span class="sp"><span class="hd">${esc(e.k)}：${esc(e.d)}</span><span class="mt"><span>${e.y}年${e.m}月第${e.w}週</span><span>株価 ${nf(e.px)}円</span></span></span></div>`).join('')}</div>`:''}
+  ${!isMe&&Cap.hist(c.t).length?`<h3>株式の売買履歴</h3><div class="nbox">${Cap.hist(c.t).slice(0,10).map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.who)}が${nf(x.q)}株を${x.act}</span><span class="mt"><span>${x.y}年${x.m}月</span><span>@${nf(x.px)}円</span><span>取引後 ${pctp(x.pct,2)}</span></span></span></div>`).join('')}</div>`:''}
+  ${!isMe&&st.listed?`<button class="btn w sub" data-act="stock" data-t="${t}" style="margin-top:10px">市場の銘柄ページで売買する</button>`:''}`;}
+
 function holdersHTML(a){const isMe=a===ME||a==='ME',c=isMe?ME:a;const N=Cap.shares(isMe?ME:a),L=Cap.list(isMe?ME:a),top=L.filter(x=>!x.float).slice(0,12);
   const px=isMe?S.eq.price:a.price,cap=px*N,lead=Cap.lead(isMe?ME:a),ctl=Cap.control(isMe?ME:a),chk=Cap.check(isMe?ME:a);
   const fl=L.filter(x=>x.float||x.k==='個人'&&!x.me),flp=sum(fl,x=>x.pct);
@@ -4811,7 +4882,7 @@ function shSettings(){return()=>{const sl=Store.slots.map(s=>({s,m:Store.meta(s)
     <div class="row"><span class="mut sp">現在のデータ量</span><b class="num">${Math.round(Store.pack(S).length/1024)}KB</b></div>
     <div class="row"><span class="mut sp">保存先</span><b style="font-size:11.5px">${esc(location.protocol==='file:'?'このファイル（file://）':location.origin)}</b></div>`:'<p class="note" style="margin-bottom:0">ブラウザの設定やプライベートブラウジングのため、この端末には保存できません。下の「書き出し」で文字列を控えておけば、あとから「読み込み」で再開できます。</p>'}
    <p class="note" style="margin-bottom:0">保存データは、いま開いているブラウザとサイト（上の保存先）ごとに分かれています。別のブラウザや別のURLで開くと、そこには前回のデータはありません。持ち出すときは「書き出し」を使ってください。</p>
-   <div class="row" style="margin-top:8px"><button class="btn sub sm sp" data-act="saveDebug">保存状態をコンソールに出力</button></div></div>
+   <div class="row" style="margin-top:8px"><button class="btn sub sm sp" data-act="saveDebug">保存状態をコンソールに出力</button><button class="btn sub w sm" data-act="stockDebug" style="margin-top:6px">株式データの整合性をチェック</button></div></div>
   <h3>データの持ち出し</h3><div class="row"><button class="btn sub sp" data-act="export">書き出し</button><button class="btn sub sp" data-act="importOpen">読み込み</button></div>
   <h3>表示</h3><div class="seg">${[['auto','自動'],['light','ライト'],['dark','ダーク']].map(x=>`<button class="${(document.documentElement.dataset.theme||'auto')===x[0]?'on':''}" data-act="theme" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
   <h3>チュートリアル</h3><div class="ctl"><div class="lb"><b>チュートリアルを見る</b><span>個人と会社のお金の違いから、時間の進め方・役員・経営会議までを案内します（今の会社のまま進みます）</span></div><button class="btn sm sub" data-act="tutStart">開始</button></div>
@@ -5059,6 +5130,7 @@ const A={
     else toast(Store.lastErrName.indexOf('Quota')>=0?'⚠ 保存容量を超えています。不要なスロットを削除してください':Store.lastErrName==='Unavailable'?'⚠ このブラウザでは保存機能を使えません（プライベートブラウジングなど）':'⚠ 保存できませんでした（'+Store.lastErrName+'）');
     renderSheets();},
   saveDebug:()=>{toast('コンソールに出力しました');Store.debug();},
+  stockDebug:()=>{const E=Cap.verifyAll();toast(E.length?`${E.length}件の不整合をコンソールに出力しました`:'株式データはすべて整合しています');},
   load:d=>{if(Store.read(d.v)&&Store.read(d.v).__corrupt){toast('⚠ このセーブデータは破損しているため読み込めません');return;}const go=()=>{setAuto(false);if(Store.load(d.v)){UI.overShown=false;UI.sheet=null;UI.tab='home';render();toast('読み込みました');}else toast('読み込めませんでした');};S&&!S.over?confirmBox('現在の進行状況は保存されていない場合、失われます。読み込みますか？',go,'読み込む'):go();},
   delSlot:d=>confirmBox(`スロット${d.v}を削除します。`,()=>{Store.del(d.v);renderSheets();},'削除する',true),
   export:()=>openSheet(shExport()),importOpen:()=>openSheet(shImport()),
