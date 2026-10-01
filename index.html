@@ -858,6 +858,7 @@ const Market={
     const c={t:this.ucode(),name:this.uname(sec),sec,arch:a,strat:pick(STRAT_BY[a]),rev,opm,tOpm:a==='startup'?rn(.05,.2):opm,g,expG:g,expOpm:opm,
       equity,debt:equity*rn(.1,1.4)*(heavy?2:1),cash:rev*(a==='startup'?rn(.3,.9):rn(.05,.3)),emp:0,payout:rn(A.pay[0],A.pay[1]),
       beta:A.beta*rn(.8,1.2),vol:A.vol*rn(.8,1.2),cyc:SECTORS[sec].cyc*A.cyc,noise:A.noise,mood:rn(-.1,.1),jump:0,lastRet:0,crisis:0,boost:0,q:q??ri(0,2),qh:[],hist:[],dps:0,ipoM:S.month};
+    c.trait=['保守的','革新的','攻撃的','慎重','成長重視','利益重視','社会貢献重視','政治重視','海外重視','研究開発重視'][hs(c.t)%10];   /* 会社の性格 */
     c.emp=Math.max(20,Math.round(rev/SECTORS[sec].rpe*rn(.7,1.3)));
     const fc=this.fair(c),p0=this.pxTarget(fc,a)*Math.exp(gauss()*.45);c.shares=Math.max(1e6,Math.round(fc/p0/1000)*1000);   // 時価総額が大きいほど株数が多く、株価はおおむね数百〜数千円
     c.price=fc/c.shares*rn(.85,1.15);
@@ -2543,6 +2544,157 @@ const Life={
 };
 
 /* =====================================================================
+   MODULE: Org — 経営陣の派閥・忠誠・暴走、取締役会、キーパーソン、人材引き抜き
+   ===================================================================== */
+const FACTS=['創業者派','財務派','技術派','海外派','政治派'];
+const KEYT=[{k:'eng',n:'天才エンジニア',d:'品質と技術力が大きく伸びる'},{k:'sales',n:'営業の天才',d:'需要とブランドを押し上げる'},
+ {k:'mgr',n:'経営の天才',d:'利益率と意思決定の質が上がる'},{k:'sci',n:'著名な研究者',d:'研究開発の効果が大きくなる'},
+ {k:'pol',n:'政界に強い人物',d:'政治活動の成功率が上がる'},{k:'cha',n:'カリスマ',d:'採用と士気、ブランドに効く'}];
+const Org={
+  st(){if(!S.org)S.org={key:[],log:[],board:[]};return S.org;},
+  // 役員に派閥・忠誠度・野心を与える
+  tag(e,r){if(!e)return e;if(!e.fact)e.fact=FACTS[hs(e.name+r)%FACTS.length];
+    if(e.loy==null)e.loy=clamp(55+(e.ab-60)/3+((hs(e.name)>>>4)%30)-10,10,98);
+    if(e.amb==null)e.amb=clamp(30+((hs(e.name)>>>9)%60),5,95);return e;},
+  execs(){const E=Exec.st();return Object.entries(E).map(([r,e])=>({r,e:this.tag(e,r)}));},
+  factions(){const m={};for(const {r,e} of this.execs())m[e.fact]=(m[e.fact]||0)+1;return m;},
+  // 取締役会：一定規模から、重要案件は役員の派閥と忠誠で可否が決まる
+  active(){return Co.cons().emp>=300&&this.execs().length>=2;},
+  vote(kind,amount){const L=this.execs();if(!L.length)return{ok:true,yes:0,no:0,votes:[]};
+    const eq=Math.max(1,Co.bs().equity),big=amount/eq;
+    const votes=L.map(({r,e})=>{let v=(e.loy-55)/25+(e.ab-60)/40-big*2.2;
+      if(e.fact==='財務派')v-=big*1.8;if(e.fact==='技術派'&&['biz','capex','bigbet'].includes(kind))v+=.8;
+      if(e.fact==='海外派'&&kind==='global')v+=1.2;if(e.fact==='政治派'&&kind==='ill')v+=.6;
+      if(e.fact==='創業者派')v+=.9;v+=gauss()*.5;return{r,n:e.name,f:e.fact,y:v>0,v};});
+    const yes=votes.filter(x=>x.y).length,no=votes.length-yes;return{ok:yes>=no,yes,no,votes};},
+  // 役員の暴走（忠誠度が低いほど起きやすい）
+  month(){const O=this.st();
+    for(const {r,e} of this.execs()){
+      e.loy=clamp(e.loy+(S.co.hist.at(-1)?.pl.op>0?.25:-.5)+(Me.st().role==='CEO'?.1:-.1)+gauss()*.4,5,99);
+      if(R()>.012+(70-e.loy)/2200+(e.amb-50)/6000)continue;
+      const k=pick(['invest','pol','leave','media','feud','rival']);
+      if(k==='invest'&&S.biz.length){const b=pick(S.biz),x=Math.round(Math.min(S.co.cash*.1,(b.last?.rev||1e7)*3));
+        if(S.co.cash>x*2){S.co.cash-=x;b.fixedAssets+=x*.7;S.flows.capex+=x;S.flows.extraLoss+=x*.3;b.quality=Math.min(100,b.quality+3);
+          News.add('自社',`${r}の${e.name}氏が独断で${yen(x)}円の投資を実行`,`${BT[b.type].n}事業の設備を一気に増強した。成果が出るかは未知数。`,null,0,{lv:1,imp:['社長の承認を経ていない支出です','忠誠度が低い役員は独断で動くことがあります']});
+          O.log.unshift({y:S.y,m:S.m,e:`${e.name}（${r}）の独断投資 ${yen(x)}円`});}}
+      if(k==='pol'){const p=Gov.byRel()[0];if(p){Gov.touch(p,8,`${e.name}（${r}）による独自の働きかけ`,ME);Pol.st(ME).risk=clamp(Pol.st(ME).risk+6,0,100);
+        News.add('自社',`${r}の${e.name}氏、${p.name}議員と独自に接触`,'社内の手続きを経ていないとして問題視する声もある。',null,0,{lv:1});}}
+      if(k==='leave'&&e.loy<45){const E=Exec.st();delete E[r];
+        News.add('速報',`${r}の${e.name}氏が退任`,`${e.amb>70?'独立して新会社を立ち上げるとの観測も。':'方針の違いを理由に会社を去った。'}`,null,-1,{lv:2,imp:['自動運営と経営判断の質が下がります','後任の招へいを急ぎましょう']});
+        if(e.amb>70)Rival.add({pf:{ceo:e.name},name:pName(),sec:BT[S.biz[0]?.type||'it'].sec,t:'EX'+S.bid++},'exec');
+        O.log.unshift({y:S.y,m:S.m,e:`${e.name}（${r}）が退任`});}
+      if(k==='media'){S.co.maxBrand=Math.max(0,S.co.maxBrand-2);if(S.eq.listed)S.eq.jump-=.02;
+        News.add('企業',`${pName()}の${r}が自社方針について発言`,'市場では経営陣の足並みの乱れと受け止められている。',null,-1,{lv:0});}
+      if(k==='feud'&&this.execs().length>=2){const o=pick(this.execs().filter(x=>x.r!==r));if(o){e.loy=Math.max(5,e.loy-8);o.e.loy=Math.max(5,o.e.loy-6);
+        News.add('自社',`${r}と${o.r}が経営方針をめぐり対立`,`${e.fact}と${o.e.fact}の間で意見が割れている。`,null,-1,{lv:1,imp:['派閥の対立は意思決定を遅らせます']});}}
+      if(k==='rival'){const c=Market.listed().filter(x=>x.rev>Co.cons().rev*.5)[0];if(c&&R()<.5){const E=Exec.st();delete E[r];
+        News.add('速報',`${c.name}が${pName()}の${r}・${e.name}氏を引き抜き`,'報酬と裁量の大きさが決め手になったという。',c.t,-1,{lv:2,imp:['競合の経営力が上がります','忠誠度を上げるには業績と関係づくりが要ります']});
+        c.edge=(c.edge??0)+.02;O.log.unshift({y:S.y,m:S.m,e:`${e.name}（${r}）が${c.name}へ移籍`});}}}
+    this.keyMonth();},
+  // キーパーソン
+  keyMonth(){const O=this.st();
+    for(const k of O.key.slice()){k.m--;
+      if(k.m<=0||R()<.004){O.key=O.key.filter(x=>x!==k);
+        News.add('自社',`${k.name}氏（${KEYT.find(t=>t.k===k.k).n}）が退職`,R()<.5?'競合企業からの誘いに応じたという。':'独立して自らの事業を始める。',null,-1,{lv:1,imp:['その人物による上積みがなくなります']});continue;}
+      const b=S.biz[0];if(!b)continue;
+      if(k.k==='eng')b.quality=Math.min(100,b.quality+.25);
+      if(k.k==='sales')for(const x of S.biz)x.brand=Math.min(100,x.brand+.15);
+      if(k.k==='sci')b.rd=Math.round(b.rd*1.002);
+      if(k.k==='cha')S.co.maxBrand=Math.min(100,S.co.maxBrand+.1);}
+    if(O.key.length<3&&R()<.012+(sum(S.biz,b=>b.rd)/Math.max(1,Co.ttm('rev'))*.6)){const t=pick(KEYT),h=hs('key'+S.month);
+      const k={id:'K'+(S.bid++),k:t.k,name:FAM[h%FAM.length]+' '+GIV[(h>>>5)%GIV.length],ab:70+(h>>>9)%30,m:ri(36,120),since:S.month};
+      O.key.push(k);News.add('自社',`${pName()}に${t.n}が加わる`,`${k.name}氏（能力${k.ab}）。${t.d}。`,null,1,{lv:1,imp:['在籍している間、継続的に効果があります','競合から引き抜かれることもあります']});
+      chron(`${t.n} ${k.name}氏が入社`,'人材');}},
+  // 競合から人材を引き抜く
+  poach(){const O=this.st(),c=Market.listed().filter(x=>x.rev>1e10&&!x.crisis).sort((a,b)=>b.rev-a.rev)[ri(0,4)];
+    const cost=Math.round(Math.max(3e7,Co.cons().rev*.004));if(S.co.cash<cost)return `現金が不足しています（必要 ${yen(cost)}円）`;
+    if(O.key.length>=4)return 'これ以上は受け入れられません';
+    S.co.cash-=cost;S.flows.fee+=cost;const t=pick(KEYT),h=hs('po'+S.month);
+    if(R()<.55){const k={id:'K'+(S.bid++),k:t.k,name:FAM[h%FAM.length]+' '+GIV[(h>>>5)%GIV.length],ab:65+(h>>>7)%30,m:ri(24,96),since:S.month,from:c.name};
+      O.key.push(k);if(c)c.edge=(c.edge??0)-.01;
+      News.add('企業',`${pName()}、${c.name}から${t.n}を引き抜き`,`${k.name}氏が移籍。${t.d}。`,c.t,1,{lv:1});chron(`${c.name}から${k.name}氏を獲得`,'人材');return null;}
+    News.add('自社',`${pName()}の人材引き抜きは不調`,`${c.name}の慰留で移籍は実現しなかった。`,null,0,{lv:0});return null;}
+};
+
+/* =====================================================================
+   MODULE: Tech — 技術革新・特許・ライセンス
+   ===================================================================== */
+const TECHN=['次世代素材','超高効率電池','自律制御AI','量子通信','新型半導体プロセス','再生医療技術','常温超伝導','次世代エネルギー貯蔵'];
+const Tech={
+  st(){if(!S.tech)S.tech={list:[],world:[]};return S.tech;},
+  month(){const T=this.st();
+    const rd=sum(S.biz,b=>b.rd),rev=Math.max(1,Co.ttm('rev'));
+    if(S.biz.length&&R()<clamp(rd/rev*2.2,.002,.05)){const n=pick(TECHN),b=S.biz.sort((x,y)=>y.rd-x.rd)[0];
+      const t={id:'T'+(S.bid++),n,sec:BT[b.type].sec,y:S.y,m:S.m,lv:60+ri(0,40),mode:null,rev:0};
+      T.list.unshift(t);if(T.list.length>12)T.list.length=12;
+      News.add('速報',`${pName()}が「${n}」の開発に成功`,`${BT[b.type].n}事業の研究開発から生まれた。特許を取得し、使い方を決める必要がある。`,null,1,{lv:2,imp:['独占・ライセンス販売・売却から選べます','競合も追随を始めます']});
+      chron(`${n}の開発に成功`,'技術');}
+    for(const t of T.list){if(t.mode==='lic'){const r=Math.round(Co.cons().rev*.004);S.co.cash+=r;S.flows.div+=r;t.rev+=r;}
+      if(t.mode==='mono'){const b=S.biz.find(x=>BT[x.type].sec===t.sec);if(b){b.quality=Math.min(100,b.quality+.3);b.brand=Math.min(100,b.brand+.1);}}
+      t.lv=Math.max(5,t.lv-.25);}
+    // 世界の技術革新（他社が起こすこともある）
+    if(R()<.02){const n=pick(TECHN),c=Market.listed().filter(x=>!x.crisis).sort((a,b)=>b.rev-a.rev)[ri(0,8)];if(!c)return;
+      c.edge=(c.edge??0)+.04;c.jump+=.08;S.econ.trend[c.sec]=clamp((S.econ.trend[c.sec]||1)*1.05,.5,2);
+      const mine=S.biz.some(b=>BT[b.type].sec===c.sec);if(mine)for(const b of S.biz)if(BT[b.type].sec===c.sec)b.quality=Math.max(0,b.quality-4);
+      T.world.unshift({y:S.y,m:S.m,n,co:c.name,sec:c.sec});if(T.world.length>12)T.world.length=12;
+      News.add('企業',`${c.name}が「${n}」を実用化`,`${SECTORS[c.sec].n}の勢力図が変わる可能性がある。${mine?'当社の同業事業は相対的に競争力が下がった。':''}`,c.t,mine?-1:0,{lv:mine?2:1,imp:mine?['自社の品質が相対的に低下しました','研究開発への投資が必要です']:[]});}},
+  use(id,mode){const t=this.st().list.find(x=>x.id===id);if(!t)return '対象がありません';if(t.mode)return 'すでに方針を決めています';
+    t.mode=mode;
+    if(mode==='mono'){for(const b of S.biz)if(BT[b.type].sec===t.sec)b.quality=Math.min(100,b.quality+8);
+      News.add('自社',`${pName()}、「${t.n}」を独占利用`,'自社事業だけで使い、競争力の源にする。',null,1,{lv:1});}
+    if(mode==='lic'){News.add('企業',`${pName()}、「${t.n}」のライセンス提供を開始`,'他社にも開放し、継続的な収入を得る。',null,1,{lv:1,imp:['毎月ライセンス収入が入ります','競合も技術を使えるようになります']});
+      for(const c of Market.listed())if(c.sec===t.sec&&R()<.3)c.edge=(c.edge??0)+.01;}
+    if(mode==='sell'){const p=Math.round(Co.cons().rev*.08*(t.lv/70));S.co.cash+=p;S.flows.realized+=p;
+      News.add('企業',`${pName()}、「${t.n}」を${yen(p)}円で売却`,'技術そのものを手放し、現金を得た。',null,0,{lv:1});}
+    chron(`${t.n}を${mode==='mono'?'独占利用':mode==='lic'?'ライセンス提供':'売却'}`,'技術');return null;}
+};
+
+/* =====================================================================
+   MODULE: Crisis — 危機イベントと、選択によって変わる結末（過去の選択が後から効く）
+   ===================================================================== */
+const CRI=[
+ {k:'recall',n:'製品に重大な不具合',d:'一部製品で発火の報告が出ている。',o:[
+   {n:'ただちに全品回収する',c:.06,cr:8,br:4,risk:0,t:'誠実な対応として評価された'},
+   {n:'事実を公表し調査する',c:.02,cr:3,br:0,risk:10,t:'公表はしたが対応の遅さを指摘された'},
+   {n:'調査してから判断する',c:.01,cr:-2,br:-2,risk:30,t:'様子見の姿勢が不信を招いた'},
+   {n:'問題を公表しない',c:0,cr:-5,br:-5,risk:70,t:'いまは収まったが、火種は残った'}]},
+ {k:'leak',n:'顧客データの流出',d:'外部からの不正アクセスが確認された。',o:[
+   {n:'即日公表し補償する',c:.05,cr:6,br:3,risk:0,t:'対応の速さが評価された'},
+   {n:'原因究明を優先する',c:.02,cr:1,br:-1,risk:20,t:'説明不足との批判が出た'},
+   {n:'影響は軽微として公表を控える',c:0,cr:-6,br:-6,risk:65,t:'内部には不満が残った'}]},
+ {k:'acc',n:'工場で事故が発生',d:'生産ラインが停止している。',o:[
+   {n:'操業を止めて安全対策に投資する',c:.07,cr:7,br:3,risk:0,t:'安全最優先の姿勢が示された'},
+   {n:'部分稼働で復旧を急ぐ',c:.03,cr:0,br:0,risk:25,t:'納期は守ったが不安は残る'},
+   {n:'原因を公表せず稼働を続ける',c:.005,cr:-7,br:-4,risk:70,t:'現場には不満が溜まった'}]},
+ {k:'strike',n:'従業員が待遇改善を要求',d:'一部の拠点でストライキの動きがある。',o:[
+   {n:'賃上げに応じる',c:.05,cr:4,br:2,risk:0,t:'労使関係が安定した'},
+   {n:'交渉を続ける',c:.01,cr:0,br:0,risk:15,t:'いったん収束した'},
+   {n:'強硬に対応する',c:0,cr:-5,br:-3,risk:45,t:'職場の空気が悪くなった'}]},
+ {k:'suit',n:'大型訴訟を提起される',d:'特許侵害を主張されている。',o:[
+   {n:'和解金を支払って早期解決',c:.06,cr:2,br:0,risk:0,t:'早期に幕引きできた'},
+   {n:'全面的に争う',c:.02,cr:0,br:0,risk:35,t:'長期化の可能性が残る'},
+   {n:'交渉で条件を詰める',c:.03,cr:1,br:0,risk:15,t:'現実的な落としどころを探る'}]}];
+const Crisis={
+  st(){if(!S.crisis)S.crisis={cur:null,debt:[],log:[]};return S.crisis;},
+  month(){const C=this.st();
+    // 過去の選択のツケ：隠した問題が後から表面化する
+    for(const d of C.debt.slice()){d.m--;if(d.m>0)continue;C.debt=C.debt.filter(x=>x!==d);
+      if(R()<d.p){Scand.open({t:`${pName()}が過去に問題を公表していなかったとの情報`,b:`${d.y}年の${d.n}をめぐり、社内で対応が握りつぶされていたという。`,truth:true});
+        S.co.credit=Math.max(0,S.co.credit-10);chron(`過去の${d.n}が表面化`,'危機');}}
+    if(!C.cur&&S.biz.length&&R()<.02+(Pol.st(ME).risk/3000)){const e=pick(CRI);C.cur={k:e.k,y:S.y,m:S.m};
+      News.add('速報',`${pName()}で${e.n}`,`${e.d} 対応の判断が求められている。`,null,-1,{lv:2,imp:['ホームの判断ポイントから対応を選べます','選択によって信用力・ブランド・将来のリスクが変わります']});}},
+  opts(){const C=this.st();if(!C.cur)return null;return CRI.find(x=>x.k===C.cur.k);},
+  decide(i){const C=this.st(),e=this.opts();if(!e)return '対応中の危機はありません';const o=e.o[i];if(!o)return '選択肢がありません';
+    const cost=Math.round(Co.cons().rev*o.c);S.co.cash-=cost;S.flows.extraLoss+=cost;
+    S.co.credit=clamp(S.co.credit+o.cr,0,100);for(const b of S.biz)b.brand=clamp(b.brand+o.br,0,100);
+    if(S.eq.listed)S.eq.jump+=o.cr/120;
+    if(o.risk>20)C.debt.push({n:e.n,y:S.y,m:ri(18,60),p:o.risk/100});
+    C.log.unshift({y:S.y,m:S.m,n:e.n,o:o.n,cost,res:o.t});if(C.log.length>20)C.log.length=20;
+    News.add('自社',`${pName()}、${e.n}に「${o.n}」で対応`,`費用 ${yen(cost)}円。${o.t}。`,null,o.cr>0?1:-1,{lv:1,imp:o.risk>20?['いまは収まりましたが、将来に火種が残ります']:['誠実な対応は信用力につながります']});
+    chron(`${e.n}に対応（${o.n}）`,'危機');C.cur=null;return null;}
+};
+
+/* =====================================================================
    MODULE: Gov — 架空世界の政治家・政党・選挙・世論。企業との関係が長期で効いてくる
    ===================================================================== */
 const PARTY=[{id:'kok',n:'国民創生党',eco:'成長重視',biz:.7,reg:-.3,sup:34,d:'減税と規制緩和で産業を伸ばす'},
@@ -2561,17 +2713,24 @@ const Gov={
     G.pols[0].role='首相';G.pm=G.pols[0].id;},
   pm(){const G=this.st();return G.pols.find(p=>p.id===G.pm)||null;},
   party(id){return PARTY.find(x=>x.id===id)||PARTY[0];},
-  byRel(){return this.st().pols.slice().sort((a,b)=>b.rel-a.rel);},
+  byRel(c){const co=c||ME;return this.st().pols.slice().sort((a,b)=>this.rel(b,co)-this.rel(a,co));},
   relName(v){return v>=70?'重要人物':v>=40?'友好':v>=15?'良好':v>-10?'中立':'対立';},
   // 企業の行動が政治家との関係値を動かす
-  touch(p,v,why){p.rel=clamp(p.rel+v,-30,100);p.log.unshift({y:S.y,m:S.m,e:why,v});if(p.log.length>30)p.log.length=30;
-    if(p.rel>=40&&!p.allied){p.allied=1;News.add('企業',`${pName()}、${p.name}議員との関係を強める`,`${this.party(p.party).n}の${p.role}。産業政策で意見交換を重ねている。`,null,0,{lv:0});}},
+  key(c){return c===ME||c==='ME'?'ME':(c.t||'ME');},
+  co(k){return k==='ME'?ME:(CM[k]||ME);},
+  rel(p,c){const k=this.key(c);if(!p.rels)p.rels={};if(k==='ME'&&p.rels.ME==null)p.rels.ME=p.rel||0;return p.rels[k]||0;},
+  setRel(p,c,v){const k=this.key(c);if(!p.rels)p.rels={};p.rels[k]=clamp(v,-30,100);if(k==='ME')p.rel=p.rels[k];},
+  byRelCo(c){const k=this.key(c);return this.st().pols.slice().sort((a,b)=>this.rel(b,{t:k==='ME'?null:k,...(k==='ME'?{}:{})})-0-(this.rel(a,{t:k==='ME'?null:k})-0));},
+  touch(p,v,why,c){const co=c||ME;this.setRel(p,co,this.rel(p,co)+v);if(!p.logs)p.logs={};const k=this.key(co);
+    (p.logs[k]||(p.logs[k]=[])).unshift({y:S.y,m:S.m,e:why,v});if(p.logs[k].length>30)p.logs[k].length=30;
+    p.log=p.logs.ME||[];
+    if(this.rel(p,co)>=40&&!p.allied&&this.key(co)==='ME'){p.allied=1;News.add('企業',`${pName()}、${p.name}議員との関係を強める`,`${this.party(p.party).n}の${p.role}。産業政策で意見交換を重ねている。`,null,0,{lv:0});}},
   // 毎月：出世・支持率・選挙・世論
   month(){const G=this.st(),E=S.econ;
     G.pub.op=clamp(G.pub.op+(E.gdp-1)*.6+gauss()*2-(Pol.st(ME).scandal?1:0),0,100);
     G.pub.media=clamp(G.pub.media*.95+(Pol.st(ME).risk>50?3:0)+gauss(),0,100);
     for(const p of G.pols){p.sup=clamp(p.sup+gauss()*1.5+(p.ab-60)/60+(G.ruling===p.party?(E.gdp-1)*.4:0),5,95);
-      p.rel=p.rel>0?Math.max(0,p.rel-.08):p.rel;   /* 関係は放っておくと薄れる */
+      if(!p.rels)p.rels={ME:p.rel||0};for(const k in p.rels)p.rels[k]=p.rels[k]>0?Math.max(0,p.rels[k]-.08):p.rels[k];p.rel=p.rels.ME||0;   /* 関係は会社ごとに、放っておくと薄れる */
       if(R()<.004+p.risk/4000){p.risk=Math.min(95,p.risk+10);p.sup=Math.max(5,p.sup-12);p.hist.unshift({y:S.y,m:S.m,e:'政治資金をめぐる報道'});
         if(p.rel>30)News.add('企業',`${p.name}議員に政治資金の疑い`,`${pName()}との関係にも関心が向いている。`,null,-1,{lv:1,imp:['関係の深い企業にも取材が入ります']});}
       // 出世：能力・支持率・企業の支援が効く
@@ -2600,7 +2759,7 @@ const Gov={
 const SCST=['速報','続報','追加報道','企業声明','調査','結論'];
 const Scand={
   st(){if(!S.scand)S.scand=[];return S.scand;},
-  open(o){const L=this.st();const sc={id:'SC'+(S.bid++),y:S.y,m:S.m,t:o.t,who:o.who||pName(),pol:o.pol||null,stage:0,ev:o.ev||'疑惑',truth:o.truth??(R()<.65),dmg:0,log:[],next:S.month+1};
+  open(o){const L=this.st();const co=o.co||ME,ck=Gov.key(co);const sc={id:'SC'+(S.bid++),y:S.y,m:S.m,t:o.t,co:ck,who:o.who||Pol.name(co),pol:o.pol||null,stage:0,ev:o.ev||'疑惑',truth:o.truth??(R()<.65),dmg:0,log:[],next:S.month+1};
     L.unshift(sc);if(L.length>12)L.length=12;this.news(sc,`【速報】${o.t}`,o.b||'関係者への取材が始まっている。',-1,2);return sc;},
   news(sc,title,body,tn,lv){const n=News.add('企業',title,body,null,tn,{lv:lv||1,imp:[`証拠レベル：${sc.ev}`,`世論の関心：${Math.round(Gov.st().pub.media)}`,'政治タブの「スキャンダル」から経緯を追えます']});
     sc.log.unshift({y:S.y,m:S.m,t:title,b:body});if(sc.log.length>12)sc.log.length=12;return n;},
@@ -2612,7 +2771,15 @@ const Scand={
       else if(sc.stage===3){this.news(sc,`【企業声明】${sc.who}が見解を公表`,'事実関係を確認し、必要な対応を取るとしている。',0,1);
         Disc.add('ME','その他','報道に関する当社の見解について',{sum:'報道された内容について、事実関係を調査しています。',lv:1});}
       else if(sc.stage===4){sc.ev=sc.truth?'確認済み':'誤報';this.news(sc,`【調査】第三者委員会が調査を開始`,'外部の専門家による調査が始まった。',sc.truth?-1:0,1);}
-      else{const bad=sc.truth&&R()<.5+heat*.4;
+      else{const bad=sc.truth&&R()<.5+heat*.4;const target=Gov.co(sc.co||'ME');
+        if(bad&&target!==ME){const c2=target,fine=Math.round(c2.rev*rn(.005,.03));c2.cash-=fine;c2.jump-=.12;if(c2.port)c2.port.cre=Math.max(0,c2.port.cre-15);
+          Pol.st(c2).scandal++;if(c2.port)c2.port.hist.push({y:S.y,m:S.m,e:`スキャンダル：${sc.t}`});
+          this.news(sc,`【結論】${sc.t}は事実と認定`,`${c2.name}は課徴金 ${yen(fine)}円。親会社にも説明責任を問う声が出ている。`,-1,2);
+          if(Cap.ownCo(c2.t)>.5||c2.meOwn>0){   /* 子会社・個人所有会社の問題はグループへ波及する */
+            S.co.credit=Math.max(0,S.co.credit-8);if(S.eq.listed)S.eq.jump-=.06;for(const b of S.biz)b.brand=Math.max(0,b.brand-3);
+            News.add('企業',`${pName()}、子会社の問題で説明に追われる`,`${c2.name}の件を受け、グループ全体の管理体制が問われている。`,null,-1,{lv:1,imp:['親会社の信用力と株価にも影響します','グループ全体のブランドが下がります']});
+            chron(`子会社（${c2.name}）のスキャンダルがグループへ波及`,'政治');}
+          continue;}
         if(bad){const fine=Math.round(Co.cons().rev*rn(.005,.03));S.co.cash-=fine;S.flows.extraLoss+=fine;S.co.credit=Math.max(0,S.co.credit-15);
           if(S.eq.listed)S.eq.jump-=.12;for(const b of S.biz)b.brand=Math.max(0,b.brand-5);Pol.st(ME).scandal++;
           this.news(sc,`【結論】${sc.t}は事実と認定`,`課徴金 ${yen(fine)}円。経営責任を問う声が強まっている。`,-1,2);chron(`スキャンダル：${sc.t}`,'政治');
@@ -2711,22 +2878,22 @@ const Pol={
   level(c){const e=this.ethics(c),v=clamp(100-e.ethic,0,100);
     return{v,n:v<=20?'透明性の高い企業':v<=40?'政治活動が活発':v<=60?'政治との関係が強い':v<=80?'不透明な政治活動が増加':'重大な政治リスク'};},
   // 政治家に対する働きかけ
-  meet(pid,kind){const p=Gov.st().pols.find(x=>x.id===pid);if(!p)return '対象が見つかりません';const st=this.st(ME);
+  meet(pid,kind,c){c=c||ME;const p=Gov.st().pols.find(x=>x.id===pid);if(!p)return '対象が見つかりません';const st=this.st(c);
     const K={visit:{n:'面会',c:.001,rel:6,risk:1},donate:{n:'政治献金（適法）',c:.006,rel:14,risk:5},support:{n:'選挙支援',c:.012,rel:22,risk:7},
       secret:{n:'非公開の資金提供',c:.02,rel:34,risk:28,ill:1}}[kind];if(!K)return '不明です';
-    const cost=this.cost(ME,K.c);if(!this.pay(ME,cost))return `資金が不足しています（必要 ${yen(cost)}円）`;
+    const cost=this.cost(c,K.c);if(!this.pay(c,cost))return `資金が不足しています（必要 ${yen(cost)}円）`;
     st.spend+=cost;st.risk=clamp(st.risk+K.risk,0,100);if(K.ill)st.dirty=(st.dirty||0)+1;
-    const eff=K.rel*(.7+R()*.6)*(1+(p.biz>0?.2:-.1));Gov.touch(p,eff,`${pName()}による${K.n}`);
+    const eff=K.rel*(.7+R()*.6)*(1+(p.biz>0?.2:-.1));Gov.touch(p,eff,`${this.name(c)}による${K.n}`,c);
     st.log.unshift({y:S.y,m:S.m,n:`${p.name}議員への${K.n}`,res:`関係値 ${Math.round(p.rel)}`,cost,pol:p.name});if(st.log.length>40)st.log.length=40;
-    if(K.ill&&R()<.25)Scand.open({t:`${pName()}と${p.name}議員の資金関係に疑惑`,b:'非公開の資金のやり取りがあったとの情報。',pol:p.name,truth:true});
+    if(K.ill&&R()<.25)Scand.open({t:`${this.name(c)}と${p.name}議員の資金関係に疑惑`,b:'非公開の資金のやり取りがあったとの情報。',pol:p.name,truth:true,co:c});
     return null;},
   // 政治家を通じた政策提言（関係値・役職・党の姿勢で成否が変わる）
-  push(pid,sec){const p=Gov.st().pols.find(x=>x.id===pid);if(!p)return '対象が見つかりません';const st=this.st(ME);
-    const cost=this.cost(ME,.01);if(!this.pay(ME,cost))return `資金が不足しています（必要 ${yen(cost)}円）`;st.spend+=cost;
+  push(pid,sec,c){c=c||ME;const p=Gov.st().pols.find(x=>x.id===pid);if(!p)return '対象が見つかりません';const st=this.st(c);
+    const cost=this.cost(c,.01);if(!this.pay(c,cost))return `資金が不足しています（必要 ${yen(cost)}円）`;st.spend+=cost;
     const pw=PROLE.indexOf(p.role)/5,pa=Gov.party(p.party);
-    const ok=R()<clamp(.15+p.rel/250+pw*.35+pa.biz*.15+(Gov.st().ruling===p.party?.12:0)-Gov.st().pub.media/500,.05,.9);
-    if(ok){S.econ.trend[sec]=clamp((S.econ.trend[sec]||1)*1.07,.5,2);Gov.touch(p,4,'政策提言への協力');
-      News.add('経済',`${SECTORS[sec].n}の振興策がまとまる`,`${p.name}${p.role}が主導。${pName()}の提言が反映された。`,null,1,{lv:1,imp:[`${SECTORS[sec].n}の需要が増えます`,'関係の深い政治家ほど通りやすくなります']});
+    const ok=R()<clamp(.15+Gov.rel(p,c)/250+pw*.35+pa.biz*.15+(Gov.st().ruling===p.party?.12:0)-Gov.st().pub.media/500,.05,.9);
+    if(ok){S.econ.trend[sec]=clamp((S.econ.trend[sec]||1)*1.07,.5,2);Gov.touch(p,4,'政策提言への協力',c);
+      News.add('経済',`${SECTORS[sec].n}の振興策がまとまる`,`${p.name}${p.role}が主導。${this.name(c)}の提言が反映された。`,null,1,{lv:1,imp:[`${SECTORS[sec].n}の需要が増えます`,'関係の深い政治家ほど通りやすくなります']});
       st.log.unshift({y:S.y,m:S.m,n:`${p.name}議員を通じた政策提言（${SECTORS[sec].n}）`,res:'成立',cost,pol:p.name});chron(`${SECTORS[sec].n}振興策が成立`,'政治');}
     else{st.log.unshift({y:S.y,m:S.m,n:`${p.name}議員を通じた政策提言（${SECTORS[sec].n}）`,res:'不成立',cost,pol:p.name});}
     st.risk=clamp(st.risk+2,0,100);return null;},
@@ -2743,7 +2910,7 @@ const Pol={
     const pol=Gov.byRel()[0];Scand.open({t:`${pName()}の政治活動に関する内部文書が流出`,b:'匿名の内部関係者から資料が持ち込まれたという。',pol:pol&&pol.rel>30?pol.name:null,truth:(st.dirty||0)>0});
     st.risk=clamp(st.risk+10,0,100);},
   monthly(){this.month(ME);this.leak();for(const c of S.cos)if(c.pol)this.month(c);
-    for(const c of S.cos)if(!c.priv&&c.rev>Co.cons().rev*.5&&R()<.02){const p=this.st(c);p.inf=clamp(p.inf+3,0,70);   /* 競合も政治活動を行う */
+    for(const c of S.cos)if(!c.priv&&c.rev>Co.cons().rev*.5&&R()<(c.trait==='政治重視'?.05:.02)){const p=this.st(c);p.inf=clamp(p.inf+3,0,70);   /* 競合も政治活動を行う */
       if(R()<.25){const sec=c.sec;S.econ.trend[sec]=clamp((S.econ.trend[sec]||1)*1.04,.5,2);
         News.add('企業',`${c.name}、${SECTORS[sec].n}の規制緩和を働きかけ`,'業界団体を通じた提言が通った。',c.t,0,{lv:0,imp:['同業にも恩恵がありますが、競合は有利になります']});}}
     this.policy();}
@@ -2809,6 +2976,8 @@ const CoGen={
   // 会社に共通構造を用意する（すでにあれば何もしない）
   ensure(c){if(!c)return null;if(c.port)return c.port;
     const seed=hs(c.t||c.name||'x'),R2=i=>((seed>>>(i*3))%100)/100;
+    const TR=['保守的','革新的','攻撃的','慎重','成長重視','利益重視','社会貢献重視','政治重視','海外重視','研究開発重視'];
+    if(!c.trait)c.trait=TR[seed%TR.length];
     const p={biz:[],dept:[],fac:[],staff:[],sh:[],hist:[],rd:0,capex:0,cre:Math.round(45+R2(1)*40)};
     c.port=p;const n=c.rev>5e11?4:c.rev>5e10?3:c.rev>5e9?2:1;
     for(let i=0;i<n;i++)this.mkBiz(c,i===0?null:pick(Object.keys(BT).filter(k=>BT[k].sec===c.sec)||[]),1/n);
@@ -3078,7 +3247,7 @@ const Game={
     News.add('自社',`${cfg.name}、${cfg.city}で創業`,`代表取締役 ${cfg.ceo}。資本金${yen(D.cash)}円で${t.n}事業からスタート。`,null,1);
     News.add('経済',`景気は「${S.econ.phase}」局面。政策金利は${pctp(S.econ.rate/100,2)}`,Econ.phaseHint(S.econ.phase));},
   week(){Market.weekly();if(S.week>=4){this.monthClose();S.week=1;return true;}S.week++;return false;},
-  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Geo.monthly();Rival.monthly();Gov.month();Scand.month();Pol.monthly();for(const c of S.cos)if(c.port)CoGen.month(c);   /* 詳細構造を持つ会社を更新 */Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
+  monthClose(){S.month++;Econ.month();Events.month();MA.expire();Market.monthly();VC.monthly();MA.resolve();MA.monthly();Nation.monthly();Geo.monthly();Rival.monthly();Gov.month();Scand.month();Pol.monthly();Org.month();Tech.month();Crisis.month();for(const c of S.cos)if(c.port)CoGen.month(c);   /* 詳細構造を持つ会社を更新 */Global.autoRun();Board.month();Eq.before();if(S.m===12)Exec.yearly();Exec.learn();const rec=Co.close();Co.checks(rec);Eq.after(rec);
     S.co.peak=Math.max(S.co.peak,rec.value);S.lastRec=rec;
     S.m++;if(S.m>12){S.m=1;S.y++;}
     if(!S.over)Store.save('auto');},
@@ -3341,7 +3510,9 @@ function vHome(){const last=S.co.hist[S.co.hist.length-1],pl=last?.pl,E=S.econ,b
   <h3 class="row"><span class="sp">最新ニュース</span><button class="btn sub sm" data-act="tab" data-v="news">すべて見る</button></h3>
   <div class="list">${S.news.slice(0,4).map(newsItem).join('')||'<div class="empty">ニュースはまだありません</div>'}</div>`;}
 
-function rankList(metric){const C=Co.cons();
+function rankList(metric,secF){const C=Co.cons();
+  if(metric==='pol'){const L=Market.listed().map(c=>({name:c.name,t:c.t,pol:Pol.score(c)})).sort((a,b)=>b.pol-a.pol).slice(0,30);
+    L.push({name:pName(),me:true,pol:Pol.score(ME)});return L.sort((a,b)=>b.pol-a.pol);}
   if(metric==='wealth'){const L=Market.listed().map(c=>{const sh=(c.pf?.sh||[]).find(x=>x[2]==='個人'&&!/従業員/.test(x[0]));const p=sh?sh[1]+.02:.03;
       return{name:(c.pf?.ceo||'—')+`（${c.name}）`,t:c.t,wealth:c.price*c.shares*p};}).sort((a,b)=>b.wealth-a.wealth).slice(0,40);
     L.push({name:S.player.ceo+`（${pName()}）`,me:true,wealth:Me.net()});return L.sort((a,b)=>b.wealth-a.wealth);}const me={name:S.player.name+(C.subs?'（連結）':''),me:true,rev:C.rev,op:C.op,ni:C.ni,cap:Co.value(),assets:C.assets,emp:C.emp,g:Co.growth()};
@@ -3361,7 +3532,7 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
   let h=`${noSel?'':coSelector(UI.tab==='biz'?'bizSel':'coSel')}<h2 class="row"><span class="sp">${esc(c.name)}</span><span class="chip">${c.priv?'非上場':'上場'}・持分${pctp(c.meOwn||0,0)}</span></h2>
    <div class="seg">${tabs.map(x=>`<button class="${seg===x[0]?'on':''}" data-act="pSeg" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
   if(seg==='over'){h+=`${WP.html({id:c.t,key:c.sec,emp:c.emp,g:c.g,ni,name:c.name,city:c.pf?.city})}
-   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('代表者',esc(c.meCeo?(Me.st().role==='CEO'?S.player.ceo+'（あなた）':S.player.ceo):(c.ceoN||c.pf?.ceo||'—')))}${cell('売上高（年）',yen(c.rev))}${cell('営業利益',yen(c.rev*c.opm),tone(c.opm))}${cell('純利益',yen(ni),tone(ni))}${cell('利益率',pctp(c.opm))}${cell('成長率',pct(c.g,1),tone(c.g))}${cell('現金',yen(c.cash))}${cell('純資産',yen(c.equity))}${cell('有利子負債',yen(c.debt))}${cell('従業員',nf(c.emp)+'人')}${cell('市場シェア',pctp(Market.share(c),2))}${cell('海外売上比率',pctp(c.ovs||0,0))}</div></div>
+   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('代表者',esc(c.meCeo?(Me.st().role==='CEO'?S.player.ceo+'（あなた）':S.player.ceo):(c.ceoN||c.pf?.ceo||'—')))}${cell('会社の性格',c.trait||'—')}${cell('政治影響力',Pol.score(c))}${cell('売上高（年）',yen(c.rev))}${cell('営業利益',yen(c.rev*c.opm),tone(c.opm))}${cell('純利益',yen(ni),tone(ni))}${cell('利益率',pctp(c.opm))}${cell('成長率',pct(c.g,1),tone(c.g))}${cell('現金',yen(c.cash))}${cell('純資産',yen(c.equity))}${cell('有利子負債',yen(c.debt))}${cell('従業員',nf(c.emp)+'人')}${cell('市場シェア',pctp(Market.share(c),2))}${cell('海外売上比率',pctp(c.ovs||0,0))}</div></div>
    ${!c.priv?`<div class="card"><div class="row"><div class="sp"><div class="mut" style="font-size:12px">株価</div><div class="num" style="font-size:24px;font-weight:600">${nf(c.price)}円</div></div><div class="r"><div class="num">${yen(c.price*c.shares)}</div><div class="mut3" style="font-size:11px">時価総額</div></div></div>${candles(c,52,'pco'+t,1)}
     <button class="btn sub w" style="margin-top:8px" data-act="stock" data-t="${t}">市場での銘柄ページを見る</button></div>`:''}`;}
   if(seg==='mng'&&!mine){h+=`<div class="card"><p class="note" style="margin:0">この会社はあなたの経営下にありません。経営の操作は、あなたが設立・保有する会社で行えます。株式を取得して支配株主になると、TOBや子会社化を通じて関与できます（会社タブ→株式）。</p></div>`;}
@@ -3436,7 +3607,7 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
   return h;}
 function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meOwn)return vPCo(UI.coSel);const seg=UI.coSeg;
   const hasSub=MA.subs().length>0;   /* 連結会社があるときだけ「連結」タブ */
-  const tabs=[['overview','概要'],['board','会議'],['res','業績'],['biz','事業'],['fs','財務'],...(hasSub?[['group','連結']]:[]),['stock','株式'],['holders','株主'],['loan','融資'],['global','海外'],['pol','政治'],['rank','順位']];
+  const tabs=[['overview','概要'],['board','会議'],['res','業績'],['biz','事業'],['fs','財務'],...(hasSub?[['group','連結']]:[]),['stock','株式'],['holders','株主'],['loan','融資'],['global','海外'],['tech','技術'],['pol','政治'],['rank','順位']];
   let h=`${coSelector('coSel')}<h2>会社</h2><div class="seg">${tabs.map(t=>`<button class="${seg===t[0]?'on':''}" data-act="coSeg" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>`;
   const hist=S.co.hist,last=hist[hist.length-1];
   if(seg==='overview'){
@@ -3452,6 +3623,7 @@ function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meO
   if(seg==='res')h+=vMyRes();
   if(seg==='biz')h+=vBizPort();
   if(seg==='pol')h+=polHTML(ME);
+  if(seg==='tech')h+=techHTML();
   if(seg==='holders')h+=holdersHTML(ME);
   if(seg==='board')h+=vBoard();
   if(seg==='fs'){
@@ -3490,9 +3662,11 @@ function vCompany(){if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel]&&CM[UI.coSel].meO
      <p class="note">枠は純資産・営業利益・固定資産・信用力で決まります。金利は政策金利＋信用力に応じた上乗せ（固定・60回元金均等返済）。</p>
      <div class="opt">${[1e6,5e6,1e7,5e7,1e8,5e8].map(a=>`<button data-act="borrow" data-v="${a}" ${a>lim?'disabled':''}>${yen(a)}円</button>`).join('')}<button data-act="borrow" data-v="${lim}" ${lim<=0?'disabled':''}>上限まで</button></div></div>
      <h3>借入一覧</h3><div class="list">${S.co.loans.map(l=>`<div class="li"><div class="sp"><div class="t num">${yen(l.bal)}円</div><div class="s">金利${pctp(l.rate/100,2)}・残り${Math.ceil(l.bal/l.mp)}回・月${yen(l.mp)}円返済</div></div><button class="btn sub sm" data-act="repay" data-id="${l.id}">繰上返済</button></div>`).join('')||'<div class="empty">借入はありません。借金で成長を加速できますが、返済は利益に関係なく毎月発生します。</div>'}</div>`;}
-  if(seg==='rank'){const ms=[['wealth','個人資産'],['cap','時価総額'],['rev','売上'],['op','営業利益'],['ni','純利益'],['assets','総資産'],['emp','従業員'],['g','利益成長率']];
-    const L=rankList(UI.rank),me=L.findIndex(x=>x.me);const fm=v=>UI.rank==='emp'?nf(v)+'人':UI.rank==='g'?pct(v,0):yen(v);
+  if(seg==='rank'){const ms=[['wealth','個人資産'],['pol','政治影響力'],['cap','時価総額'],['rev','売上'],['op','営業利益'],['ni','純利益'],['assets','総資産'],['emp','従業員'],['g','利益成長率']];
+    let L=rankList(UI.rank);if(UI.rankSec&&UI.rankSec!=='all')L=L.filter(x=>x.me||(x.t&&CM[x.t]&&CM[x.t].sec===UI.rankSec));const me=L.findIndex(x=>x.me);
+    const fm=v=>UI.rank==='emp'?nf(v)+'人':UI.rank==='g'?pct(v,0):UI.rank==='pol'?Math.round(v):yen(v);
     h+=`<div class="chips">${ms.map(m=>`<button class="chip ${UI.rank===m[0]?'on':''}" data-act="rank" data-v="${m[0]}">${m[1]}</button>`).join('')}</div>
+     <div class="chips"><button class="chip ${!UI.rankSec||UI.rankSec==='all'?'on':''}" data-act="rankSec" data-v="all">全業種</button>${Object.keys(SECTORS).map(k=>`<button class="chip ${UI.rankSec===k?'on':''}" data-act="rankSec" data-v="${k}">${SECTORS[k].n}</button>`).join('')}</div>
      <div class="list">${L.slice(0,10).map((x,i)=>`<button class="li" data-flip="r-${x.t||'me'}" ${x.t?`data-act="stock" data-t="${x.t}"`:''} style="${x.me?'background:var(--ai2)':''}"><b class="num" style="width:26px">${i+1}</b><div class="sp t">${esc(x.name)}</div><span class="num">${fm(x[UI.rank])}</span></button>`).join('')}
      ${me>=10?`<div class="li" style="background:var(--ai2)"><b class="num" style="width:26px">${me+1}</b><div class="sp t">${esc(S.player.name)}</div><span class="num">${fm(L[me][UI.rank])}</span></div>`:''}</div>
      <p class="note">自社は直近12ヶ月（未満は年換算）、上場企業は年間の実績で比較。企業価値は上場企業が時価総額、自社は推定値です。</p>`;}
@@ -3710,22 +3884,22 @@ function shMeBuy(t){return()=>{const a=asset(t),M=Me.st();if(!a)return null;cons
    <p class="note" style="margin-bottom:0">会社の資金ではなく、あなた個人の現金で買います。</p></div>`];};}
 
 /* ---------- 政治タブ（全社共通） ---------- */
-function shGov(id){return()=>{const G=Gov.st(),p=G.pols.find(x=>x.id===id);if(!p)return null;const pa=Gov.party(p.party);
+function shGov(id,ck){return()=>{const G=Gov.st(),p=G.pols.find(x=>x.id===id);if(!p)return null;const pa=Gov.party(p.party);const C=Gov.co(ck||'ME'),rel=Gov.rel(p,C),rlog=(p.logs&&p.logs[Gov.key(C)])||[];
   const cell=(k,v,cl='')=>`<div class="row"><span class="mut sp">${k}</span><b class="num ${cl}">${v}</b></div>`;
   return [`${esc(p.name)}（${p.role}）`,`<div class="view" data-k="gv${id}">
-   <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="tag">${pa.n}</span><span class="tag g">${p.econ}</span><span class="tag">${p.fact}</span><span class="tag ${p.rel>=40?'g':p.rel<0?'b':''}">${Gov.relName(p.rel)}</span>${p.id===G.pm?'<span class="tag">首相</span>':''}</div>
-   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('年齢',p.age+'歳')}${cell('役職',p.role)}${cell('選挙区',p.dist)}${cell('支持率',Math.round(p.sup)+'%')}${cell('政治能力',p.ab)}${cell('企業への姿勢',p.biz>.3?'友好的':p.biz<0?'厳しい':'中立')}${cell('将来性',p.fut)}${cell('スキャンダルリスク',Math.round(p.risk),p.risk>50?'dn':'')}${cell('当社との関係値',Math.round(p.rel),p.rel>=40?'up':'')}${cell('関係の始まり',p.log.length?`${p.log[p.log.length-1].y}年${p.log[p.log.length-1].m}月`:'まだなし')}</div>
+   <div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="tag">${pa.n}</span><span class="tag g">${p.econ}</span><span class="tag">${p.fact}</span><span class="tag ${rel>=40?'g':rel<0?'b':''}">${Gov.relName(rel)}</span><span class="tag">${esc(Pol.name(C))}</span>${p.id===G.pm?'<span class="tag">首相</span>':''}</div>
+   <div class="card"><div class="grid2" style="font-size:12.5px;gap:4px 14px">${cell('年齢',p.age+'歳')}${cell('役職',p.role)}${cell('選挙区',p.dist)}${cell('支持率',Math.round(p.sup)+'%')}${cell('政治能力',p.ab)}${cell('企業への姿勢',p.biz>.3?'友好的':p.biz<0?'厳しい':'中立')}${cell('将来性',p.fut)}${cell('スキャンダルリスク',Math.round(p.risk),p.risk>50?'dn':'')}${cell('この会社との関係値',Math.round(rel),rel>=40?'up':'')}${cell('関係の始まり',rlog.length?`${rlog[rlog.length-1].y}年${rlog[rlog.length-1].m}月`:'まだなし')}</div>
     <p class="note" style="margin-bottom:0">${pa.d}。関係値が高いほど政策提言が通りやすくなりますが、過度な関係は癒着として問題視されます。</p></div>
    <h3>働きかける</h3><div class="card">
-    ${[['visit','面会',.001,'関係値+6'],['donate','政治献金（適法）',.006,'関係値+14・リスク+5'],['support','選挙支援',.012,'関係値+22・リスク+7']].map(x=>`<div class="ctl"><div class="lb"><b>${x[1]}</b><span>費用 ${yen(Pol.cost(ME,x[2]))}円・${x[3]}</span></div><button class="btn sm" data-act="govAct" data-v="${id}" data-t="${x[0]}">実行</button></div>`).join('')}
-    <div class="ctl"><div class="lb"><b>非公開の資金提供（高リスク）</b><span>費用 ${yen(Pol.cost(ME,.02))}円・関係値+34／<span class="dn">発覚すればスキャンダルに発展します</span></span></div><button class="btn sm dng" data-act="govAct" data-v="${id}" data-t="secret">実行</button></div></div>
+    ${[['visit','面会',.001,'関係値+6'],['donate','政治献金（適法）',.006,'関係値+14・リスク+5'],['support','選挙支援',.012,'関係値+22・リスク+7']].map(x=>`<div class="ctl"><div class="lb"><b>${x[1]}</b><span>費用 ${yen(Pol.cost(ME,x[2]))}円・${x[3]}</span></div><button class="btn sm" data-act="govAct" data-v="${id}" data-t="${x[0]}" data-id="${ck||'ME'}">実行</button></div>`).join('')}
+    <div class="ctl"><div class="lb"><b>非公開の資金提供（高リスク）</b><span>費用 ${yen(Pol.cost(ME,.02))}円・関係値+34／<span class="dn">発覚すればスキャンダルに発展します</span></span></div><button class="btn sm dng" data-act="govAct" data-v="${id}" data-t="secret" data-id="${ck||'ME'}">実行</button></div></div>
    <h3>政策提言を託す</h3><div class="card"><p class="note" style="margin-top:0">関係値・役職・党の姿勢・世論で成否が変わります（費用 ${yen(Pol.cost(ME,.01))}円）。</p>
-    <div class="chips">${[...new Set(S.biz.map(b=>BT[b.type].sec))].slice(0,6).map(k=>`<button class="chip" data-act="govPush" data-v="${id}" data-t="${k}">${SECTORS[k].n}の振興</button>`).join('')||'<span class="mut" style="font-size:12px">事業がありません</span>'}</div></div>
+    <div class="chips">${[...new Set(C===ME?S.biz.map(b=>BT[b.type].sec):[C.sec,...(C.port?C.port.biz.map(b=>b.cat):[])])].slice(0,6).map(k=>`<button class="chip" data-act="govPush" data-v="${id}" data-t="${k}" data-id="${ck||'ME'}">${SECTORS[k].n}の振興</button>`).join('')||'<span class="mut" style="font-size:12px">事業がありません</span>'}</div></div>
    <h3>政治家史</h3><div class="nbox">${p.hist.map(x=>`<div class="nl"><span class="tm">${x.y}</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span></span></span></div>`).join('')}</div>
-   ${p.log.length?`<h3>当社との関係履歴</h3><div class="nbox">${p.log.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span><span>関係値 ${x.v>0?'+':''}${Math.round(x.v)}</span></span></span></div>`).join('')}</div>`:''}</div>`];};}
-function shGovAll(){return()=>{const G=Gov.st(),L=G.pols.slice().sort((a,b)=>(PROLE.indexOf(b.role)-PROLE.indexOf(a.role))||b.rel-a.rel);
+   ${rlog.length?`<h3>${esc(Pol.name(C))}との関係履歴</h3><div class="nbox">${rlog.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span><span>関係値 ${x.v>0?'+':''}${Math.round(x.v)}</span></span></span></div>`).join('')}</div>`:''}</div>`];};}
+function shGovAll(ck){return()=>{const C=Gov.co(ck||'ME'),G=Gov.st(),L=G.pols.slice().sort((a,b)=>(PROLE.indexOf(b.role)-PROLE.indexOf(a.role))||Gov.rel(b,C)-Gov.rel(a,C));
   return ['政治家一覧',`<div class="chips">${PARTY.map(pa=>`<span class="chip">${pa.n} ${Math.round(pa.sup)}%・${pa.eco}</span>`).join('')}</div>
-   <div class="nbox">${L.map(x=>`<button class="nl" data-act="govD" data-v="${x.id}"><span class="tm">${x.id===G.pm?'🏛️':PROLE.indexOf(x.role)>=3?'★':'👤'}</span><span class="sp"><span class="hd">${esc(x.name)}（${x.role}）</span><span class="mt"><span class="lvb ${x.rel>=40?'l2':x.rel<0?'l3':'l1'}">${Gov.relName(x.rel)}</span><span>${Gov.party(x.party).n}</span><span>支持率 ${Math.round(x.sup)}%</span><span>能力 ${x.ab}</span><span>将来性 ${x.fut}</span></span></span></button>`).join('')}</div>`];};}
+   <div class="nbox">${L.map(x=>`<button class="nl" data-act="govD" data-v="${x.id}" data-t="${c===ME?'ME':c.t}"><span class="tm">${x.id===G.pm?'🏛️':PROLE.indexOf(x.role)>=3?'★':'👤'}</span><span class="sp"><span class="hd">${esc(x.name)}（${x.role}）</span><span class="mt"><span class="lvb ${Gov.rel(x,C)>=40?'l2':Gov.rel(x,C)<0?'l3':'l1'}">${Gov.relName(Gov.rel(x,C))}</span><span>${Gov.party(x.party).n}</span><span>支持率 ${Math.round(x.sup)}%</span><span>能力 ${x.ab}</span><span>将来性 ${x.fut}</span></span></span></button>`).join('')}</div>`];};}
 function shScand(id){return()=>{const sc=Scand.st().find(x=>x.id===id);if(!sc)return null;const G=Gov.st();
   return [`報道：${esc(sc.t)}`,`<div class="view" data-k="sc${id}">
    <div class="card"><div class="row"><span class="mut sp">発生</span><b>${sc.y}年${sc.m}月</b></div><div class="row"><span class="mut sp">段階</span><b>${SCST[Math.min(5,sc.stage)]}</b></div>
@@ -3735,7 +3909,16 @@ function shScand(id){return()=>{const sc=Scand.st().find(x=>x.id===id);if(!sc)re
    <h3>報道の経緯</h3><div class="nbox">${sc.log.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.t)}</span><span class="mt"><span>${x.y}年${x.m}月</span></span><div class="mut" style="font-size:12px;margin-top:2px">${esc(x.b)}</div></span></div>`).join('')}</div>
    <p class="note">報道は必ずしも事実とは限りません。調査が進むにつれて証拠レベルが変わり、最終的に「事実と認定」か「問題なし」に至ります。メディア注目度が高いほど、結論が厳しくなりやすくなります。</p></div>`];};}
 
-function polHTML(c){const p=Pol.st(c),inf=Pol.score(c),mine=(c===ME)||c.meOwn>0,cash=Pol.cash(c);
+function techHTML(){const T=Tech.st(),O=Org.st(),C=Crisis.st();
+  return `<div class="card"><div class="row"><div class="sp"><b>🔬 技術と研究開発</b><div class="mut" style="font-size:12px">研究開発費が多いほど、画期的な技術が生まれやすくなります</div></div><b class="num">${yen(sum(S.biz,b=>b.rd))}/月</b></div></div>
+  ${T.list.length?`<h3>自社の技術・特許</h3><div class="list">${T.list.map(t=>`<div class="li"><span style="font-size:18px">🔬</span><div class="sp"><div class="t">${esc(t.n)} <span class="tag">${SECTORS[t.sec].n}</span></div><div class="s">${t.y}年${t.m}月・技術レベル ${Math.round(t.lv)}・${t.mode?({mono:'独占利用',lic:'ライセンス提供（累計 '+yen(t.rev)+'円）',sell:'売却済み'})[t.mode]:'方針未定'}</div>
+   ${t.mode?'':`<div class="row" style="gap:6px;margin-top:6px"><button class="btn sm sp" data-act="techUse" data-v="${t.id}" data-t="mono">独占利用</button><button class="btn sm sub sp" data-act="techUse" data-v="${t.id}" data-t="lic">ライセンス</button><button class="btn sm sub sp" data-act="techUse" data-v="${t.id}" data-t="sell">売却</button></div>`}</div></div>`).join('')}</div>`:'<p class="note">まだ自社の技術はありません。研究開発費を増やすと生まれやすくなります。</p>'}
+  ${T.world.length?`<h3>世界の技術革新</h3><div class="nbox">${T.world.map(w=>`<div class="nl"><span class="tm">${w.y}</span><span class="sp"><span class="hd">${esc(w.co)}が「${esc(w.n)}」を実用化</span><span class="mt"><span>${SECTORS[w.sec].n}</span><span>${w.y}年${w.m}月</span></span></span></div>`).join('')}</div>`:''}
+  ${C.log.length?`<h3>危機対応の記録</h3><div class="nbox">${C.log.map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.n)} → ${esc(x.o)}</span><span class="mt"><span>${x.y}年${x.m}月</span><span>${yen(x.cost)}円</span><span>${esc(x.res)}</span></span></span></div>`).join('')}</div>`:''}
+  ${C.debt.length?`<div class="card"><p class="note" style="margin:0">⚠️ 過去に公表を控えた問題が${C.debt.length}件あります。将来、報道で表面化することがあります。</p></div>`:''}
+  ${O.log.length?`<h3>経営陣の動き</h3><div class="nbox">${O.log.slice(0,10).map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.e)}</span><span class="mt"><span>${x.y}年${x.m}月</span></span></span></div>`).join('')}</div>`:''}`;}
+
+function polHTML(c){const p=Pol.st(c),inf=Pol.score(c),mine=(c===ME)||c.meOwn>0||Cap.ownCo(c.t)>.5,cash=Pol.cash(c);   /* 本体・個人の会社・子会社すべてで操作できる */
   const kpi=(k,v,cl='')=>`<div><small>${k}</small><b class="${cl}">${v}</b></div>`;
   const rl=p.risk>60?'高い':p.risk>30?'中程度':'低い';
   return `<div class="card"><div class="row"><div class="sp"><b style="font-size:15px">🏛️ 政治・規制への影響力</b><div class="mut" style="font-size:12px">${esc(Pol.name(c))}・架空世界の制度への働きかけ</div></div><b class="num" style="font-size:22px">${inf}</b></div>
@@ -3754,8 +3937,8 @@ function polHTML(c){const p=Pol.st(c),inf=Pol.score(c),mine=(c===ME)||c.meOwn>0,
    <div class="row"><span class="mut sp">政策金利</span><b class="num">${pctp(S.econ.rate/100,2)}</b></div>
    <div class="row"><span class="mut sp">景気局面</span><b>${S.econ.phase}</b></div>
    <div class="row"><span class="mut sp">主な業種の追い風・逆風</span><b style="font-size:11.5px">${Object.entries(S.econ.trend).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${SECTORS[k]?SECTORS[k].n:k} ${pct(v-1,0)}`).join('・')}</b></div></div>
-  ${(()=>{const E=Pol.ethics(c),LV=Pol.level(c),G=Gov.st(),pm=Gov.pm(),net=Gov.byRel().filter(x=>x.rel>0);
-   if(c!==ME)return '';
+  ${(()=>{const E=Pol.ethics(c),LV=Pol.level(c),G=Gov.st(),pm=Gov.pm(),net=Gov.byRel(c).filter(x=>Gov.rel(x,c)>0);
+   if(!mine)return '';
    return `<h3>政治倫理</h3><div class="card"><div class="row"><div class="sp"><b>${LV.n}</b><div class="mut" style="font-size:12px">行動の履歴から計算しています</div></div><b class="num" style="font-size:20px">${Math.round(LV.v)}</b></div>
     <div class="bar" style="margin-top:6px"><i style="width:${LV.v}%;${LV.v>60?'background:var(--dn)':''}"></i></div>
     <div class="kv" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">
@@ -3768,9 +3951,9 @@ function polHTML(c){const p=Pol.st(c),inf=Pol.score(c),mine=(c===ME)||c.meOwn>0,
     <div class="row"><span class="mut sp">与党</span><b>${Gov.party(G.ruling).n}・${Gov.party(G.ruling).eco}</b></div>
     <div class="row"><span class="mut sp">次の国政選挙</span><b>${Math.max(0,G.elec-S.month)}ヶ月後</b></div>
     <div class="chips" style="margin-top:6px">${PARTY.map(pa=>`<span class="chip">${pa.n} ${Math.round(pa.sup)}%</span>`).join('')}</div></div>
-   <h3 class="row"><span class="sp">政治家ネットワーク</span><button class="btn sub sm" data-act="govAll">全議員</button></h3>
-   <div class="nbox">${(net.length?net:Gov.st().pols.slice(0,6)).slice(0,8).map(x=>`<button class="nl" data-act="govD" data-v="${x.id}"><span class="tm">${PROLE.indexOf(x.role)>=4?'★':'👤'}</span><span class="sp"><span class="hd">${esc(x.name)}（${x.role}）${x.id===G.pm?' <span class="tag">首相</span>':''}</span>
-    <span class="mt"><span class="lvb ${x.rel>=40?'l2':x.rel<0?'l3':'l1'}">${Gov.relName(x.rel)}</span><span>${Gov.party(x.party).n}</span><span>関係値 ${Math.round(x.rel)}</span><span>支持率 ${Math.round(x.sup)}%</span><span>将来性 ${x.fut}</span></span></span></button>`).join('')}</div>
+   <h3 class="row"><span class="sp">政治家ネットワーク（${esc(Pol.name(c))}）</span><button class="btn sub sm" data-act="govAll" data-t="${c===ME?'ME':c.t}">全議員</button></h3>
+   <div class="nbox">${(net.length?net:Gov.st().pols.slice(0,6)).slice(0,8).map(x=>`<button class="nl" data-act="govD" data-v="${x.id}" data-t="${c===ME?'ME':c.t}"><span class="tm">${PROLE.indexOf(x.role)>=4?'★':'👤'}</span><span class="sp"><span class="hd">${esc(x.name)}（${x.role}）${x.id===G.pm?' <span class="tag">首相</span>':''}</span>
+    <span class="mt"><span class="lvb ${Gov.rel(x,c)>=40?'l2':Gov.rel(x,c)<0?'l3':'l1'}">${Gov.relName(Gov.rel(x,c))}</span><span>${Gov.party(x.party).n}</span><span>関係値 ${Math.round(Gov.rel(x,c))}</span><span>支持率 ${Math.round(x.sup)}%</span><span>将来性 ${x.fut}</span></span></span></button>`).join('')}</div>
    ${Scand.st().length?`<h3>スキャンダル・報道</h3><div class="nbox">${Scand.st().slice(0,5).map(sc=>`<button class="nl" data-act="scD" data-v="${sc.id}"><span class="tm">${SCST[Math.min(5,sc.stage)]}</span><span class="sp"><span class="hd">${esc(sc.t)}</span><span class="mt"><span class="lvb ${sc.ev==='確認済み'?'l3':sc.ev==='誤報'?'l1':'l2'}">${sc.ev}</span><span>${sc.y}年${sc.m}月〜</span>${sc.pol?`<span>${esc(sc.pol)}議員</span>`:''}</span></span></button>`).join('')}</div>`:''}
    <h3>評判の回復</h3><div class="card">${[['apology','謝罪と再発防止策'],['audit','第三者委員会による調査'],['board','経営陣の刷新'],['comp','コンプライアンス強化'],['open','政治活動の透明化'],['csr','社会貢献活動']].map(x=>`<div class="ctl"><div class="lb"><b>${x[1]}</b><span>費用 ${yen(Pol.cost(ME,{apology:.005,audit:.015,board:.01,comp:.012,open:.008,csr:.02}[x[0]]))}円・リスクと信用力が改善</span></div><button class="btn sm sub" data-act="polFix" data-v="${x[0]}">実施</button></div>`).join('')}</div>`;})()}
   ${p.log.length?`<h3>活動の履歴</h3><div class="nbox">${p.log.slice(0,20).map(x=>`<div class="nl"><span class="tm">${x.m}月</span><span class="sp"><span class="hd">${esc(x.n)}</span><span class="mt"><span class="lvb ${/成功|成立|実施/.test(x.res)?'l2':x.res==='不発'?'l1':'l3'}">${esc(x.res)}</span><span>${x.y}年${x.m}月</span><span>${yen(x.cost)}円</span>${x.pol?`<span>${esc(x.pol)}議員</span>`:''}</span></span></div>`).join('')}</div>`:'<p class="note">まだ政治活動を行っていません（該当なし）。</p>'}`;}
@@ -3779,6 +3962,8 @@ function polHTML(c){const p=Pol.st(c),inf=Pol.score(c),mine=(c===ME)||c.meOwn>0,
 const Meet={
   // 会社の状況から「会議にかける案件」を作る。Board.agendas を土台に、案件ごとの選択肢を付ける
   items(){const c=Board.ctx(),L=[],done=(S.board&&S.board.done)||{},id=k=>`${S.y}-${S.m}-${k}`;
+    {const e=Crisis.opts();if(e)L.push({id:id('crisis'),sev:'h',cat:'危機',ttl:e.n,rs:e.d,k:'crisis',amount:0,done:false,
+      opts:e.o.map((o,i)=>({l:o.n,d:`費用 約${yen(Co.cons().rev*o.c)}円・信用力${o.cr>=0?'+':''}${o.cr}${o.risk>20?'・将来に火種が残る':''}`,amt:Math.round(Co.cons().rev*o.c),run:()=>Crisis.decide(i)}))});}
     const add=(o)=>{o.id=id(o.key);o.done=!!done[o.id];L.push(o);};
     if(c.cash<0||c.runway<3)add({key:'cash',sev:'h',cat:'資金',ttl:'資金繰りの立て直し',rs:c.cash<0?`現金がマイナスです（${yen(c.cash)}円）`:`このままだと約${c.runway.toFixed(1)}ヶ月で現金が尽きます`,k:'borrow',
       opts:[{l:'借入で資金を確保',d:`借入枠 ${yen(Co.limit())}円・金利${pctp(Co.rate()/100,2)}`,amt:0,run:()=>Co.borrow(Math.min(Co.limit(),Math.max(1e6,burnNeed())))},
@@ -3913,10 +4098,14 @@ function exRow(r,e,me){const col={CEO:'var(--ai)',株主:'#8A6D1E',CFO:'#C28A1B'
   if(!e)return `<div class="ex"><span class="av" style="--c:var(--line);color:var(--ink3)">${r}</span><div class="sp"><b>${r}（空席）</b><div class="mut" style="font-size:11.5px">${EXR[r].n}：${EXR[r].fx}</div></div><button class="btn sm sub" data-act="exC" data-v="${r}">候補者</button></div>`;
   const ten=me?(r==='株主'?'創業者':'創業者・CEO'):e.yrs!=null?`在籍${e.yrs}年`:`在籍${Math.max(0,S.month-e.since)}ヶ月`;
   return `<div class="ex"><span class="av" style="--c:${col}">${r}</span><div class="sp"><b>${esc(e.name)}</b>${me?' <span class="tag">あなた</span>':''} <span class="mut3" style="font-size:11px">${e.pol||''}・${ten}</span>
-    <div class="ab"><i style="width:${e.ab||0}%"></i></div><div class="mut" style="font-size:11px;margin-top:3px">${!me&&e.since!=null&&e.kn?`知識 製造${Math.round(e.kn.mfg)}・技術${Math.round(e.kn.tech)}・財務${Math.round(e.kn.fin)}・海外${Math.round(e.kn.gl)}・市場${Math.round(e.kn.mkt)}<br>`:''}能力 ${e.ab??'—'}${e.sal?`・年俸 ${yen(e.sal)}円`:''}${EXR[r]&&!me&&e.since!=null?`・${EXR[r].fx}（効果 ${Math.round(Exec.eff(r)*100)}%）`:''}</div></div>
+    <div class="ab"><i style="width:${e.ab||0}%"></i></div><div class="mut" style="font-size:11px;margin-top:3px">${!me&&e.since!=null?`${Org.tag(e,r).fact}・忠誠度 ${Math.round(e.loy)}・野心 ${Math.round(e.amb)}<br>`:''}${!me&&e.since!=null&&e.kn?`知識 製造${Math.round(e.kn.mfg)}・技術${Math.round(e.kn.tech)}・財務${Math.round(e.kn.fin)}・海外${Math.round(e.kn.gl)}・市場${Math.round(e.kn.mkt)}<br>`:''}能力 ${e.ab??'—'}${e.sal?`・年俸 ${yen(e.sal)}円`:''}${EXR[r]&&!me&&e.since!=null?`・${EXR[r].fx}（効果 ${Math.round(Exec.eff(r)*100)}%）`:''}</div></div>
     ${!me&&e.since!=null?`<button class="btn sm dng" data-act="exF" data-v="${r}">退任</button>`:''}</div>`;}
+function keyHTML(){const O=Org.st();const F=Org.factions();
+  return `${O.key.length?`<h3>キーパーソン</h3><div class="nbox">${O.key.map(k=>{const t=KEYT.find(x=>x.k===k.k);return `<div class="nl"><span class="tm">★</span><span class="sp"><span class="hd">${esc(k.name)}（${t.n}）</span><span class="mt"><span>能力 ${k.ab}</span><span>在籍 ${S.month-k.since}ヶ月</span>${k.from?`<span>${esc(k.from)}から移籍</span>`:''}<span>${t.d}</span></span></span></div>`;}).join('')}</div>`:''}
+  <div class="ctl"><div class="lb"><b>競合から人材を引き抜く</b><span>費用 ${yen(Math.max(3e7,Co.cons().rev*.004))}円・成功率は約55%</span></div><button class="btn sm sub" data-act="poach">実行</button></div>
+  ${Object.keys(F).length?`<div class="card" style="font-size:12px"><div class="row"><span class="mut sp">経営陣の派閥</span><b>${Object.entries(F).map(([k,v])=>`${k}${v}`).join('・')}</b></div><div class="row"><span class="mut sp">取締役会</span><b>${Org.active()?'機能している（重要案件を審議）':'まだ設置されていません（従業員300人以上・役員2名以上）'}</b></div></div>`:''}`;}
 function myExecs(){const E=Exec.st(),M=Me.st(),mine=M.role==='CEO';
-  return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:mine?'オーナー経営':'招へい経営者'},mine)}${mine?'':exRow('株主',{name:S.player.ceoOld||esc(M.name||'あなた'),ab:null,pol:`${M.role}・持株${pctp(Eq.founderPct(),1)}`},1)}${['CFO','CTO','COO','CMO'].map(r=>exRow(r,E[r])).join('')}</div>
+  return `<h3>経営陣</h3><div class="card" style="padding:0">${exRow('CEO',{name:S.player.ceo,ab:null,pol:mine?'オーナー経営':'招へい経営者'},mine)}${mine?'':exRow('株主',{name:S.player.ceoOld||esc(M.name||'あなた'),ab:null,pol:`${M.role}・持株${pctp(Eq.founderPct(),1)}`},1)}${['CFO','CTO','COO','CMO'].map(r=>exRow(r,E[r])).join('')}</div>${keyHTML()}
   <p class="note">役員報酬は人件費に含まれます。着任から半年ほどで本来の力を発揮し、在籍が長いほど能力が伸びます。役員報酬の合計 月${yen(Exec.pay())}円。</p>`;}
 function shExec(role){return()=>{const L=Exec.cands(role);return [`${role}の候補者`,`<p class="note" style="margin-top:0">${EXR[role].n}：${EXR[role].fx}。候補者は半年ごとに入れ替わります。</p>
   <div class="list">${L.map((c,i)=>`<div class="li"><div class="sp"><div class="t">${esc(c.name)}（${c.age}歳）<span class="tag">${c.pol}</span></div><div class="ex" style="padding:4px 0 0;border:0"><div class="sp"><div class="ab"><i style="width:${c.ab}%"></i></div><div class="s">能力 ${c.ab}・年俸 ${yen(c.sal)}円・効果の強さ ×${EXP[c.pol].e}</div></div></div></div><button class="btn sm" data-act="exH" data-v="${role}" data-t="${i}">招へい</button></div>`).join('')||'<div class="empty">今期の候補者はいません</div>'}</div>`];};}
@@ -4289,15 +4478,21 @@ function mktList(){const q=UI.mkt.q.trim();let L=Market.listed().filter(c=>(UI.m
   return `<div class="list">${meRow()}${L.map(c=>{const ch=chg(c.price,m1(c)),h=S.hold[c.t];return `<button class="li" data-k="${c.t}" data-act="stock" data-t="${c.t}"><div class="sp"><div class="t">${esc(c.name)}${kb(c)}${h?` <span class="tag">${Trade.own(c.t)>.5?'子会社':'保有'}</span>`:''}${S.tob?.t===c.t?' <span class="tag b">TOB中</span>':''}${c.crisis?' <span class="tag b">危機</span>':''}</div><div class="s">${c.t}・${SECTORS[c.sec].n}・${yen(c.price*c.shares)}${UI.mkt.sort==='yld'?`・利回り${pctp(c.dps/c.price)}`:''}${UI.mkt.sort==='per'?`・PER ${per(c)<1e8?per(c).toFixed(1):'—'}`:''}${UI.mkt.sort==='g'?`・成長${pct(c.lastQ?.yoy??c.g,0)}`:''}</div></div><div class="r"><div class="num">${N(c.price,'px')}</div><div class="num ${tone(ch)}" style="font-size:12px">${pct(ch)}</div></div></button>`;}).join('')||'<div class="empty">条件に合う企業がありません</div>'}</div>
   ${n>UI.mkt.n?`<button class="btn sub w" data-act="mktMore">さらに表示（残り${n-UI.mkt.n}社）</button>`:''}<p class="note">${n+(S.eq.listed?1:0)}社・騰落率は直近4週。自社（ME）も一覧に含まれます</p>`;}
 
+function qOK(n){const q=(UI.nq||'').trim(),t=UI.nTone||'all';
+  if(q&&!((n.title||'').includes(q)||(n.body||'').includes(q)))return false;
+  if(t==='pos'&&!(n.tn>0))return false;if(t==='neg'&&!(n.tn<0))return false;
+  if(t==='scand'&&!/疑惑|不正|スキャンダル|告発|流出|問題視|課徴金/.test(n.title||''))return false;return true;}
 function perOK(o){if(UI.nYM)return o.y*100+o.m===+UI.nYM;const p=UI.nPer||'all';if(p==='all')return true;const ago=(S.y*12+S.m)-(o.y*12+o.m);return p==='w'?ago===0&&o.w>=S.week-1:p==='m'?ago<=0:p==='q'?ago<3:ago<12;}
 function vNews(){const nv=UI.nv||'news',per=[['all','すべて'],['w','今週'],['m','今月'],['q','3ヶ月'],['y','1年']];
   const top=`<div class="mast"><b>CAPITAL NEWS</b><span class="mut3" style="font-size:11px">時間を進めると届きます</span></div><div class="seg" style="margin-bottom:8px">${[['news','📰 ニュース'],['disc','📄 適時開示']].map(x=>`<button class="${nv===x[0]?'on':''}" data-act="nv" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
+   <div class="row" style="gap:6px;margin-bottom:6px"><input data-inp="nq" value="${esc(UI.nq||'')}" placeholder="会社・政治家・キーワードで検索" style="flex:1;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:0 10px"/></div>
+   <div class="chips" style="margin-bottom:6px">${[['all','すべて'],['pos','好材料'],['neg','悪材料'],['scand','スキャンダル']].map(x=>`<button class="chip ${(UI.nTone||'all')===x[0]?'on':''}" data-act="nTone" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>
    <div class="row" style="gap:6px;margin-bottom:6px"><span class="mut" style="font-size:12px">年月で探す</span><select data-inp="nYM" style="flex:1;height:34px;border-radius:9px;border:1px solid var(--line);background:var(--sf);color:var(--ink);padding:0 8px"><option value="">指定しない</option>${Array.from({length:36},(_,i)=>{let y=S.y,m=S.m-i;while(m<1){m+=12;y--;}const v=y*100+m;return `<option value="${v}" ${+UI.nYM===v?'selected':''}>${y}年${m}月</option>`;}).join('')}</select></div>
    <div class="chips">${per.map(x=>`<button class="chip ${(UI.nPer||'all')===x[0]&&!UI.nYM?'on':''}" data-act="nPer" data-v="${x[0]}">${x[1]}</button>`).join('')}${UI.nFrom||UI.dFrom?`<button class="chip on" data-act="nClr">前回の期間のみ ✕</button>`:''}</div>`;
   if(nv==='disc'){const dc=[['all','すべて'],['mine','自社・保有'],...Object.entries(DCAT)];const L=(S.disc||[]).filter(d=>perOK(d)&&(!UI.dFrom||d.id>=UI.dFrom)&&(UI.dF==='mine'?d.t==='ME'||S.hold[d.t]:!UI.dF||UI.dF==='all'||d.cat===UI.dF)).slice(0,80);
     return top+`<div class="chips">${dc.map(x=>`<button class="chip ${(UI.dF||'all')===x[0]?'on':''}" data-act="dF" data-v="${x[0]}">${x[1]}</button>`).join('')}</div><div class="nbox">${L.map(discRow).join('')||'<div class="empty">該当する開示はありません</div>'}</div>`;}
   const cats=['all','imp','国内経済','世界経済','株式','為替','金利','自社','競合企業','業界','海外','M&A','IPO','未上場','決算','その他'];
-  let L=S.news.filter(n=>perOK(n)&&(!UI.nFrom||n.id>=UI.nFrom)&&(UI.newsF==='all'||(UI.newsF==='imp'?n.lv:nGrp(n)===UI.newsF)));const low=L.filter(n=>nLv(n)===0);if(!UI.showLow)L=L.filter(n=>nLv(n)>0);L=L.slice(0,80);
+  let L=S.news.filter(n=>perOK(n)&&qOK(n)&&(!UI.nFrom||n.id>=UI.nFrom)&&(UI.newsF==='all'||(UI.newsF==='imp'?n.lv:nGrp(n)===UI.newsF)));const low=L.filter(n=>nLv(n)===0);if(!UI.showLow)L=L.filter(n=>nLv(n)>0);L=L.slice(0,80);
   return top+`<div class="chips">${cats.map(c=>`<button class="chip ${UI.newsF===c?'on':''}" data-act="newsF" data-v="${c}">${c==='all'?'すべて':c==='imp'?'重要':c}</button>`).join('')}</div>
   <div class="nbox">${L.map(newsRow).join('')||'<div class="empty">該当するニュースはありません。時間を進めると届きます。</div>'}</div>${low.length?`<button class="btn sub w sm" data-act="showLow">${UI.showLow?'LOWを折りたたむ':`LOWのニュース ${low.length}件を表示`}</button>`:''}`;}
 function vNewsOld(){const cats=[];const L=[];
@@ -4331,6 +4526,7 @@ function shApprove(){const o=UI.appr;if(!o)return null;const ops=execOpinions(o)
    <h4>件名：${esc(o.title)}</h4>
    ${(o.rows||[]).map(r=>`<div class="rw"><span>${esc(r[0])}</span><b class="${r[2]||''}">${r[1]}</b></div>`).join('')}
    ${o.note?`<p class="note" style="margin:10px 0 0">${esc(o.note)}</p>`:''}
+   ${UI.appr.vote?`<div class="rsl ${UI.appr.vote.ok?'ok':'ng'}" style="margin-top:8px">取締役会：賛成${UI.appr.vote.yes}・反対${UI.appr.vote.no}（${UI.appr.vote.votes.map(v=>`${v.r}・${v.f}：${v.y?'賛成':'反対'}`).join(' / ')}）<div class="mut" style="font-size:11.5px;font-weight:400;margin-top:2px">もう一度「社長印を押す」と、反対を押し切って実行します（役員の忠誠度が下がります）</div></div>`:''}
    ${ops.length?`<div style="margin-top:10px"><div class="ti">経営陣の意見</div>${ops.map(([r,n,ok,t])=>`<div class="opin"><i class="${ok===0?'no':ok===1?'ok':''}">${r}</i><span><b>${esc(n)}</b>：${esc(t)}</span></div>`).join('')}</div>`:'<p class="note" style="margin:10px 0 0">役員がいないため、社長ひとりで決めることになります。CFO・COOなどを招へいすると、判断材料の意見がもらえます。</p>'}
    <div class="stampbox"><div class="mut" style="font-size:12px">代表取締役<br><b>${esc(S.player.ceo)}</b></div><div class="stamp2 ${UI.appr.st?'on':''}">決裁</div></div></div>
    <div class="row" style="margin-top:12px"><button class="btn sub sp" data-act="apprNo">却下する</button><button class="btn sp" data-act="apprYes">社長印を押す</button></div>`,2];}
@@ -4678,11 +4874,14 @@ function setAuto(on){on=false;UI.auto=on;   /* 自動進行は廃止（プレイ
 /* ---------- actions (すべてのボタンの処理) ---------- */
 const A={
   tab:d=>{UI.tab=d.v;render();$('main').scrollTop=0;},
-  fs:d=>{UI.fs=d.v;render();},rank:d=>{UI.rank=d.v;render();},newsF:d=>{UI.newsF=d.v;UI.nFrom=0;render();},
+  fs:d=>{UI.fs=d.v;render();},rank:d=>{UI.rank=d.v;render();},rankSec:d=>{UI.rankSec=d.v;render();},newsF:d=>{UI.newsF=d.v;UI.nFrom=0;render();},
   settings:()=>openSheet(shSettings()),close:()=>closeSheet(),close2:()=>{UI.sheet2=null;UI.appr=null;renderSheets();},
   ok2:()=>{const f=UI.sheet2.ok;UI.sheet2=null;f();Store.auto();},
   apprNo:()=>{UI.appr=null;renderSheets();},
-  apprYes:()=>{if(!UI.appr)return;UI.appr.st=1;renderSheets();const f=UI.appr.ok;setTimeout(()=>{UI.appr=null;f();render();Store.auto(true);},RM?0:520);},   /* 大きな決定のあとは必ず保存 */
+  apprYes:()=>{if(!UI.appr)return;const V=Org.active()?Org.vote(UI.appr.kind,UI.appr.amount||0):null;
+    if(V&&!V.ok&&!UI.appr.forced){UI.appr.vote=V;UI.appr.forced=1;renderSheets();return toast(`取締役会で否決（賛成${V.yes}・反対${V.no}）。もう一度押すと社長権限で強行します`);}
+    if(V&&!V.ok){for(const {r,e} of Org.execs())e.loy=Math.max(5,e.loy-8);News.add('自社',`${pName()}、取締役会の反対を押し切って決定`,'社長の独断に対し、経営陣の一部が不満を示している。',null,0,{lv:1,imp:['役員の忠誠度が下がります']});}
+    UI.appr.st=1;renderSheets();const f=UI.appr.ok;setTimeout(()=>{UI.appr=null;f();render();Store.auto(true);},RM?0:520);},   /* 大きな決定のあとは必ず保存 */
   adv:d=>advance(d.v),advM:d=>{closeSheet();advance(d.v);},advMenu:()=>openSheet(shAdvMenu()),report:()=>{if(S.lastRec)openSheet(shReport());},
   prefPause:()=>{UI.pref.pause=!UI.pref.pause;try{localStorage.setItem('capital.prefs',JSON.stringify(UI.pref));}catch(e){}renderSheets();},
   advCycle:()=>{const K=Object.keys(ADV),i=K.indexOf(UI.advK||'week');UI.advK=K[(i+1)%K.length];render();},
@@ -4744,12 +4943,14 @@ const A={
   pGl:d=>confirmBox(`${CM[d.t].name}が${CTY[d.v].n}へ進出します（${yen(CTY[d.v].entry*S.econ.pIdx*.6)}円）。`,()=>{if(!err(Me.pGl(d.t,d.v)))toast('進出しました');render();},'進出する'),
   pGlX:d=>{if(!err(Me.pGlExit(d.t,d.v)))toast('撤退しました');render();},
   coOpen:d=>{UI.pSeg='over';openSheet(shCompany(d.t));},
-  govD:d=>openSheet(shGov(d.v)),govAll:()=>openSheet(shGovAll()),scD:d=>openSheet(shScand(d.v)),
+  govD:d=>openSheet(shGov(d.v,d.t||'ME')),govAll:d=>openSheet(shGovAll(d&&d.t||'ME')),scD:d=>openSheet(shScand(d.v)),
   govAct:d=>{const p=Gov.st().pols.find(x=>x.id===d.v),K={visit:'面会',donate:'政治献金',support:'選挙支援',secret:'非公開の資金提供'}[d.t];
-    confirmBox(`${p.name}議員への${K}を行います。`,()=>{if(!err(Pol.meet(d.v,d.t)))toast(K+'を行いました');render();renderSheets();},'実行する',d.t==='secret');},
-  govPush:d=>{const p=Gov.st().pols.find(x=>x.id===d.v);confirmBox(`${p.name}議員を通じて${SECTORS[d.t].n}の振興策を提言します。`,()=>{if(!err(Pol.push(d.v,d.t)))toast('提言しました');render();renderSheets();},'提言する');},
+    const C=Gov.co(d.id||'ME');confirmBox(`${Pol.name(C)}として、${p.name}議員への${K}を行います。`,()=>{if(!err(Pol.meet(d.v,d.t,C)))toast(K+'を行いました');render();renderSheets();},'実行する',d.t==='secret');},
+  govPush:d=>{const p=Gov.st().pols.find(x=>x.id===d.v),C=Gov.co(d.id||'ME');confirmBox(`${Pol.name(C)}として、${p.name}議員を通じて${SECTORS[d.t].n}の振興策を提言します。`,()=>{if(!err(Pol.push(d.v,d.t,C)))toast('提言しました');render();renderSheets();},'提言する');},
   polFix:d=>{const N={apology:'謝罪と再発防止策',audit:'第三者委員会による調査',board:'経営陣の刷新',comp:'コンプライアンス強化',open:'政治活動の透明化',csr:'社会貢献活動'}[d.v];
     confirmBox(`${N}を実施します。`,()=>{if(!err(Pol.repair(d.v)))toast(N+'を実施しました');render();renderSheets();},'実施する');},
+  techUse:d=>{const N={mono:'独占利用',lic:'ライセンス提供',sell:'売却'}[d.t];confirmBox(`この技術を${N}します。`,()=>{if(!err(Tech.use(d.v,d.t)))toast(N+'を決めました');render();},'決定する');},
+  poach:()=>confirmBox(`競合から人材を引き抜きます（費用 ${yen(Math.max(3e7,Co.cons().rev*.004))}円・成功率55%）。`,()=>{if(!err(Org.poach()))render();},'実行する'),
   polGo:d=>{const c=d.t==='ME'?ME:CM[d.t],A=PACT.find(x=>x.k===d.v);confirmBox(`${A.n}を実施します（費用 ${yen(Pol.cost(c,A.c))}円）。`,()=>{if(!err(Pol.run(c,d.v)))toast(A.n+'を実施しました');render();renderSheets();},'実施する');},
   polBad:d=>{const c=d.t==='ME'?ME:CM[d.t],I=PILL.find(x=>x.k===d.v);approveBox({kind:'ill',title:`${I.n}の実行`,amount:Pol.cost(c,I.c),rows:[['起案','（記録に残さない）'],['費用',yen(Pol.cost(c,I.c))+'円'],['見返り','費用の1.6〜3.2倍'],['発覚リスク','大（政治リスク+'+Math.round(I.det*60)+'）'],['発覚時','課徴金・信用失墜・株価下落・ブランド低下']],note:'ゲーム内の架空の選択肢です。短期の利益と引き換えに、会社の将来を賭けることになります。',ok:()=>{if(!err(Pol.illegal(c,d.v)))toast('実行しました');render();renderSheets();}});},
   pFil:d=>{UI.pf=d.v;renderSheets();render();},
@@ -4774,7 +4975,7 @@ const A={
   vcGo:d=>{const s=VC.st().list.find(x=>x.id===d.v),amt=UI.vcA,go=()=>{if(!err(VC.invest(d.v,amt))){toast('出資しました');openSheet(shVC(d.v));}render();};
     if(amt<Math.max(3e7,Co.bs().equity*.03))return confirmBox(`${s.n}に${yen(amt)}円を出資します。未上場株のため、IPOか買収まで現金化できません。`,go,'出資する');
     approveBox({kind:'vc',title:`スタートアップ「${s.n}」への出資`,amount:amt,rows:[['起案','投資戦略室'],['ラウンド',VST[s.st].n],['出資額',yen(amt)+'円'],['出資後の持分',pctp(amt/(s.val+s.raise),1)],['評価額',yen(s.val+s.raise)+'円'],['年成長率',pct(s.g,0)],['ランウェイ',Math.round(VC.runway(s))+'ヶ月'],['失敗リスク',pctp(s.risk,0),s.risk>.5?'dn':'']],note:'未上場株はIPOか買収まで現金化できません。数社に1社が成功する前提で、分散して投資するのが基本です。',ok:go});},
-  discD:d=>openSheet(shDisc(+d.v)),resD:d=>openSheet(shRes(d.t,+d.v)),nv:d=>{UI.nv=d.v;render();},nPer:d=>{UI.nPer=d.v;UI.nYM='';render();},nClr:()=>{UI.nFrom=0;UI.dFrom=0;render();},dF:d=>{UI.dF=d.v;render();},showLow:()=>{UI.showLow=!UI.showLow;render();},
+  discD:d=>openSheet(shDisc(+d.v)),resD:d=>openSheet(shRes(d.t,+d.v)),nv:d=>{UI.nv=d.v;render();},nPer:d=>{UI.nPer=d.v;UI.nYM='';render();},nTone:d=>{UI.nTone=d.v;render();},nClr:()=>{UI.nFrom=0;UI.dFrom=0;render();},dF:d=>{UI.dF=d.v;render();},showLow:()=>{UI.showLow=!UI.showLow;render();},
   fxX:()=>FX.close(),advK:d=>{UI.advK=d.v;render();},lastRep:()=>{if(S.lastRep)openSheet(shPeriod(S.lastRep));},
   repNews:d=>{closeSheet();UI.tab='news';UI.nv='news';UI.newsF='all';UI.nFrom=+d.v;render();$('main').scrollTop=0;},repDisc:d=>{closeSheet();UI.tab='news';UI.nv='disc';UI.dF='all';UI.dFrom=+d.v;render();$('main').scrollTop=0;},
   gC:d=>openSheet(shCountry(d.v)),gT:d=>{UI.gType=d.v;renderSheets();},
@@ -4877,6 +5078,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('input',e=>{const k=e.target.dataset?.inp;if(!k)return;const v=e.target.value;
   if(k==='ngname')UI.ng.name=v;else if(k==='ngceo')UI.ng.ceo=v;
   else if(k==='mfName'){UI.mfName=v;}
+    else if(k==='nq'){UI.nq=v;render();}
     else if(k==='pq'){UI.pq=v;renderSheets();render();}
     else if(k==='bq'){UI.bq=v;UI.bn=24;render();}
     else if(k==='nYM'){UI.nYM=v;render();}
