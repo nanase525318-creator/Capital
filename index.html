@@ -1480,7 +1480,7 @@ const Eq={
     if(Me.st().salary>Math.max(6e6,C.op*.015))P.push({k:'sal',n:'役員報酬の抑制',y:()=>{Me.st().salary=Math.round(Math.max(6e6,C.op*.01));}});
     if(bad.length)P.push({k:'sell',n:`不採算事業（${BT[bad[0].type].n}）の売却`,y:()=>{Biz.exit(bad[0]);}});
     return P;},
-  agm(){const q=S.eq,r=this.agmScore();q.lastAgm={y:S.y,total:r.total};
+  agm(){const q=S.eq,r=this.agmScore();q.lastAgm={y:S.y,total:r.total};Me.agmSalary(r.total);
     if(r.total<.5){const pr=q.founder*q.price*.8;Life.lose('株主総会で社長が解任されました',`${S.y}年の定時株主総会で、選任議案への賛成が${pctp(r.total,1)}にとどまりました。保有株は市場で売却されました。`,pr);return;}
     News.add('自社',`${S.player.name} 定時株主総会：社長選任議案は賛成${pctp(r.total,1)}で可決`,r.total<.65?'反対票が多く、経営に厳しい目が向けられている。':'株主の信任を得た。',null,r.total<.65?-1:1);
     if(q.act&&q.act.angry){News.add('企業',`${q.act.name}、${S.player.name}株を売却し撤退`,'要求が通らなかったことへの不満を表明。',null,-1);q.act=null;q.jump-=.05;}
@@ -2253,8 +2253,20 @@ const Me={
   upkeep(){return sum(this.st().items,k=>(LIFE.find(x=>x.k===k)||{up:0}).up)+30e4;},   /* 生活費 */
   brand(){const M=this.st();return sum(M.items,k=>({house:2,tower:5,mansion:10,car:3,jet:12,yacht:6,art:4})[k]||0);},
   // 会社 → 個人：役員報酬（毎月）
-  setSalary(v){const M=this.st();const cap=Math.max(6e6,Co.ttm('op')*.02);if(v>cap)return `役員報酬の上限は年${yen(cap)}円です（営業利益の2%まで）`;M.salary=v;
-    Disc.add('ME','その他','役員報酬の改定に関するお知らせ',{sum:`代表取締役の年間報酬を${yen(v)}円とします。`,lv:1});return null;},
+  // 役員報酬は株主総会の決議事項。ここでは「議案」を出すだけ
+  propose(v){const M=this.st();const cap=Math.max(6e6,Co.ttm('op')*.03);if(v>cap)return `提案できる上限は年${yen(cap)}円です（営業利益の3%まで）`;
+    M.salReq=v;if(!S.eq.listed){M.salary=v;Disc.add('ME','その他','役員報酬の決定に関するお知らせ',{sum:`代表取締役の年間報酬を${yen(v)}円とします。`,lv:1});return null;}
+    News.add('自社',`${pName()}、役員報酬の議案を提出（年${yen(v)}円）`,'次回の定時株主総会で諮られる。',null,0,{lv:0,imp:['可決されれば翌月から反映されます','業績が悪いと否決されやすくなります']});return null;},
+  setSalary(v){return this.propose(v);},
+  // 株主総会での決議（Eq.agm から呼ばれる）
+  agmSalary(score){const M=this.st();if(M.salReq==null)return null;const req=M.salReq,op=Co.ttm('op'),rev=Math.max(1,Co.ttm('rev'));
+    const ratio=req/Math.max(1,Math.abs(op)),fp=Eq.founderPct();
+    const ok=R()<clamp(.25+fp*.9+score*.5-(ratio>.02?ratio*8:0)+(op>0?.2:-.35),.05,.95);
+    if(ok){M.salary=req;Disc.add('ME','その他','役員報酬の決定に関するお知らせ',{sum:`定時株主総会において、代表取締役の年間報酬を${yen(req)}円とすることが承認されました。`,lv:1});
+      News.add('自社',`株主総会：役員報酬の議案が可決（年${yen(req)}円）`,`賛成多数で承認された。`,null,0,{lv:1});}
+    else{const cut=Math.round(Math.max(6e6,Math.min(M.salary||6e6,Math.max(0,op)*.01)));M.salary=cut;
+      News.add('自社',`株主総会：役員報酬の議案が否決`,`株主は${yen(req)}円の報酬を認めず、${yen(cut)}円に抑えられた。`,null,-1,{lv:2,imp:['業績と持株比率が高いほど通りやすくなります','否決されると報酬は抑えられます']});}
+    M.salReq=null;return ok;},
   monthly(){const M=this.st(),q=S.eq;
     if(M.salary>0){const pay=M.salary/12;if(S.co.cash>pay){S.flows.sal=(S.flows.sal||0)+pay;M.cash+=pay*.55;M.inc.sal+=pay*.55;}}   /* 会社側の現金は決算の人件費として引かれる（二重に引かない） */   /* 税引後55%が手取り */
     const up=this.upkeep();M.cash-=up;M.exp+=up;
@@ -2607,13 +2619,17 @@ const Life={
   canFound(){return Me.st().cash>=3e6;},
   // 本体を失ったあとの「拠点」会社（個人所有・支配している会社から選ぶ）
   cands(){const L=[...Me.cos()];for(const c of S.cos)if(!L.includes(c)&&(Cap.ownCo(c.t)>.5||Cap.ownMe(c.t)>.5))L.push(c);return L;},
-  base(){const t=S.me&&S.me.base;return t&&CM[t]?CM[t]:null;},
+  base(){const t=S.me&&S.me.base;if(t&&CM[t])return CM[t];
+    if(t&&!CM[t]&&S.me){S.me.base=null;const n=this.cands()[0];if(n)S.me.base=n.t;return n||null;}   /* 拠点が消滅したら次の候補へ自動で移す */
+    return null;},
   clearBase(){if(S.me)S.me.base=null;UI.coSel='ME';return null;},
   setBase(t){const c=CM[t];if(!c)return '会社が見つかりません';S.me.base=t;UI.coSel=t;UI.bizSel=t;
     News.add('速報',`${esc(Me.name())}氏、${c.name}を新たな拠点に`,'経営の軸をこの会社へ移した。',null,1,{lv:2,imp:['会社タブの数値はこの会社のものになります','さらに別の会社を拠点にすることもできます']});
     chron(`${c.name}を拠点にする`,'人生');Me.st().role='CEO';Me.st().hist.unshift({y:S.y,m:S.m,e:`${c.name}を拠点にした`});return null;},
   // 画面に出す「いまの会社」の数値（本体がなければ拠点会社の数値）
-  kpi(){const bs2=this.base();   /* 拠点を設定していれば、その会社の数値を最優先で表示する */
+  kpi(){let bs2=this.base();
+    if(!bs2&&!this.hasCo())bs2=this.cands()[0]||null;   /* 本体がなければ、関わる会社から自動で選ぶ */
+    if(bs2&&!this.hasCo()&&S.me&&!S.me.base)S.me.base=bs2.t;
     if(bs2){const st=Cap.stock(bs2),ni=Market.ni(bs2)/12;return{cash:bs2.cash,assets:bs2.equity+bs2.debt+bs2.rev*.15,ni,val:bs2.priv?Market.fair(bs2):st.cap,name:bs2.name,listed:!bs2.priv,co:bs2};}
     if(this.hasCo()){const b=Co.bs(),l=S.co.hist[S.co.hist.length-1];
       return{cash:S.co.cash,assets:b.assets,ni:l?l.pl.ni:null,val:Co.value(),name:pName(),listed:S.eq.listed};}
@@ -3700,7 +3716,17 @@ function coSelector(act){const L=Me.cos();if(!L.length)return '';const a='coSel'
   return `<div class="cosel"><span class="lb2">🏢</span><button class="${k==='ME'?'on':''}" data-act="${a}" data-v="ME">${esc(pName())}</button>
    ${L.map(c=>`<button class="${k===c.t?'on':''}" data-act="${a}" data-v="${c.t}">${esc(c.name)}</button>`).join('')}</div>`;}
 // すべての会社で共通の会社ビュー（会社名と数値だけが違う）
-function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が見つかりません</div>';const seg=UI.pSeg||'over',ni=Market.ni(c),ta=c.equity+c.debt+c.rev*.15;
+function vPCo(t,noSel){const isMe=(t==='ME'||t===ME);
+  if(isMe){   /* 本体も同じタブ構成・同じ並びで表示する */
+    const segM=UI.coSeg||'over',kidsM=MA.subs(),K=Life.kpi();
+    const tabsM=[['over','概要'],['mtg','会議'],['mng','経営'],['res','業績'],['port','事業'],['fin','財務'],...(kidsM.length?[['grp','連結']]:[]),['stk','株式'],['sh','株主'],['loan','融資'],['gl','海外'],['tech','技術'],['pol','政治'],['rank','順位']];
+    let hm=`${coSelector('coSel')}<h2 class="row"><span class="sp">${esc(pName())}</span><span class="chip">${S.eq.listed?'上場':'非上場'}・社長 ${pctp(Eq.founderPct(),1)}</span></h2>
+     <div class="seg">${tabsM.map(x=>`<button class="${segM===x[0]?'on':''}" data-act="coSeg" data-v="${x[0]}">${x[1]}</button>`).join('')}</div>`;
+    const M={over:()=>vCompanyOldSeg('overview'),mtg:()=>vBoard(),mng:()=>mngHTML(ME),res:()=>vMyRes(),port:()=>vBizPort(),fin:()=>vCompanyOldSeg('fs'),
+      grp:()=>vCompanyOldSeg('group'),stk:()=>(S.eq.listed?stockHTML(ME):'<div class="card"><p class="note" style="margin:0">未上場です。株式タブの資本政策から上場できます。</p></div>')+vEquity(),
+      sh:()=>holdersHTML(ME),loan:()=>vCompanyOldSeg('loan'),gl:()=>vGlobal(),tech:()=>techHTML(),pol:()=>polHTML(ME),rank:()=>vCompanyOldSeg('rank')};
+    hm+=(M[segM]||M.over)();return hm;}
+  const c=CM[t];if(!c)return '<div class="empty">会社が見つかりません</div>';const seg=UI.pSeg||'over',ni=Market.ni(c),ta=c.equity+c.debt+c.rev*.15;
   const own=(c.meOwn>0)||Cap.ownCo(c.t)>.5,mine=c.meOwn>0;   /* 経営できるのは自分の会社・子会社だけ。UIは全社共通 */
   const kids=(MA.kids?MA.kids(c.t):[]);   /* 連結会社があるときだけ「連結」タブを出す */
   const tabs=[['over','概要'],['mtg','会議'],['mng','経営'],['res','業績'],['port','事業'],['fin','財務'],...(kids.length?[['grp','連結']]:[]),['stk','株式'],['sh','株主'],['loan','融資'],['gl','海外'],['tech','技術'],['pol','政治'],['rank','順位']];const P=CoGen.ensure(c),T=CoGen.totals(c);
@@ -3753,11 +3779,14 @@ function vPCo(t,noSel){const c=CM[t];if(!c)return '<div class="empty">会社が�
   if(seg==='res')h+=resHTML(c)+discListCo(c);
   if(seg==='sh')h+=holdersHTML(c);   /* 株主は必ずここだけで表示する（重複の原因だった旧ブロックを削除） */
   return h;}
+// すべての会社（本体・子会社・個人の会社・NPC）が同じビューを使う
 function vCompany(){if(!Life.hasCo()&&(!UI.coSel||UI.coSel==='ME')){const b=Life.base()||Life.cands()[0];if(b)UI.coSel=b.t;}
-  if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel])return vPCo(UI.coSel);const seg=UI.coSeg;
+  if(UI.coSel&&UI.coSel!=='ME'&&CM[UI.coSel])return vPCo(UI.coSel);
+  return vPCo('ME');}
+function vCompanyOldSeg(seg){
   const hasSub=MA.subs().length>0;   /* 連結会社があるときだけ「連結」タブ */
   const tabs=[['overview','概要'],['board','会議'],['mng','経営'],['res','業績'],['biz','事業'],['fs','財務'],...(hasSub?[['group','連結']]:[]),['stock','株式'],['holders','株主'],['loan','融資'],['global','海外'],['tech','技術'],['pol','政治'],['rank','順位']];
-  let h=`${coSelector('coSel')}<h2>会社</h2><div class="seg">${tabs.map(t=>`<button class="${seg===t[0]?'on':''}" data-act="coSeg" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>`;
+  let h='';
   const hist=S.co.hist,last=hist[hist.length-1];
   if(seg==='overview'){
     h+=`<div class="card"><div class="row">${logoEl(S.player,44)}<div class="sp"><b style="font-size:16px">${esc(pName())}</b><div class="mut" style="font-size:12.5px">代表 ${esc(S.player.ceo)}・${esc(S.player.city)}・創業${S.month}ヶ月</div></div></div>
@@ -3952,8 +3981,11 @@ function vMe(){const M=Me.st(),q=S.eq,net=Me.net(),ownPct=Eq.founderPct(),hs2=Ob
    <p class="note" style="margin-bottom:0">これはあなた個人のお金です。内訳は 現金 ${yen(M.cash)}＋自社株 ${yen(Me.ownVal())}＋個人株式 ${yen(Me.secMV())}＋所有物 ${yen(Me.items())}＋個人の不動産 ${yen(Me.reVal())}＋個人で持つ会社 ${yen(Me.coVal())} です。会社の現金（${yen(Life.kpi().cash)}円）とは別で、勝手には使えません。</p></div>
   <h3>会社からの収入</h3><div class="card">
    <div class="grid3" style="font-size:12px"><div><div class="mut3">累計 役員報酬</div><b class="num">${yen(M.inc.sal)}</b></div><div><div class="mut3">累計 配当</div><b class="num">${yen(M.inc.div)}</b></div><div><div class="mut3">累計 売却益</div><b class="num">${yen(M.inc.sell)}</b></div></div>
-   <span class="lbl" style="font-size:12px;display:block;margin-top:10px">役員報酬（年額・税引後55%が手取り）</span><div class="chips">${[0,6e6,3e7,1e8,5e8].filter(v=>v===0||v<=Math.max(6e6,Co.ttm('op')*.02)).map(v=>`<button class="chip ${M.salary===v?'on':''}" data-act="meSal" data-v="${v}">${v?yen(v)+'円':'受け取らない'}</button>`).join('')}</div>
-   <p class="note" style="margin-bottom:0">役員報酬は会社の人件費です。上限は営業利益の2%（最低600万円）。配当は持株比率に応じて自動で入ります。</p></div>
+   <span class="lbl" style="font-size:12px;display:block;margin-top:10px">役員報酬の議案（年額・税引後55%が手取り）</span>
+   <div class="chips">${[0,6e6,3e7,1e8,5e8,2e9].filter(v=>v===0||v<=Math.max(6e6,Co.ttm('op')*.03)).map(v=>`<button class="chip ${(M.salReq??M.salary)===v?'on':''}" data-act="meSal" data-v="${v}">${v?yen(v)+'円':'受け取らない'}</button>`).join('')}</div>
+   <div class="row" style="font-size:12.5px;margin-top:4px"><span class="mut sp">現在の報酬（決議済み）</span><b class="num">${yen(M.salary)}円</b></div>
+   ${M.salReq!=null&&S.eq.listed?`<div class="row" style="font-size:12.5px"><span class="mut sp">提案中の議案</span><b class="num">${yen(M.salReq)}円（次の株主総会で決議）</b></div>`:''}
+   <p class="note" style="margin-bottom:0">上場している会社では、役員報酬は毎年6月の定時株主総会で決まります。業績が良く、社長の持株比率が高いほど可決されやすく、否決されると営業利益の1%程度まで抑えられます。未上場のうちは提案した額がそのまま反映されます。</p></div>
   <h3>自社株と経営権</h3><div class="card">
    ${cell('発行済株式',nf(q.shares)+'株')}${cell('あなたの持株',nf(q.founder)+'株')}${cell('持株比率',pctp(ownPct,1),ownPct<.5?'dn':'')}${q.listed?cell('株価',nf(q.price)+'円'):cell('企業価値',yen(Co.value())+'円')}
    ${q.listed?`<span class="lbl" style="font-size:12px;display:block;margin-top:8px">自社株を売って個人資産にする</span><div class="chips">${[1,5,10,25].map(p=>`<button class="chip" data-act="meSellOwn" data-v="${p}">${p}%売却（約${yen(q.founder*p/100*q.price*.78)}円）</button>`).join('')}</div>
@@ -5226,7 +5258,7 @@ const A={
   subBuyL:d=>openSheet(shSubBuy(d.t)),
   subBuy:d=>{const p=MA.subPlan(d.t,d.v);confirmBox(`${CM[d.t].name}が${CM[d.v].name}を${yen(p.cost)}円で買収し、孫会社にします。資金は${CM[d.t].name}の現金と借入から出します。`,()=>{if(!err(MA.subBuy(d.t,d.v))){openSheet(shCorp(d.t));toast('買収しました');}render();},'買収する');},
   toHD:()=>confirmBox('持株会社体制へ移行します。子会社から毎月、売上の0.5%を経営指導料として受け取ります。',()=>{if(!err(MA.toHD()))toast('持株会社になりました');render();},'移行する'),
-  coSeg:d=>{UI.coSeg=d.v;UI.tab='co';closeSheet();render();},sv:d=>{UI.sv=d.v;renderSheets();const b=$('#layer .sh-b');if(b)b.scrollTop=0;},eqRange:d=>{UI.eqRange=+d.v;UI.cdl=null;render();},
+  coSeg:d=>{const map={overview:'over',board:'mtg',fs:'fin',group:'grp',stock:'stk',holders:'sh',biz:'port',global:'gl'};UI.coSeg=map[d.v]||d.v;UI.pSeg=UI.coSeg;render();$('main').scrollTop=0;},
   ipoPct:d=>{UI.ipo.pct=+d.v;render();},ipoDisc:d=>{UI.ipo.disc=+d.v;render();},
   ipoGo:()=>{const P=Eq.ipoPlan(UI.ipo.pct,UI.ipo.disc);approveBox({kind:'ipo',title:'新規上場（IPO）の実施',amount:0,rows:[['起案','経営企画部・主幹事証券'],['公開価格',nf(P.px)+'円'],['発行株数',nf(P.newQ)+'株'],['手取り調達額',yen(P.net)+'円'],['上場時の時価総額',yen(P.cap)+'円'],['上場後の社長持株',pctp(P.founder,1),P.founder<.5?'dn':'']],note:'上場後は株価が毎週動き、四半期ごとに決算を発表し、毎年6月に株主総会が開かれます。社長の持株が50%を下回ると、解任や敵対的買収のリスクが生まれます。',
     ok:()=>{if(!err(Eq.ipo(UI.ipo.pct,UI.ipo.disc)))toast('上場しました');render();}});},
