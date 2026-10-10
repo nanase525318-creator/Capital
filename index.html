@@ -329,6 +329,13 @@ html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjus
 *{touch-action:pan-x pan-y;-webkit-tap-highlight-color:transparent}
 .app,.app *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input{touch-action:manipulation}
+/* ---- スキル選択の変化量・イベント ---- */
+.dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;margin:2px 0;font-size:12px;font-variant-numeric:tabular-nums}.dl dt{color:#dfe3ff}.dl dd{margin:0;font-weight:800;text-align:right;white-space:nowrap}.dl .up{color:var(--lime)}.dl .dn{color:var(--red)}
+.dlnone{font-size:11.5px;color:var(--dim)}
+#chLead{margin-bottom:10px}
+.evart{display:flex;justify-content:center;margin:6px 0 10px}.evart>img{width:96px;height:96px;animation:bob 2s ease-in-out infinite}.evart .tile{width:96px}
+.evres b{color:var(--gold)}#evBox{text-align:center}#evBox .btn.big{min-height:56px}#evBox .btn small{white-space:normal;line-height:1.35;color:#fff;font-size:11px}
+.chip.hot{border-color:var(--gold)}.chip.hot span{color:var(--gold)}
 </style>
 <div class="app" id="app">
   <!-- ===== 拠点 ===== -->
@@ -355,7 +362,7 @@ input{touch-action:manipulation}
   <!-- ===== ダンジョン ===== -->
   <section class="dun" id="dun" hidden>
     <header class="hud">
-      <div class="chip"><span>階層</span><b id="hFloor">1</b></div>
+      <div class="chip" id="cFloor"><span id="hFloorL">階層</span><b id="hFloor">1</b></div>
       <div class="chip coin" id="cCoin"><span>コイン</span><b id="hCoin">100</b></div>
       <div class="chip" id="cNet"><span>今回の収支</span><b id="hNet">±0</b></div>
       <div class="chip"><span>コンボ</span><b id="hCombo">0</b></div>
@@ -412,7 +419,8 @@ input{touch-action:manipulation}
   <section class="ov" id="ovClear" hidden><div class="panel wide clear"><p class="kick">第100階層 突破</p><h2 class="cltitle">DUNGEON CLEAR</h2><div id="clBody"></div>
     <div class="col row"><button class="btn big pri" id="clHub" type="button">拠点へ戻る</button><button class="btn big" id="clGo" type="button">さらに先へ進む（エンドレス）</button><button class="btn big" id="clRes" type="button">今回の冒険を終了してリザルトを見る</button></div></div></section>
   <section class="ov" id="ovItem" hidden><div class="panel" id="itemBox"></div></section>
-  <section class="ov" id="ovChoose" hidden><div class="panel wide"><p class="kick">BOSS DOWN</p><h2>アビリティを1つ選ぶ</h2><div class="cards" id="cards"></div></div></section>
+  <section class="ov" id="ovChoose" hidden><div class="panel wide"><p class="kick" id="chKick">SKILL CHANCE</p><h2 id="chHead">スキルを1つ選ぶ</h2><p class="lead" id="chLead"></p><div class="cards" id="cards"></div></div></section>
+  <section class="ov" id="ovEvent" hidden><div class="panel" id="evBox"></div></section>
   <section class="ov" id="ovPause" hidden><div class="panel"><p class="kick">PAUSED</p><h2>一時停止中</h2><p class="lead">進行状況は自動で保存されています。</p>
     <div class="col"><button class="btn big pri" id="bResume" type="button">再開する</button><button class="btn big" id="bToTitle" type="button">保存してタイトルへ</button></div></div></section>
   <section class="ov" id="ovConfirm" hidden><div class="panel"><p class="kick">RETREAT</p><h2>撤退して拠点に戻りますか？</h2><p class="lead">拾った装備・コイン・経験値はすべて持ち帰れます。このランのアビリティは失われます。</p>
@@ -756,6 +764,7 @@ var PRR = (function () {
     fevgreed: { n: 'フィーバー強欲', c: 'coin', r: 'R', m: 2, d: 'フィーバー中の獲得コイン ×2（Lv2で×3）' },
     goldenrule: { n: '黄金律', c: 'coin', r: 'L', m: 1, d: 'すべてのコイン獲得量 +40%' },
     master: { n: '捕獲の達人', c: 'atk', r: 'C', m: 6, d: '入賞時の攻撃ダメージ +30%' },
+    critdmg: { n: '会心の極意', c: 'atk', r: 'R', m: 4, d: 'クリティカルダメージ +30%' },
     critical: { n: 'クリティカルキャッチ', c: 'atk', r: 'R', m: 4, d: '入賞時のクリティカル率 +10%' },
     rampage: { n: '暴走', c: 'atk', r: 'R', m: 3, d: 'コンボ1につきダメージ +5%×Lv（25コンボまで）' },
     executioner: { n: '処刑人', c: 'atk', r: 'C', m: 3, d: 'HP35%以下の敵へのダメージ +60%×Lv' },
@@ -782,6 +791,7 @@ var PRR = (function () {
     gravflip: { n: '重力反転', c: 'ball', r: 'E', m: 1, d: '20%の玉が中盤で短時間浮き上がる。その玉のダメージ ×1.5' },
     split: { n: '分裂', c: 'ball', r: 'E', m: 2, d: '30%×Lv の玉が入賞直前に2つに分裂する' },
     bouncy: { n: '高反発', c: 'ball', r: 'C', m: 4, d: '釘に当たるたび、その玉のダメージ +3%×Lv（20回まで）' },
+    feverrate: { n: 'フィーバー体質', c: 'fever', r: 'C', m: 3, d: 'フィーバーゲージの増加 +25%' },
     feverext: { n: 'フィーバー延長', c: 'fever', r: 'C', m: 3, d: 'フィーバーの基本時間 +5秒' },
     goldworld: { n: '金色の世界', c: 'fever', r: 'R', m: 3, d: 'フィーバー中のスタート幅がさらに +15%' },
     chainblast: { n: '連鎖爆発', c: 'fever', r: 'E', m: 2, d: 'フィーバー中の入賞で追加ダメージ（与ダメージの50%×Lv）' },
@@ -797,6 +807,20 @@ var PRR = (function () {
     ['greedchain', 'chainblast', '連鎖反応', '連鎖爆発がコンボ1につき +2%'], ['bigcatch', 'vamp', '大食らい', '吸血の回復量 +50%']
   ];
   const RARITY_W = { C: 60, R: 28, E: 9, L: 3 };
+  // スキル選択の種類ごとのレアリティ出現比。normal=通常階層、chance=5階層ごと（ボス撃破後）、special=10階層ごと
+  const TIER_W = { normal: { C: 62, R: 30, E: 7, L: 1 }, chance: { C: 44, R: 38, E: 15, L: 3 }, special: { C: 14, R: 40, E: 36, L: 10 } };
+  const TIER_N = { normal: 'スキル選択', chance: 'SKILL CHANCE', special: 'SPECIAL SKILL CHANCE' };
+  // 階層クリア後のイベント発生率。1階層につき起きるのは1つだけ（優先順：スキル選択 → 宝箱 → リスク選択）
+  const EVT = { skillNormal: 0.07, skillElite: 0.25, chest: 0.09, risk: 0.4, riskHp: 1.8, riskAtk: 1.3, riskCoin: 3 };
+  const CHEST_W = { coin: 34, gear: 26, skill: 15, heal: 15, rare: 10 };
+  // ビルドボーナス：関連スキルを一定種類そろえると解放
+  const BUILDS = [
+    { k: 'crit', n: 'クリティカル特化', ids: ['critical', 'critdmg', 'executioner', 'bosskiller'], need: 3, d: 'クリティカルダメージ +40%' },
+    { k: 'coin', n: 'コイン稼ぎ', ids: ['greed', 'goldcatch', 'compound', 'fevgreed', 'oversupply', 'feverext', 'feverrate', 'goldpeg'], need: 4, d: 'コイン獲得 +20%、フィーバー時間 +2秒' },
+    { k: 'combo', n: 'コンボ特化', ids: ['rampage', 'greedchain', 'bouncy', 'chainblast', 'multiball', 'split'], need: 3, d: 'コンボ倍率の伸び ×1.5' },
+    { k: 'catch', n: '回収・攻撃安定', ids: ['bigcatch', 'megacatch', 'swift', 'stable', 'lastfort', 'absolute', 'goldworld'], need: 3, d: '入賞時の与ダメージ +20%' },
+    { k: 'tank', n: '耐久', ids: ['vitality', 'steel', 'vamp', 'blessing', 'revive'], need: 3, d: '被ダメージ −15%、階層突破ごとに最大HPの5%回復' }
+  ];
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v, r1 = (v) => Math.round(v * 10) / 10;
 
   /* ---------- コイン管理（唯一の残高書き換え経路） ---------- */
@@ -979,7 +1003,7 @@ var PRR = (function () {
         balls: [], nextBall: 1, pegs: [], cat: { x: CFG.W / 2, dir: 1 }, enemy: null, ab: {}, offers: null, caps: { coin: 0, dmg: 0 },
         fever: { on: false, t: 0, g: 0, ext: 0, earned: 0 }, combo: 0, comboT: 0, auto: false, autoT: 0, absT: 0, revived: 0, lastId: null,
         run0: Ledger.snap(P.led), loot: [], sold: 0, xp: 0, lvUps: 0, lv0: ch.lvl,
-        stats: { shots: 0, bonus: 0, wins: 0, misses: 0, kills: 0, bossKills: 0, elites: 0, fevers: 0, maxCombo: 0, maxBal: P.led.bal, bestWin: 0, dmgNow: 0, dmgAll: 0, taken: 0, healed: 0, nudges: 0, skills: 0, crits: 0 } };
+        stats: { shots: 0, bonus: 0, wins: 0, misses: 0, kills: 0, bossKills: 0, elites: 0, fevers: 0, maxCombo: 0, maxBal: P.led.bal, bestWin: 0, dmgNow: 0, dmgAll: 0, taken: 0, healed: 0, nudges: 0, skills: 0, crits: 0, chests: 0, risks: 0 } };
       const g = new Game(P, S); g._genPegs(); g._spawnEnemy(); g._assignSpecials(); return g;
     }
     static load(P, obj) {
@@ -1006,17 +1030,18 @@ var PRR = (function () {
       if (this._rs) return this._rs;
       const t = Prof.stats(this.P).tot, L = (k) => this.lv(k), o = {}, cid = this.S.cid, star = this.S.star, pk = 1 + 0.2 * (star - 1); // pk：固有パッシブの★補正（★6で2倍が上限）
       o.maxHp = Math.round(t.hp * (1 + 0.2 * L('vitality'))); o.atk = t.atk; o.def = t.def;
-      o.crit = clamp(t.crit + 10 * L('critical') + (cid === 'lilia' ? 5 * pk : 0), 0, 75); o.cdmg = t.cdmg;
-      o.coin = (1 + t.coin / 100) * (1 + 0.15 * L('greed')) * (L('goldenrule') ? 1.4 : 1) * (L('sniper') ? 1.4 : 1);
+      const B = (k) => this.buildOn(k);
+      o.crit = clamp(t.crit + 10 * L('critical') + (cid === 'lilia' ? 5 * pk : 0), 0, 75); o.cdmg = t.cdmg + 30 * L('critdmg') + (B('crit') ? 40 : 0);
+      o.coin = (1 + t.coin / 100) * (1 + 0.15 * L('greed')) * (L('goldenrule') ? 1.4 : 1) * (L('sniper') ? 1.4 : 1) * (B('coin') ? 1.2 : 1);
       o.cwPct = t.cw + 20 * L('bigcatch') + 40 * L('megacatch') + 10 * L('stable') - 25 * L('sniper');
       o.cw = clamp(CFG.CW_BASE * (1 + o.cwPct / 100), CFG.CW_MIN, CFG.CW_MAX);
       o.cs = clamp(CFG.CS_BASE * (1 + (t.cs + 25 * L('swift') - 20 * L('stable')) / 100), CFG.CS_MIN, CFG.CS_MAX);
       const m = o.cs / CFG.CS_BASE; o.momDmg = 1 + 0.4 * Math.max(0, m - 1); o.momCoin = 1 + 0.4 * Math.max(0, 1 - m);
-      o.dmg = (1 + t.dmg / 100) * (1 + 0.3 * L('master')) * (L('overdrive') ? 2 : 1) * (L('sniper') ? 1.6 : 1) * o.momDmg;
-      o.taken = Math.max(0.15, (100 / (100 + 4 * o.def)) * (1 - t.dr / 100) * Math.pow(0.85, L('steel')) * (cid === 'sera' ? 1 - 0.1 * pk : 1));
-      o.bossDmg = cid === 'leon' ? 1 + 0.15 * pk : 1; o.bossCrit = cid === 'leon' && star >= 6 ? 25 : 0; o.coinNF = cid === 'zephyr' ? 1 + 0.1 * pk : 1; o.gauge = cid === 'zephyr' ? 1.15 : 1; o.gpeg = cid === 'zephyr' && star >= 6 ? 2 : 1;
-      o.floorHeal = cid === 'sera' && star >= 6 ? 0.03 : 0; o.critCoin = cid === 'lilia' && star >= 6 ? 1.25 : 1; o.comboStep = CFG.COMBO_STEP * (cid === 'mira' ? 1.5 + 0.1 * (star - 1) : 1); o.comboWin = cid === 'mira' ? 0.5 : 0; o.comboHeal = cid === 'mira' && star >= 6 ? 0.02 : 0;
-      o.fev = CFG.FEVER_TIME + t.fev + 5 * L('feverext') + (L('perpetual') ? 3 : 0);
+      o.dmg = (1 + t.dmg / 100) * (1 + 0.3 * L('master')) * (L('overdrive') ? 2 : 1) * (L('sniper') ? 1.6 : 1) * o.momDmg * (B('catch') ? 1.2 : 1);
+      o.taken = Math.max(0.15, (100 / (100 + 4 * o.def)) * (1 - t.dr / 100) * Math.pow(0.85, L('steel')) * (cid === 'sera' ? 1 - 0.1 * pk : 1) * (B('tank') ? 0.85 : 1));
+      o.bossDmg = cid === 'leon' ? 1 + 0.15 * pk : 1; o.bossCrit = cid === 'leon' && star >= 6 ? 25 : 0; o.coinNF = cid === 'zephyr' ? 1 + 0.1 * pk : 1; o.gauge = (cid === 'zephyr' ? 1.15 : 1) * (1 + 0.25 * L('feverrate')); o.gpeg = cid === 'zephyr' && star >= 6 ? 2 : 1;
+      o.floorHeal = (cid === 'sera' && star >= 6 ? 0.03 : 0) + (B('tank') ? 0.05 : 0); o.critCoin = cid === 'lilia' && star >= 6 ? 1.25 : 1; o.comboStep = CFG.COMBO_STEP * (cid === 'mira' ? 1.5 + 0.1 * (star - 1) : 1) * (B('combo') ? 1.5 : 1); o.comboWin = cid === 'mira' ? 0.5 : 0; o.comboHeal = cid === 'mira' && star >= 6 ? 0.02 : 0;
+      o.fev = CFG.FEVER_TIME + t.fev + 5 * L('feverext') + (L('perpetual') ? 3 : 0) + (B('coin') ? 2 : 0);
       o.drop = (1 + t.drop / 100) * (1 + 0.4 * L('treasure')); o.ls = t.ls + 2 * L('vamp') * (this.syn(5) ? 1.5 : 1); o.regen = t.regen;
       return (this._rs = o);
     }
@@ -1065,9 +1090,10 @@ var PRR = (function () {
         hp *= 3.2 * (traits.includes('tank') ? 1.5 : 1); atk *= 1.4;
       } else if (elite) { tier = 'e'; id = D.elites[Math.floor(this.rnd() * D.elites.length)]; hp *= 2.2; atk *= 1.3; }
       else { let n = 0; do { id = D.mobs[Math.floor(this.rnd() * D.mobs.length)]; } while (id === S.lastId && ++n < 4); }
+      let risk = 0; if (S.risk && !boss) { risk = 1; S.risk = 0; hp *= EVT.riskHp; atk *= EVT.riskAtk; }
       S.lastId = id; hp = Math.round(hp);
-      S.enemy = { id, name: MON[id][0], fam: MON[id][1], el: MON[id][2], tier, boss, traits, hp, max: hp, atk: Math.max(1, Math.round(atk)), rage: 0, rageMax: tier === 'n' ? 10 : tier === 'e' ? 9 : 8, furyT: final ? 6 : 8, final };
-      S.stats.dmgNow = 0; this.emit(boss ? 'boss' : 'floor', { floor: f, name: S.enemy.name, tier, final });
+      S.enemy = { id, name: MON[id][0], fam: MON[id][1], el: MON[id][2], tier, boss, traits, hp, max: hp, atk: Math.max(1, Math.round(atk)), rage: 0, rageMax: tier === 'n' ? 10 : tier === 'e' ? 9 : 8, furyT: final ? 6 : 8, final, risk };
+      S.stats.dmgNow = 0; this.emit(boss ? 'boss' : 'floor', { floor: f, name: S.enemy.name, tier, final, risk, skill: boss && !final ? (f % 10 === 0 ? 'special' : 'chance') : null });
     }
     hasTrait(t) { const e = this.S.enemy; return e.boss && e.traits.includes(t); }
     damage(amt, src) {
@@ -1079,7 +1105,7 @@ var PRR = (function () {
     _kill() {
       const S = this.S, P = this.P, e = S.enemy, f = S.floor, D = this.dungeon, tm = e.tier === 'b' ? 4 : e.tier === 'e' ? 2 : 1;
       S.stats.kills++; P.tot.kills++; if (e.tier === 'e') S.stats.elites++;
-      let got = this._earn('kill:' + f, 'kill', (3 + 1.2 * f) * Math.sqrt(D.m) * tm);
+      let got = this._earn('kill:' + f, 'kill', (3 + 1.2 * f) * Math.sqrt(D.m) * tm * (e.risk ? EVT.riskCoin : 1));
       if (this.lv('bonusstage') && f % CFG.BOSS_EVERY === 3) got += this._earn('bonus:' + f, 'ability', 20 * this.lv('bonusstage') + f * 4);
       if (e.boss && this.lv('bossloot')) got += this._earn('bl:' + f, 'ability', 40 * this.lv('bossloot'));
       let clearCoins = 0; if (e.final) clearCoins = this._earn('clear', 'clear', 5000 * Math.sqrt(D.m)); else if (e.boss && f > CFG.FINAL) got += this._earn('endless:' + f, 'endless', 500 * Math.sqrt(D.m));
@@ -1088,16 +1114,40 @@ var PRR = (function () {
       // 装備ドロップ：判定→生成→取得（インベントリ登録 or 自動換金）を1回だけ
       const chance = e.tier === 'b' ? 1 : (e.tier === 'e' ? 0.55 : 0.14) * this.rs().drop; let n = this.rnd() < chance ? 1 : 0; if (e.boss && this.lv('bossloot')) n++;
       for (let i = 0; i < n; i++) this._drop(e.final ? 'f' : e.tier);
+      if (e.risk) this._drop('r'); // 危険な挑戦の報酬：Rare以上が確定
       if (f <= CFG.FINAL) { if (f > P.best[S.dg]) P.best[S.dg] = f; } else if (f > P.endBest[S.dg]) P.endBest[S.dg] = f; // エンドレスの記録は別枠
       this.addGauge(CFG.GAUGE.kill); this.heal(this.rs().regen + S.maxHp * (0.08 * this.lv('blessing') + this.rs().floorHeal) + (e.boss ? S.maxHp * 0.2 : 0), 'floor');
-      if (e.boss) { S.stats.bossKills++; P.tot.boss++; if (f >= 10 && P.unlocked < DUNGEONS.length && S.dg + 2 > P.unlocked) { P.unlocked = S.dg + 2; this.emit('unlock', { dg: S.dg + 1 }); } S.offers = this._rollOffers();
+      if (e.boss) { S.stats.bossKills++; P.tot.boss++; if (f >= 10 && P.unlocked < DUNGEONS.length && S.dg + 2 > P.unlocked) { P.unlocked = S.dg + 2; this.emit('unlock', { dg: S.dg + 1 }); } S.tier = f % 10 === 0 ? 'special' : 'chance'; S.offers = this._rollOffers(S.tier);
         if (e.final) { P.clears[S.dg]++; S.cleared = 1; S.clearCoins = clearCoins; S.state = 'clear'; this.emit('clear', { coins: clearCoins }); }
         else { S.state = 'choose'; this.emit('choose'); if (!S.offers.length) this.choose(-1); } }
-      else this._nextFloor();
+      else this._floorEvent(e);
     }
+    // 通常階層クリア後のイベント。発生は1つだけ。選択が終わるまで次の階層へは進まない
+    _floorEvent(e) {
+      const S = this.S, r1 = this.rnd(), r2 = this.rnd(), r3 = this.rnd(), r4 = this.rnd();
+      if (r1 < (e.tier === 'e' ? EVT.skillElite : EVT.skillNormal)) { S.tier = 'normal'; S.offers = this._rollOffers('normal'); if (S.offers.length) { S.state = 'choose'; this.emit('choose'); return; } S.offers = null; }
+      if (r2 < EVT.chest) { let x = r3 * 100, kind = 'coin'; for (const k in CHEST_W) { if ((x -= CHEST_W[k]) < 0) { kind = k; break; } } S.pend = { t: 'chest', kind, f: S.floor }; S.state = 'event'; S.stats.chests = (S.stats.chests || 0) + 1; this.emit('event', { kind: 'chest' }); return; }
+      if (S.floor % CFG.BOSS_EVERY === 2 && r4 < EVT.risk) { S.pend = { t: 'risk', f: S.floor }; S.state = 'event'; this.emit('event', { kind: 'risk' }); return; }
+      this._nextFloor();
+    }
+    openChest() {
+      const S = this.S, p = S.pend; if (S.state !== 'event' || !p || p.t !== 'chest' || p.res) return null; const f = S.floor, D = this.dungeon; let res;
+      if (p.kind === 'skill') { const own = Object.keys(S.ab).filter(k => this.lv(k) < AB[k].m); if (own.length) { const k = own[Math.floor(this.rnd() * own.length)]; this._gain(k); res = { kind: 'skill', k, lv: this.lv(k) }; } else p.kind = 'coin'; }
+      if (p.kind === 'coin') res = { kind: 'coin', coins: this._earn('chest:' + f, 'other', (40 + 12 * f) * Math.sqrt(D.m)) };
+      else if (p.kind === 'heal') res = { kind: 'heal', hp: this.heal(S.maxHp * 0.3, 'chest') };
+      else if (p.kind === 'gear' || p.kind === 'rare') { const n0 = S.loot.length, b0 = this.P.led.bal; this._drop(p.kind === 'rare' ? 'x' : 'r'); res = { kind: p.kind, uid: S.loot.length > n0 ? S.loot[S.loot.length - 1] : null, sold: this.P.led.bal - b0 }; }
+      p.res = res; this.emit('chest', res); return res;
+    }
+    pickRisk(k) {
+      const S = this.S, p = S.pend; if (S.state !== 'event' || !p || p.t !== 'risk' || p.res) return null; let res;
+      if (k === 'danger') { S.risk = 1; S.stats.risks = (S.stats.risks || 0) + 1; res = { kind: 'danger' }; }
+      else res = { kind: 'safe', coins: this._earn('safe:' + S.floor, 'other', (15 + 4 * S.floor) * Math.sqrt(this.dungeon.m)), hp: this.heal(S.maxHp * 0.15, 'chest') };
+      p.res = res; this.emit('risk', res); return res;
+    }
+    eventDone() { const S = this.S; if (S.state !== 'event' || !S.pend || !S.pend.res) return false; S.pend = null; S.state = 'play'; this._nextFloor(); return true; }
     _drop(tier) {
-      const S = this.S, P = this.P, luck = Math.min(S.floor, 100) * 0.02 + clamp((S.floor - CFG.FINAL) * 0.01, 0, 1.5) + S.dg * 0.35 + (tier === 'b' || tier === 'f' ? 0.9 : tier === 'e' ? 0.5 : 0) + 0.7 * this.lv('appraise');
-      let w = DROP_W.map((x, i) => x * Math.pow(1 + luck, i * 0.65)); if (tier === 'b') w[0] = 0; if (tier === 'e') w[0] *= 0.3; if (tier === 'f') w[0] = w[1] = w[2] = w[3] = 0; // 最終ボスは Legendary 以上が確定
+      const S = this.S, P = this.P, luck = Math.min(S.floor, 100) * 0.02 + clamp((S.floor - CFG.FINAL) * 0.01, 0, 1.5) + S.dg * 0.35 + (tier === 'b' || tier === 'f' || tier === 'r' || tier === 'x' ? 0.9 : tier === 'e' ? 0.5 : 0) + 0.7 * this.lv('appraise');
+      let w = DROP_W.map((x, i) => x * Math.pow(1 + luck, i * 0.65)); if (tier === 'b') w[0] = 0; if (tier === 'e') w[0] *= 0.3; if (tier === 'r') w[0] = w[1] = 0; if (tier === 'x') w[0] = w[1] = w[2] = 0; if (tier === 'f') w[0] = w[1] = w[2] = w[3] = 0; // 最終ボスは Legendary 以上が確定
       let tot = w.reduce((a, b) => a + b, 0), r = this.rnd() * tot, rar = 0; while (rar < 5 && (r -= w[rar]) > 0) rar++;
       const pool = Object.keys(BASES).filter(k => BASES[k].r === rar), b = pool[Math.floor(this.rnd() * pool.length)];
       const it = Prof.makeItem(P, b, S.floor + S.dg * 12, () => this.rnd());
@@ -1117,25 +1167,43 @@ var PRR = (function () {
       if (S.hp <= 0) { S.hp = 0; this._over('dead'); }
       return real;
     }
-    heal(n, src) { const S = this.S; n = Math.round(n); if (n <= 0 || S.hp <= 0) return 0; const real = Math.min(n, S.maxHp - S.hp); if (real > 0) { S.hp += real; S.stats.healed += real; this.emit('heal', { amt: real, src }); } return real; }
+    heal(n, src) { const S = this.S; n = Math.round(n); if (n <= 0 || S.hp <= 0) return 0; const real = Math.max(0, Math.min(n, S.maxHp - S.hp)); if (real > 0) { S.hp += real; S.stats.healed += real; this.emit('heal', { amt: real, src }); } return real; }
     _over(cause) { const S = this.S; if (S.state === 'over') return; S.state = 'over'; S.cause = cause; S.auto = false; if (cause === 'dead') this.P.tot.deaths++; this.emit('gameover', { cause }); }
     _enemyAttack(mult, kind) { const e = this.S.enemy; this.emit('enemyAtk', { kind }); this.hurt(e.atk * mult, kind); }
 
     /* --- ビルド管理 --- */
-    _rollOffers() {
-      const pool = Object.keys(AB).filter(k => this.lv(k) < AB[k].m), out = [];
+    _rollOffers(tier) {
+      const W = TIER_W[tier] || RARITY_W, pool = Object.keys(AB).filter(k => this.lv(k) < AB[k].m), out = []; // 上限に達したスキルは候補から外す
       while (out.length < 3 && pool.length) {
-        let tot = 0; const w = pool.map(k => { let x = RARITY_W[AB[k].r];
+        let tot = 0; const w = pool.map(k => { let x = W[AB[k].r];
           if (SYN.some(s => (s[0] === k && this.lv(s[1]) && !this.lv(k)) || (s[1] === k && this.lv(s[0]) && !this.lv(k)))) x *= 1.5;
           if (out.length === 2 && AB[out[0]].c === AB[out[1]].c && AB[k].c === AB[out[0]].c) x *= 0.15; tot += x; return x; });
         let r = this.rnd() * tot, i = 0; while (i < w.length - 1 && (r -= w[i]) > 0) i++; out.push(pool.splice(i, 1)[0]);
       }
+      const hi = (k) => AB[k].r === 'E' || AB[k].r === 'L';
+      if (tier === 'special' && out.length && !out.some(hi)) { const c = pool.filter(hi); if (c.length) out[out.length - 1] = c[Math.floor(this.rnd() * c.length)]; } // 特別選択はエピック以上を最低1枚
       return out;
+    }
+    buildOn(k) { const b = BUILDS.find(x => x.k === k); return !!b && b.ids.filter(id => this.lv(id) > 0).length >= b.need; }
+    builds() { return BUILDS.map(b => ({ k: b.k, name: b.n, desc: b.d, have: b.ids.filter(id => this.lv(id) > 0).length, need: b.need, on: this.buildOn(b.k), ids: b.ids })); }
+    _gain(k) { // スキル取得（重複はレベルアップ）。最大HPが増えた分は現在HPにも足す
+      const S = this.S; if (!AB[k] || this.lv(k) >= AB[k].m) return false; const was = BUILDS.filter(b => this.buildOn(b.k)).map(b => b.k);
+      S.ab[k] = this.lv(k) + 1; this._rs = null; const mh = this.rs().maxHp; if (mh !== S.maxHp) { const d = mh - S.maxHp; S.maxHp = mh; S.hp = clamp(S.hp + Math.max(0, d), 1, mh); }
+      this.emit('ability', { k }); for (const b of BUILDS) if (this.buildOn(b.k) && !was.includes(b.k)) this.emit('build', { name: b.n, desc: b.d });
+      return true;
+    }
+    // 選択前の比較用：取得した場合に変わるステータスを返す
+    preview(k) {
+      const S = this.S, lv = this.lv(k), a = this.rs(), onA = BUILDS.filter(b => this.buildOn(b.k)).map(b => b.k); S.ab[k] = lv + 1; this._rs = null; const b = this.rs(), onB = BUILDS.filter(x => this.buildOn(x.k));
+      if (lv) S.ab[k] = lv; else delete S.ab[k]; this._rs = null;
+      const F = [['maxHp', '最大HP', 0, ''], ['crit', 'クリティカル率', 0, '%'], ['cdmg', 'クリティカルダメージ', 0, '%'], ['dmg', '与ダメージ倍率', 2, '×'], ['coin', 'コイン倍率', 2, '×'], ['cw', 'スタート幅', 0, ''], ['cs', 'スタート速度', 0, ''], ['taken', '被ダメージ倍率', 2, '×'], ['fev', 'フィーバー時間', 1, '秒'], ['gauge', 'ゲージ増加', 2, '×'], ['drop', 'ドロップ率', 2, '×'], ['ls', '入賞時回復', 1, ''], ['comboStep', 'コンボ倍率の伸び', 3, '']];
+      const fx = (v, d) => +v.toFixed(d), rows = []; for (const [key, name, d, u] of F) if (fx(a[key], d) !== fx(b[key], d)) rows.push({ name, from: fx(a[key], d), to: fx(b[key], d), u, good: key === 'taken' ? b[key] < a[key] : b[key] > a[key] });
+      return { rows, builds: onB.filter(x => !onA.includes(x.k)).map(x => ({ name: x.n, desc: x.d })) };
     }
     continueEndless() { const S = this.S; if (S.state !== 'clear') return false; S.endless = 1; S.state = 'choose'; this.emit('choose'); if (!S.offers || !S.offers.length) this.choose(-1); return true; }
     choose(i) {
       const S = this.S; if (S.state !== 'choose') return false; const k = S.offers && S.offers[i];
-      if (k && this.lv(k) < AB[k].m) { S.ab[k] = this.lv(k) + 1; this._rs = null; const mh = this.rs().maxHp; if (mh !== S.maxHp) { const d = mh - S.maxHp; S.maxHp = mh; S.hp = clamp(S.hp + Math.max(0, d), 1, mh); } this.emit('ability', { k }); }
+      if (k && this.lv(k) < AB[k].m) this._gain(k);
       else if (i >= 0 && S.offers && S.offers.length) return false;
       S.offers = null; S.state = 'play'; this._nextFloor(); return true;
     }
@@ -1286,7 +1354,7 @@ var PRR = (function () {
         stats: Object.assign({}, S.stats), ab: Object.assign({}, S.ab), time: S.t, caps: Object.assign({}, S.caps), loot: S.loot.slice(), sold: S.sold, xp: S.xp, lvUps: S.lvUps, lvl: Prof.cur(P).lvl, hp: S.hp, maxHp: S.maxHp, cid: S.cid, star: S.star, cleared: S.cleared, endless: S.endless, clearCoins: S.clearCoins || 0, clears: P.clears[S.dg], best: P.best[S.dg], endBest: P.endBest[S.dg] };
     }
   }
-  return { CHARS, GACHA, GACHA_CHARS, STAR_MAX, SELL_RANGE, CFG, ELEM, RAR, STAT, BASE_STATS, ALLOC, CATS, BASES, MON, DUNGEONS, SLOT_NAMES, SLOT_KEYS, AB, SYN, TRAITS, Ledger, Prof, Game, elemMult };
+  return { TIER_W, TIER_N, EVT, BUILDS, CHARS, GACHA, GACHA_CHARS, STAR_MAX, SELL_RANGE, CFG, ELEM, RAR, STAT, BASE_STATS, ALLOC, CATS, BASES, MON, DUNGEONS, SLOT_NAMES, SLOT_KEYS, AB, SYN, TRAITS, Ledger, Prof, Game, elemMult };
 })();
 if (typeof module !== 'undefined') module.exports = PRR;
 </script>
@@ -1294,7 +1362,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
 /* ===== PINBALL ROGUE REBOOT v2 : 拠点UI・ダンジョン描画・サウンド・セーブ ===== */
 (function () {
   'use strict';
-  const { CHARS, GACHA, GACHA_CHARS, STAR_MAX, CFG, ELEM, RAR, STAT, ALLOC, CATS, BASES, MON, DUNGEONS, SLOT_NAMES, SLOT_KEYS, AB, TRAITS, Ledger, Prof, Game, elemMult } = PRR, ART = PRR_ART, W = CFG.W, H = CFG.H;
+  const { TIER_N, BUILDS, CHARS, GACHA, GACHA_CHARS, STAR_MAX, CFG, ELEM, RAR, STAT, ALLOC, CATS, BASES, MON, DUNGEONS, SLOT_NAMES, SLOT_KEYS, AB, TRAITS, Ledger, Prof, Game, elemMult } = PRR, ART = PRR_ART, W = CFG.W, H = CFG.H;
   const $ = (id) => document.getElementById(id);
   const fmt = (n) => Math.round(n).toLocaleString('ja-JP');
   const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '±') + fmt(Math.abs(n));
@@ -1540,7 +1608,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
     else if (a === 'dg') { const i = +t.dataset.i; if (i < P.unlocked) { P.dg = i; Snd.ui(); save(); renderDungeon(); } else hubToast('まだ解放されていません'); }
     else if (a === 'go') startRun();
   }
-  function toHub() { G = null; finished = false; pendingRun = null; skipResult = false; $('ovClear').hidden = true; ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem'].forEach(o => $(o).hidden = true); $('dun').classList.remove('fever'); showView('hub'); setTab(tab === 'dungeon' ? 'home' : tab); save(); }
+  function toHub() { G = null; finished = false; pendingRun = null; skipResult = false; $('ovClear').hidden = true; ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem', 'ovEvent'].forEach(o => $(o).hidden = true); $('dun').classList.remove('fever'); showView('hub'); setTab(tab === 'dungeon' ? 'home' : tab); save(); }
 
   /* =====================================================================
      ダンジョン
@@ -1598,7 +1666,11 @@ if (typeof module !== 'undefined') module.exports = PRR;
     ctx.fillStyle = '#fff'; ctx.fillRect(0, CFG.CEIL - 2, W, 3);
     // 固定の発射口（中央）
     const lx = W / 2; ctx.fillStyle = COL.gold; ctx.strokeStyle = COL.ink; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(lx - 16, CFG.CEIL - 1); ctx.lineTo(lx + 16, CFG.CEIL - 1); ctx.lineTo(lx + 8, CFG.CEIL + 13); ctx.lineTo(lx - 8, CFG.CEIL + 13); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = COL.ink; ctx.beginPath(); ctx.arc(lx, CFG.CEIL + 6, 3.5, 0, 7); ctx.fill();
-    for (let i = 0; i < S.pegs.length; i++) { const p = S.pegs[i]; let f = pegFlash.get(i) || 0; if (p.t === 'n' && !f) { ctx.fillStyle = '#f3ecff'; ctx.strokeStyle = COL.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, CFG.PEG_R, 0, 7); ctx.fill(); ctx.stroke(); } else { ctx.globalAlpha = p.t === 'n' ? f : 0.8 + 0.2 * Math.sin(time * 5 + i); spr(SPR.peg[p.t], p.x, p.y); ctx.globalAlpha = 1; } if (f) { f -= dt * 5; if (f <= 0) pegFlash.delete(i); else pegFlash.set(i, f); } }
+    for (let i = 0; i < S.pegs.length; i++) { const p = S.pegs[i]; let f = pegFlash.get(i) || 0; const r = CFG.PEG_R + (f > 0 ? f * 0.8 : 0);
+      ctx.fillStyle = 'rgba(11,8,32,.45)'; ctx.beginPath(); ctx.arc(p.x + 0.6, p.y + 1, r + 0.6, 0, 7); ctx.fill(); // 控えめな影
+      ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#b9b6c9'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill(); ctx.stroke();
+      if (p.t !== 'n') { ctx.strokeStyle = PEG_COL[p.t]; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(p.x, p.y, r + 2.4, 0, 7); ctx.stroke(); } // ギミック釘の目印
+      if (f) { f -= dt * 5; if (f <= 0) pegFlash.delete(i); else pegFlash.set(i, f); } }
     const seen = new Set(); ctx.lineCap = 'round';
     for (const b of S.balls) { seen.add(b.id); let tr = trails.get(b.id); if (!tr) trails.set(b.id, tr = []); if (!paused) { tr.push(b.x, b.y); if (tr.length > 14) tr.splice(0, 2); }
       const c = b.crit ? '182,255,58' : b.ag ? '53,224,224' : '255,47,176';
@@ -1635,7 +1707,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
   function handle(e) {
     const S = G.S;
     switch (e.t) {
-      case 'peg': pegFlash.set(e.i, 1); if (e.k !== 'n' || !settings.lite) burst(e.x, e.y, PEG_COL[e.k], e.k === 'n' ? 2 : 6, 70, 0.3); Snd.peg(e.k); break;
+      case 'peg': pegFlash.set(e.i, 1); if (e.k !== 'n') burst(e.x, e.y, PEG_COL[e.k], 3, 60, 0.25); Snd.peg(e.k); break;
       case 'launch': Snd.tone(300, 0.07, 'sawtooth', 0.04, 700); break;
       case 'coin': if (e.amt) pop(e.x, e.y - 6, '+' + e.amt, COL.gold, 10); break;
       case 'miss': Snd.tone(150, 0.08, 'sine', 0.06, 90); burst(e.x, H - 10, COL.red, 4, 60, 0.3); if (e.ins) pop(e.x, H - 20, '保険', COL.green, 9); break;
@@ -1650,8 +1722,8 @@ if (typeof module !== 'undefined') module.exports = PRR;
       case 'kill': ghost = { uri: ART.monsterURI(e.id), t: 0.5, s: e.tier === 'b' ? 100 : e.tier === 'e' ? 86 : 74 }; eAnim.enter = 0; burst(W / 2, EY, e.boss ? COL.mag : '#fff', e.boss ? 90 : 30, e.boss ? 320 : 200, e.boss ? 1.1 : 0.6); burst(W / 2, EY, COL.gold, e.boss ? 40 : 10, 200, 0.8); pop(W / 2, EY - 20, '撃破 +' + fmt(e.coins) + 'コイン  EXP+' + fmt(e.xp), COL.gold, e.boss ? 14 : 11);
         if (e.final) { flash = 1.5; shake = 2; slow = 1.2; for (let i = 0; i < 5; i++) burst(W / 2 + (Math.random() - 0.5) * 120, EY + (Math.random() - 0.5) * 60, [COL.gold, COL.violet, COL.cyan, '#fff'][i % 4], 60, 340, 1.4); Snd.seq([196, 147, 110, 82, 65], 0.12, 'sawtooth', 0.2); Snd.seq([523, 659, 784, 1047, 1319, 1568, 2093], 0.1, 'square', 0.12); }
         else if (e.boss) { flash = 1; shake = 1.2; banner('BOSS DOWN', '撃破報酬 +' + fmt(e.coins) + ' コイン', 'boss'); Snd.seq([196, 147, 110, 82], 0.09, 'sawtooth', 0.18); Snd.seq([523, 659, 784, 1047], 0.09, 'square', 0.1); } else Snd.seq([330, 494, 659], 0.05, 'square', 0.09); break;
-      case 'floor': eAnim.enter = Math.min(eAnim.enter, 0); if (e.tier === 'e') { banner('ELITE', e.name + ' があらわれた', 'info', 'el', 800); Snd.seq([330, 311, 330], 0.1, 'sawtooth', 0.12); } else if (e.floor > 1) toast('階層 ' + e.floor + '：' + e.name + ' があらわれた', 1200); break;
-      case 'boss': eAnim.enter = 0; if (e.final) { banner('FINAL BOSS', '第100階層：' + e.name, 'boss'); flash = 1; shake = 1.6; voidFx = 1.5; Snd.seq([82, 78, 82, 78, 82, 73, 65], 0.2, 'sawtooth', 0.2); } else { banner('WARNING', '階層 ' + e.floor + ' ボス：' + e.name, 'boss'); shake = 0.8; Snd.seq([110, 104, 110, 104, 110], 0.14, 'sawtooth', 0.16); } break;
+      case 'floor': eAnim.enter = Math.min(eAnim.enter, 0); if (e.risk) { banner('DANGER', '強敵 ' + e.name + '：倒すとレア装備が確定', 'boss', 'risk', 800); Snd.seq([196, 185, 196], 0.1, 'sawtooth', 0.14); } else if (e.tier === 'e') { banner('ELITE', e.name + ' があらわれた', 'info', 'el', 800); Snd.seq([330, 311, 330], 0.1, 'sawtooth', 0.12); } else if (e.floor > 1) toast('階層 ' + e.floor + '：' + e.name + ' があらわれた', 1200); break;
+      case 'boss': eAnim.enter = 0; if (e.final) { banner('FINAL BOSS', '第100階層：' + e.name, 'boss'); flash = 1; shake = 1.6; voidFx = 1.5; Snd.seq([82, 78, 82, 78, 82, 73, 65], 0.2, 'sawtooth', 0.2); } else { banner(e.skill === 'special' ? 'SPECIAL SKILL CHANCE!' : 'SKILL CHANCE!', '階層 ' + e.floor + ' ボス「' + e.name + '」を倒すと' + (e.skill === 'special' ? '特別なスキルを獲得！' : 'スキル獲得のチャンス！'), 'boss'); shake = 0.8; Snd.seq([110, 104, 110, 104, 110], 0.14, 'sawtooth', 0.16); } break;
       case 'enemyAtk': eAnim.atk = 1; if (e.kind === 'void') { voidFx = 1; banner('虚無の波動', '', 'boss', 'void', 900); Snd.seq([196, 147, 98], 0.1, 'sawtooth', 0.2); } else Snd.tone(110, 0.25, 'sawtooth', 0.18, 50); break;
       case 'skill': cutin(e); break;
       case 'clear': showClear(e); break;
@@ -1669,6 +1741,8 @@ if (typeof module !== 'undefined') module.exports = PRR;
       case 'ability': banner(AB[e.k].n, 'アビリティ獲得', 'info'); Snd.seq([659, 880, 1319], 0.07, 'triangle', 0.14); break;
       case 'autoStop': toast('コイン不足のため連続発射を停止しました'); break;
       case 'choose': showChoose(); break;
+      case 'event': showEvent(); break;
+      case 'build': toast('ビルド成立「' + e.name + '」：' + e.desc, 3200); Snd.seq([659, 880, 1175, 1568], 0.07, 'triangle', 0.13); break;
       case 'gameover': finish(); break;
     }
   }
@@ -1678,6 +1752,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
     const S = G.S, L = P.led, F = S.fever;
     if (L.bal !== lastBal) { const c = $('cCoin'); c.classList.remove('up', 'down'); void c.offsetWidth; c.classList.add(L.bal > lastBal ? 'up' : 'down'); lastBal = L.bal; }
     dispBal += (L.bal - dispBal) * Math.min(1, dt * 12); if (Math.abs(L.bal - dispBal) < 0.6) dispBal = L.bal; // 表示値は演出用。内部残高は常に L.bal
+    { const rem = (5 - S.floor % 5) % 5, sp = (S.floor + rem) % 10 === 0; set('hFloorL', rem === 0 ? (sp ? '特別スキル！' : 'スキルチャンス') : 'スキルまで' + rem); const cf = $('cFloor'); if (cf.classList.contains('hot') !== (rem === 0)) cf.classList.toggle('hot', rem === 0); }
     set('hFloor', String(S.floor)); set('hCoin', fmt(dispBal)); const net = L.bal - S.run0.bal; set('hNet', sign(net)); $('cNet').className = 'chip ' + (net > 0 ? 'pos' : net < 0 ? 'neg' : '');
     set('hCombo', String(S.combo)); set('hShots', fmt(G.shotsLeft()));
     const hp = S.hp / S.maxHp; $('hpFill').style.width = hp * 100 + '%'; set('hpText', 'HP ' + fmt(S.hp) + ' / ' + fmt(S.maxHp)); const hc = 'hpbar' + (hp <= 0.25 ? ' low' : hp <= 0.5 ? ' mid' : ''), hb = $('hpBar'); if (cache.hc !== hc) { cache.hc = hc; hb.classList.toggle('low', hp <= 0.25); hb.classList.toggle('mid', hp > 0.25 && hp <= 0.5); }
@@ -1693,8 +1768,9 @@ if (typeof module !== 'undefined') module.exports = PRR;
     $('pStats').innerHTML = kv([['HP', fmt(S.hp) + ' / ' + fmt(S.maxHp)], ['受けたダメージ合計', fmt(st.taken)], ['回復量合計', fmt(st.healed)], ['攻撃力', fmt(R.atk)], ['防御力（被ダメージ）', fmt(R.def) + '（×' + R.taken.toFixed(2) + '）'], ['クリティカル', R.crit + '% / ' + R.cdmg + '%'], ['与ダメージ倍率', '×' + R.dmg.toFixed(2)], ['コイン倍率', '×' + (R.coin * R.momCoin).toFixed(2)], ['スタート幅', Math.round(G.catcherW()) + '（基本 ' + Math.round(R.cw) + '）'], ['スタート速度', Math.round(R.cs)], ['フィーバー時間', R.fev.toFixed(1) + '秒'], ['属性', ELEM[S.el].n]]);
     $('pBattle').innerHTML = kv([['現在の敵', (e.boss ? 'BOSS ' : e.tier === 'e' ? 'ELITE ' : '') + e.name], ['この敵への累計ダメージ', fmt(st.dmgNow)], ['敵撃破数', fmt(st.kills)], ['ボス撃破数', fmt(st.bossKills)], ['玉の発射数', fmt(st.shots)], ['追加玉（無料）', fmt(st.bonus)], ['入賞回数', fmt(st.wins)], ['フィーバー発動', fmt(st.fevers) + ' 回'], ['最高コンボ', fmt(st.maxCombo)], ['拾った装備', fmt(S.loot.length)], ['獲得経験値', fmt(S.xp)]]);
     const ks = Object.keys(S.ab);
-    let h = ks.length ? '<ul class="abl">' + ks.map(k => `<li class="r${AB[k].r}">${img(ART.abURI(AB[k].c))}<div><b>${AB[k].n}</b><i>Lv${S.ab[k]}/${AB[k].m}</i><p>${AB[k].d}</p></div></li>`).join('') + '</ul>' : '<p class="empty">まだアビリティはありません。5階層ごとのボスを倒すと、3つの中から1つ選べます。</p>';
+    let h = ks.length ? '<ul class="abl">' + ks.map(k => `<li class="r${AB[k].r}">${img(ART.abURI(AB[k].c))}<div><b>${AB[k].n}</b><i>Lv${S.ab[k]}/${AB[k].m}</i><p>${AB[k].d}</p></div></li>`).join('') + '</ul>' : '<p class="empty">まだスキルはありません。5階層ごとのボス撃破で必ず、通常階層でもときどき、3つの中から1つ選べます。</p>';
     h += G.synergies().filter(s => s.on || S.ab[s.a] || S.ab[s.b]).map(s => `<p class="syn${s.on ? '' : ' off'}">${s.on ? '◆ シナジー発動' : '◇ あと1つ'}：${s.name}：${s.desc}${s.on ? '' : '（' + AB[S.ab[s.a] ? s.b : s.a].n + 'が必要）'}</p>`).join('');
+    h += '<p class="cmph" style="margin-top:8px">ビルドボーナス（関連スキルの種類数）</p>' + G.builds().map(b => `<p class="syn${b.on ? '' : ' off'}">${b.on ? '★' : '☆'} ${b.name} ${b.have}/${b.need}：${b.desc}</p>`).join('');
     if (S.caps.coin || S.caps.dmg) h += `<p class="syn off">倍率上限に到達：コイン×${CFG.COIN_MULT_CAP} ${S.caps.coin}回 / ダメージ×${CFG.DMG_MULT_CAP} ${S.caps.dmg}回</p>`;
     $('pBuild').innerHTML = h; $('pCoins').innerHTML = kv(coinRows(rr, '現在の所持コイン'));
   }
@@ -1703,8 +1779,8 @@ if (typeof module !== 'undefined') module.exports = PRR;
   function startRun(loaded) {
     try { G = loaded || Game.start(P, P.dg); } catch (err) { hubToast(err.message); return; }
     finished = false; dispBal = lastBal = P.led.bal; parts = []; pops = []; beams = []; fx = []; trails.clear(); pegFlash.clear(); acc = 0; avgWin = 10; ghost = null; eAnim = { hit: 0, atk: 0, enter: 0 }; for (const k in cache) delete cache[k]; $('dropCard').textContent = '';
-    ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem', 'ovClear', 'ovGacha', 'ovAsk'].forEach(o => $(o).hidden = true); skipResult = false; voidFx = 0; showView('dun'); $('dun').classList.toggle('fever', G.S.fever.on); pendingRun = null; G.ev.length = 0; Snd.init(); resize(); side();
-    if (G.S.state === 'choose') showChoose(); else if (G.S.state === 'clear') showClear({}); else paused = false; if (!loaded) banner(DUNGEONS[G.S.dg].n, '階層 1 スタート', 'info'); save();
+    ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem', 'ovClear', 'ovGacha', 'ovAsk', 'ovEvent'].forEach(o => $(o).hidden = true); skipResult = false; voidFx = 0; showView('dun'); $('dun').classList.toggle('fever', G.S.fever.on); pendingRun = null; G.ev.length = 0; Snd.init(); resize(); side();
+    if (G.S.state === 'choose') showChoose(); else if (G.S.state === 'event') showEvent(); else if (G.S.state === 'clear') showClear({}); else paused = false; if (!loaded) banner(DUNGEONS[G.S.dg].n, '階層 1 スタート', 'info'); save();
   }
   function cutin(e) { const c = $('cutin'), d = CHARS[e.cid], col = ELEM[d.el].c === '#c8c8d8' ? '#7ad8ff' : ELEM[d.el].c; c.style.setProperty('--cc', col); c.className = 'cutin' + (e.star >= 4 ? ' hi' : ''); c.innerHTML = `${img(ART.charIconURI(e.cid, e.star, col))}<div><small>${d.n}</small><b>${e.name}</b></div>`; void c.offsetWidth; c.classList.add('go'); flash = Math.max(flash, e.star >= 4 ? 0.8 : 0.4); burst(G.S.cat.x, CFG.SLOT_Y, col, e.star >= 4 ? 50 : 24, 220, 0.8); if (e.star >= 6) burst(G.S.cat.x, CFG.SLOT_Y, COL.gold, 40, 300, 1); Snd.seq([523, 784, 1047, 1568], 0.06, 'square', 0.13); }
   function showClear(e) {
@@ -1713,10 +1789,31 @@ if (typeof module !== 'undefined') module.exports = PRR;
       ${loot.length ? `<div class="grid" style="margin:8px 0">${loot.slice(-12).map(it => tile(it, true)).join('')}</div>` : ''}<h3 class="clh">${d.n} の活躍</h3><dl class="kv">${kv([['与えたダメージ合計', fmt(st.dmgAll)], ['入賞 / クリティカル', fmt(st.wins) + ' / ' + fmt(st.crits)], ['固有スキル「' + d.an + '」発動', st.skills + ' 回'], ['最大コンボ', st.maxCombo], ['受けたダメージ / 回復', fmt(st.taken) + ' / ' + fmt(st.healed)]])}</dl>`;
     $('ovClear').hidden = false; save();
   }
+  const pvHtml = (pv) => (pv.rows.length ? '<dl class="dl">' + pv.rows.map(r => `<dt>${r.name}</dt><dd class="${r.good ? 'up' : 'dn'}">${r.u === '×' ? '×' + r.from + ' → ×' + r.to : r.from + r.u + ' → ' + r.to + r.u}</dd>`).join('') + '</dl>' : '<span class="dlnone">数値以外の効果（玉の動き・発動条件など）</span>') + pv.builds.map(b => `<span class="sy">★ ビルド「${b.name}」成立：${b.desc}</span>`).join('');
+  /* --- 宝箱・リスク選択 --- */
+  function showEvent() {
+    paused = true; const S = G.S, p = S.pend; if (!p) return; const r = p.res; let h;
+    if (p.t === 'chest') {
+      if (!r) h = `<p class="kick">TREASURE</p><h2>宝箱を見つけた！</h2><div class="evart">${img(ART.abURI('drop'))}</div><p class="lead">階層 ${S.floor} を突破したごほうびです。中身は開けてからのお楽しみ。</p><div class="col"><button type="button" class="btn big pri" data-act="ev" data-v="open">宝箱を開ける</button></div>`;
+      else { const it = r.uid ? Prof.find(P, r.uid) : null, txt = r.kind === 'coin' ? `コイン <b>+${fmt(r.coins)}</b>` : r.kind === 'heal' ? `HPが <b>${fmt(r.hp)}</b> 回復した` : r.kind === 'skill' ? `スキル「<b>${AB[r.k].n}</b>」が Lv${r.lv} に強化された` : it ? `${r.kind === 'rare' ? 'レア報酬！ ' : ''}装備「<b style="color:${RAR[base(it).r].c}">${esc(iName(it))}</b>」を手に入れた` : `装備は持ち物がいっぱいのため換金：コイン <b>+${fmt(r.sold)}</b>`;
+        h = `<p class="kick">${r.kind === 'rare' ? 'RARE REWARD' : 'TREASURE'}</p><h2>宝箱の中身</h2><div class="evart">${it ? tile(it, true) : img(ART.abURI(r.kind === 'coin' ? 'coin' : r.kind === 'heal' ? 'hp' : r.kind === 'skill' ? AB[r.k].c : 'drop'))}</div><p class="lead evres">${txt}</p><div class="col"><button type="button" class="btn big pri" data-act="ev" data-v="done">次の階層へ</button></div>`; }
+    } else {
+      if (!r) h = `<p class="kick">RISK or SAFE</p><h2>分かれ道</h2><p class="lead">どちらか一方を選びます。選ぶまで次の階層には進みません。</p><div class="col"><button type="button" class="btn big" data-act="ev" data-v="safe"><em>安全な報酬</em><small>少しのコインと、最大HPの15%回復</small></button><button type="button" class="btn big danger" data-act="ev" data-v="danger"><em>危険な挑戦</em><small>次の敵がHP×1.8・攻撃×1.3。倒すとRare以上の装備が確定、撃破コイン×3</small></button></div>`;
+      else h = `<p class="kick">RISK or SAFE</p><h2>${r.kind === 'danger' ? '危険な挑戦を選んだ' : '安全な報酬を受け取った'}</h2><p class="lead evres">${r.kind === 'danger' ? '次の階層に<b>強敵</b>があらわれます。倒せばRare以上の装備が確定です。' : `コイン <b>+${fmt(r.coins)}</b>、HPが <b>${fmt(r.hp)}</b> 回復した`}</p><div class="col"><button type="button" class="btn big pri" data-act="ev" data-v="done">次の階層へ</button></div>`;
+    }
+    $('evBox').innerHTML = h; $('ovEvent').hidden = false; save();
+  }
+  function evAct(v) {
+    if (!G || G.S.state !== 'event') { $('ovEvent').hidden = true; return; }
+    if (v === 'open') { if (G.openChest()) { Snd.seq([523, 784, 1047, 1568], 0.07, 'triangle', 0.14); showEvent(); } }
+    else if (v === 'safe' || v === 'danger') { if (G.pickRisk(v)) { Snd.seq(v === 'danger' ? [196, 147, 196] : [659, 880], 0.09, v === 'danger' ? 'sawtooth' : 'triangle', 0.13); showEvent(); } }
+    else if (v === 'done') { if (G.eventDone()) { $('ovEvent').hidden = true; paused = false; side(); save(); } }
+  }
   function showChoose() {
-    paused = true; const S = G.S, box = $('cards'); box.textContent = '';
+    paused = true; const S = G.S, box = $('cards'), tier = S.tier || 'chance'; box.textContent = '';
+    $('chKick').textContent = S.floor % 5 === 0 ? 'BOSS DOWN ／ ' + TIER_N[tier] : TIER_N[tier]; $('chHead').textContent = tier === 'special' ? '特別なスキルを1つ選ぶ' : 'スキルを1つ選ぶ'; $('chLead').textContent = tier === 'special' ? '10階層ごとの特別選択。エピック以上が出やすくなっています。' : tier === 'chance' ? '5階層ごとのスキルチャンス。レア以上が出やすくなっています。' : '階層クリアのごほうび。選ぶまで次の階層には進みません。';
     (S.offers || []).forEach((k, i) => { const a = AB[k], lv = S.ab[k] || 0, b = document.createElement('button'); b.type = 'button'; b.className = 'card r' + a.r; const sy = G.synergies().find(s => (s.a === k && S.ab[s.b]) || (s.b === k && S.ab[s.a]));
-      b.innerHTML = `<div class="ch">${img(ART.abURI(a.c))}<div><span class="rar">${RARN[a.r]}・${CATN[a.c]}</span><h3>${a.n}</h3></div></div><p>${a.d}</p>${sy && !lv ? `<span class="sy">◆ シナジー「${sy.name}」発動：${sy.desc}</span>` : ''}<span class="lvl">${lv ? 'Lv' + lv + ' → Lv' + (lv + 1) : 'NEW'}${a.m > 1 ? '（最大Lv' + a.m + '）' : '（1回のみ）'}</span>`;
+      b.innerHTML = `<div class="ch">${img(ART.abURI(a.c))}<div><span class="rar">${RARN[a.r]}・${CATN[a.c]}</span><h3>${a.n}</h3></div></div><p>${a.d}</p>${pvHtml(G.preview(k))}${sy && !lv ? `<span class="sy">◆ シナジー「${sy.name}」発動：${sy.desc}</span>` : ''}<span class="lvl">${lv ? 'Lv' + lv + ' → Lv' + (lv + 1) : 'NEW'}${a.m > 1 ? '（最大Lv' + a.m + '）' : '（1回のみ）'}</span>`;
       b.dataset.act = 'pick'; b.dataset.i = i; pickFns[i] = (() => { if (box.dataset.busy) return; box.dataset.busy = '1'; [...box.children].forEach(c => c.classList.add(c === b ? 'picked' : 'unpicked')); Snd.seq([659, 988, 1319], 0.06, 'triangle', 0.14);
         setTimeout(() => { delete box.dataset.busy; if (G && G.choose(i)) { $('ovChoose').hidden = true; paused = false; side(); save(); } }, settings.lite ? 80 : 480); });
       box.appendChild(b); });
@@ -1735,7 +1832,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
       <div class="rsec"><h3>コイン精算</h3>${k2(coinRows(r, '最終所持コイン'))}
       <p class="net ${r.net >= 0 ? 'p' : 'n'}">今回の純増減：${sign(r.net)}</p>
       <p class="verify${r.valid ? '' : ' bad'}">${r.valid ? '✓ 取引履歴 ' + fmt(r.txCount) + ' 件と一致（' + fmt(r.start) + ' ＋ ' + fmt(r.eT) + ' − ' + fmt(r.sT) + ' ＝ ' + fmt(r.bal) + '）' : '✕ 精算エラー：このリザルトは確定できません。' + r.errs.slice(0, 3).join(' / ')}</p></div></div>`;
-    ['ovConfirm', 'ovPause', 'ovChoose'].forEach(o => $(o).hidden = true); $('ovResult').hidden = false; if (!r.valid && window.console) console.error('PRR ledger mismatch', r.errs);
+    ['ovConfirm', 'ovPause', 'ovChoose', 'ovEvent'].forEach(o => $(o).hidden = true); $('ovResult').hidden = false; if (!r.valid && window.console) console.error('PRR ledger mismatch', r.errs);
     Snd.seq(r.cause === 'dead' ? [392, 330, 262, 196] : [523, 659, 784, 1047], 0.12, 'triangle', 0.14); save();
   }
   /* --- メインループ（物理は固定ステップ、描画は別） --- */
@@ -1753,7 +1850,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
   function pause(on) { if (!G || finished || G.S.state !== 'play') return; paused = on; $('ovPause').hidden = !on; if (on) save(); }
   const speedLbl = () => { $('tSpeed').textContent = '×' + settings.speed; };
   function title(note) {
-    paused = true; ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem'].forEach(o => $(o).hidden = true); if (G && !finished) { pendingRun = G.serialize(); } G = null; showView('title');
+    paused = true; ['ovPause', 'ovConfirm', 'ovResult', 'ovChoose', 'ovItem', 'ovEvent'].forEach(o => $(o).hidden = true); if (G && !finished) { pendingRun = G.serialize(); } G = null; showView('title');
     const has = !!pendingRun; $('bContinue').hidden = !has; $('bHub').textContent = has ? '撤退して拠点へ' : 'スタート'; $('bHub').classList.toggle('pri', !has);
     $('titleNote').textContent = note || (has ? 'ダンジョン攻略の途中です。' : `${CHARS[cur().c].n} Lv ${cur().lvl}　所持コイン ${fmt(P.led.bal)}　装備 ${P.inv.length} 個`); save();
   }
@@ -1762,7 +1859,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
   on('bSpeed', () => { settings.speed = settings.speed === 1 ? 2 : settings.speed === 2 ? 3 : 1; speedLbl(); store.set(K.set, settings); });
   on('bPause', () => pause(true)); on('bResume', () => pause(false)); on('bToTitle', () => title());
   on('bEnd', () => { if (!G || finished) return; paused = true; $('ovConfirm').hidden = false; });
-  on('bEndNo', () => { $('ovConfirm').hidden = true; if (G.S.state === 'choose') showChoose(); else if (G.S.state === 'clear') showClear({}); else paused = false; });
+  on('bEndNo', () => { $('ovConfirm').hidden = true; if (G.S.state === 'choose') showChoose(); else if (G.S.state === 'event') showEvent(); else if (G.S.state === 'clear') showClear({}); else paused = false; });
   on('bEndYes', () => { G.end(); G.ev.length = 0; finish(); });
   on('bRHub', toHub);
   on('clHub', () => { skipResult = true; G.end(); }); on('clRes', () => { skipResult = false; G.end(); }); on('clGo', () => { $('ovClear').hidden = true; if (!G.continueEndless()) return; banner('ENDLESS', '第101階層から先へ', 'info'); });
@@ -1780,6 +1877,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
     if (t.id === 'ovItem') { closeItem(); return; }
     const b = t.closest('button,[data-act]'); if (!b || b.disabled) return;
     if (b.id && CL[b.id]) { CL[b.id](e); return; }
+    if (b.dataset.act === 'ev') { evAct(b.dataset.v); return; }
     if (b.dataset.act === 'pick') { const f = pickFns[+b.dataset.i]; if (f) f(); return; }
     if (b.dataset.tab && b.closest('#tabs')) { Snd.init(); Snd.ui(); setTab(b.dataset.tab); return; }
     if (b.dataset.act) hubAct(e);
@@ -1791,7 +1889,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
     document.addEventListener('touchmove', (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
     document.addEventListener('dblclick', (e) => { e.preventDefault(); }, { passive: false }); })();
   const onInput = (e) => { if (live() && e.target && IN[e.target.id]) IN[e.target.id](e); }; document.addEventListener('input', onInput); document.addEventListener('change', onInput);
-  document.addEventListener('keydown', (e) => { if (!live() || e.target.tagName === 'INPUT' || view !== 'dun' || (e.repeat && e.code !== 'Space')) return; if (['ovChoose', 'ovConfirm', 'ovResult', 'ovClear'].some(o => !$(o).hidden)) return;
+  document.addEventListener('keydown', (e) => { if (!live() || e.target.tagName === 'INPUT' || view !== 'dun' || (e.repeat && e.code !== 'Space')) return; if (['ovChoose', 'ovConfirm', 'ovResult', 'ovClear', 'ovEvent'].some(o => !$(o).hidden)) return;
     if (e.code === 'Space') { e.preventDefault(); if (!$('ovPause').hidden) pause(false); else fire(); } else if (e.code === 'KeyA') toggleAuto(); else if (e.code === 'KeyP' || e.code === 'Escape') pause($('ovPause').hidden); });
   document.addEventListener('visibilitychange', () => { if (live() && document.hidden) save(); }); window.addEventListener('pagehide', () => { if (live()) save(); }); window.addEventListener('resize', () => { if (live()) resize(); });
   if (window.ResizeObserver) new ResizeObserver(resize).observe($('stage'));
