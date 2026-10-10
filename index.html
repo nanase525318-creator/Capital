@@ -336,6 +336,8 @@ input{touch-action:manipulation}
 .evart{display:flex;justify-content:center;margin:6px 0 10px}.evart>img{width:96px;height:96px;animation:bob 2s ease-in-out infinite}.evart .tile{width:96px}
 .evres b{color:var(--gold)}#evBox{text-align:center}#evBox .btn.big{min-height:56px}#evBox .btn small{white-space:normal;line-height:1.35;color:#fff;font-size:11px}
 .chip.hot{border-color:var(--gold)}.chip.hot span{color:var(--gold)}
+.aeq{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:12.5px;margin:6px 0;text-align:left}.aeq dt{color:var(--dim);font-weight:800;white-space:nowrap}.aeq dd{margin:0;line-height:1.45}
+#askB .cmp{text-align:left}
 </style>
 <div class="app" id="app">
   <!-- ===== 拠点 ===== -->
@@ -938,6 +940,28 @@ var PRR = (function () {
       if (plan.kind === 'evolve') { it.evo = 1; it.plus = 0; P.tot.evos++; } else it.plus++; P.tot.fuses++;
       return { ok: true, kind: plan.kind, cost: plan.cost };
     },
+    // 一括合成：未強化・未装備・ロックなしの同じ装備だけを素材に、コインと素材が続くかぎり強化（+5からは進化も）する
+    fuseAutoMats(P, baseUid) { const it = Prof.find(P, baseUid); if (!it) return []; return P.inv.filter(m => m.b === it.b && m.uid !== it.uid && !m.lock && !m.plus && !m.evo && !Prof.owner(P, m.uid)).sort((a, b) => a.il - b.il || a.uid - b.uid); },
+    fuseAllPlan(P, baseUid) {
+      const it = Prof.find(P, baseUid); if (!it) return null; const mats = Prof.fuseAutoMats(P, baseUid), sim = Object.assign({}, it), used = []; let cost = 0, bal = P.led.bal, evolved = false, stop = 'mats';
+      for (const m of mats) { const v = Prof.sellValue(Object.assign({}, sim, { plus: 0, evo: 0 })), kind = sim.plus < 5 ? 'plus' : !sim.evo ? 'evolve' : 'max'; if (kind === 'max') { stop = 'max'; break; } const c = kind === 'plus' ? Math.round(v * 0.5 * (sim.plus + 1)) : v * 5; if (bal < c) { stop = 'coin'; break; } bal -= c; cost += c; used.push(m.uid); if (kind === 'evolve') { sim.evo = 1; sim.plus = 0; evolved = true; } else sim.plus++; }
+      if (stop === 'mats' && sim.plus >= 5 && sim.evo) stop = 'max';
+      return { n: used.length, mats: used, cost, evolved, stop, avail: mats.length, before: Prof.itemStats(it), after: Prof.itemStats(sim), afterName: Prof.itemName(sim), afterItem: sim };
+    },
+    fuseAll(P, baseUid) { const plan = Prof.fuseAllPlan(P, baseUid); if (!plan || !plan.n) return { ok: false, n: 0, cost: 0 }; let n = 0, cost = 0, evolved = false; for (const u of plan.mats) { const r = Prof.fuse(P, baseUid, u); if (!r.ok) break; n++; cost += r.cost; if (r.kind === 'evolve') evolved = true; } return { ok: n > 0, n, cost, evolved }; },
+    // 自動装備：部位ごとに評価点が最も高い装備を選ぶ（他のキャラが装備中のものは取らない）
+    gearScore(it) { const W8 = { atk: 3, hp: 0.3, def: 2, crit: 2, cdmg: 0.3, coin: 0.5, cw: 1.5, cs: 0.2, fev: 2, drop: 0.3, dmg: 2, dr: 2, ls: 6, regen: 2 }, x = Prof.itemStats(it); let v = 0; for (const k in x) v += x[k] * (W8[k] || 0); return v + BASES[it.b].r * 0.01; },
+    autoEquipPlan(P, ch) {
+      ch = ch || Prof.cur(P); const free = (it) => { const o = Prof.owner(P, it.uid); return !o || o.ch === ch; }, best = {}, by = (a, b) => Prof.gearScore(b) - Prof.gearScore(a) || a.uid - b.uid;
+      for (const s of ['weapon', 'head', 'body', 'hands', 'feet']) { const c = P.inv.filter(it => Prof.slotOf(it) === s && free(it)).sort(by); best[s] = c.length ? c[0].uid : null; }
+      const acc = P.inv.filter(it => Prof.slotOf(it) === 'acc' && free(it)).sort(by).slice(0, 2).map(i => i.uid), cur = [ch.eq.acc1, ch.eq.acc2];
+      // すでに付けているアクセサリーは位置を動かさない
+      const keep1 = acc.includes(cur[0]) ? cur[0] : null, keep2 = acc.includes(cur[1]) ? cur[1] : null, rest = acc.filter(u => u !== keep1 && u !== keep2); best.acc1 = keep1 != null ? keep1 : (rest.length ? rest.shift() : null); best.acc2 = keep2 != null ? keep2 : (rest.length ? rest.shift() : null);
+      const changes = SLOT_KEYS.filter(s => best[s] !== ch.eq[s] && best[s] != null).map(s => ({ slot: s, from: ch.eq[s], to: best[s] }));
+      const sim = JSON.parse(JSON.stringify(ch)); for (const c of changes) sim.eq[c.slot] = c.to; const b0 = Prof.stats(P, ch), b1 = Prof.stats(P, sim);
+      return { changes, before: b0.tot, after: b1.tot, elBefore: b0.el, elAfter: b1.el };
+    },
+    autoEquip(P, ch) { ch = ch || Prof.cur(P); const plan = Prof.autoEquipPlan(P, ch); for (const c of plan.changes) Prof.equip(P, c.to, c.slot, ch); return plan; },
     /* --- キャラクター：重複を素材にした限界突破（★1〜★6） --- */
     charFuseCost(ch) { return 2000 * ch.star; },
     charFuse(P, baseUid, matUid) {
@@ -1461,7 +1485,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
   }
   function renderEquip() {
     const c = cur(), want = selSlot.startsWith('acc') ? 'acc' : selSlot, cand = P.inv.filter(it => Prof.slotOf(it) === want && !Prof.equippedSlot(P, it.uid)).sort((a, b) => base(b).r - base(a).r || b.il - a.il);
-    $('p-equip').innerHTML = `<div class="box"><h3>${cDef(c).n}の装備</h3><div class="col" style="gap:6px">${SLOT_KEYS.map(s => { const it = Prof.find(P, c.eq[s]); return `<button type="button" class="erow ${it ? 'r' + base(it).r : ''}${s === selSlot ? ' sel' : ''}" data-act="selslot" data-slot="${s}">${it ? img(iURI(it)) : '<div class="ph"></div>'}<div><small>${SLOT_NAMES[s]}</small><b>${it ? esc(iName(it)) : '装備なし'}</b><span>${it ? statLine(it) : 'タップして装備を選ぶ'}</span></div>${it ? `<u data-act="item" data-uid="${it.uid}">詳細</u>` : ''}</button>`; }).join('')}</div></div>
+    $('p-equip').innerHTML = `<div class="box"><div class="rowb" style="margin-bottom:8px"><h3 style="margin:0">${cDef(c).n}の装備</h3><button type="button" class="btn sm pri" data-act="autoeq"><em>おすすめを自動装備</em></button></div><div class="col" style="gap:6px">${SLOT_KEYS.map(s => { const it = Prof.find(P, c.eq[s]); return `<button type="button" class="erow ${it ? 'r' + base(it).r : ''}${s === selSlot ? ' sel' : ''}" data-act="selslot" data-slot="${s}">${it ? img(iURI(it)) : '<div class="ph"></div>'}<div><small>${SLOT_NAMES[s]}</small><b>${it ? esc(iName(it)) : '装備なし'}</b><span>${it ? statLine(it) : 'タップして装備を選ぶ'}</span></div>${it ? `<u data-act="item" data-uid="${it.uid}">詳細</u>` : ''}</button>`; }).join('')}</div></div>
       <div class="box"><h3>${SLOT_NAMES[selSlot]}に装備できる持ち物（${cand.length}）</h3>${cand.length ? `<div class="grid">${cand.map(it => tile(it)).join('')}</div>` : `<p class="empty">この部位の装備はまだ持っていません。ダンジョンのドロップかガチャで手に入ります。</p>`}</div>
       <div class="box"><h3>最終ステータス</h3>${summary(Prof.stats(P))}</div>`;
   }
@@ -1495,7 +1519,7 @@ if (typeof module !== 'undefined') module.exports = PRR;
           ${pl.kind !== 'max' ? `<p class="cmph">合成後の性能</p><dl class="cmp">${cmpRows(pl.before, pl.after)}</dl><p class="cmph">必要なもの：同じ装備 1個 ＋ <b class="g" style="color:var(--gold)">${fmt(pl.cost)} コイン</b>${pl.kind === 'evolve' ? '（進化：名前・見た目が変わり、性能 ×1.35 と特殊能力を得て +0 に戻る）' : ''}</p>` : ''}</div>`;
         if (pl.kind !== 'max') h += `<div class="box"><h3>素材にする装備を選ぶ（${pl.mats.length}）</h3>${pl.mats.length ? `<div class="grid">${pl.mats.map(x => tile(x, false, { act: 'fmat', sel: x.uid === fz.mat })).join('')}</div>` : '<p class="empty">素材にできる同じ装備がありません（ロック中は除外されます）。</p>'}
           ${m ? `<p style="margin-top:10px">素材：${esc(iName(m))}（消費されます）${mo ? `<br><b style="color:var(--red)">この素材は ${cDef(mo.ch).n} が装備中です。合成すると外れて消えます。</b>` : ''}${m.plus || m.evo ? '<br><b style="color:var(--red)">素材の強化値・進化は引き継がれません。</b>' : ''}</p>` : ''}
-          <div class="brow"><button type="button" class="btn pri" data-act="fgo" ${m && P.led.bal >= pl.cost ? '' : 'disabled'}><em>${pl.kind === 'evolve' ? '進化させる' : '合成する'}</em><small>${m ? (P.led.bal >= pl.cost ? fmt(pl.cost) + ' コイン' : 'コイン不足') : '素材を選択'}</small></button></div></div>`; }
+          <div class="brow">${(() => { const ap = Prof.fuseAllPlan(P, it.uid); return `<button type="button" class="btn" data-act="fall" ${ap.n ? '' : 'disabled'}><em>まとめて合成</em><small>${ap.n ? ap.n + '個使用・' + fmt(ap.cost) + ' コイン' : ap.avail ? 'コイン不足' : '使える素材なし'}</small></button>`; })()}<button type="button" class="btn pri" data-act="fgo" ${m && P.led.bal >= pl.cost ? '' : 'disabled'}><em>${pl.kind === 'evolve' ? '進化させる' : '合成する'}</em><small>${m ? (P.led.bal >= pl.cost ? fmt(pl.cost) + ' コイン' : 'コイン不足') : '素材を選択'}</small></button></div></div>`; }
     } else {
       const b = Prof.char(P, fz.cbase), m = Prof.char(P, fz.cmat); if (!b) fz.cbase = fz.cmat = null;
       if (!b) { const cn = {}; P.chars.forEach(x => cn[x.c] = (cn[x.c] || 0) + 1); const cand = P.chars.filter(x => cn[x.c] > 1);
@@ -1600,6 +1624,11 @@ if (typeof module !== 'undefined') module.exports = PRR;
     else if (a === 'fmode') { fz.mode = v; renderFuse(); }
     else if (a === 'fbase') { fz.base = uid || null; fz.mat = null; renderFuse(); } else if (a === 'fmat') { fz.mat = fz.mat === uid ? null : uid; renderFuse(); }
     else if (a === 'cbase') { fz.cbase = uid || null; fz.cmat = null; renderFuse(); } else if (a === 'cmat') { fz.cmat = fz.cmat === uid ? null : uid; renderFuse(); }
+    else if (a === 'autoeq') { const pl = Prof.autoEquipPlan(P), c = cur(); if (!pl.changes.length) { hubToast('すでに一番おすすめの装備です'); return; }
+      const nm = (u) => { const it = Prof.find(P, u); return it ? `<b style="color:${RAR[base(it).r].c}">${esc(iName(it))}</b>` : 'なし'; };
+      ask('おすすめ装備に替えますか？', `<p class="lead">${cDef(c).n} の装備を ${pl.changes.length} か所入れ替えます。他のキャラが装備中のものは使いません。</p><dl class="aeq">${pl.changes.map(x => `<dt>${SLOT_NAMES[x.slot]}</dt><dd>${nm(x.from)} → ${nm(x.to)}</dd>`).join('')}</dl><p class="cmph">ステータスの変化${pl.elBefore !== pl.elAfter ? '（属性：' + ELEM[pl.elBefore].n + ' → ' + ELEM[pl.elAfter].n + '）' : ''}</p><dl class="cmp">${cmpRows(pl.before, pl.after).split('<dt>').filter(r => r.indexOf('class="eq"') < 0 && r).map(r => '<dt>' + r).join('') || '<dt>変化なし</dt><dd></dd><dd></dd>'}</dl>`, '装備する', () => { const r = Prof.autoEquip(P); save(); renderHub(); hubToast(r.changes.length + ' か所の装備を入れ替えました'); Snd.seq([659, 880, 1175], 0.06, 'triangle'); }); }
+    else if (a === 'fall') { const it = Prof.find(P, fz.base), ap = it && Prof.fuseAllPlan(P, it.uid); if (!it || !ap || !ap.n) return;
+      ask('まとめて合成しますか？', `<p class="lead">「${esc(iName(it))}」→「<b>${esc(ap.afterName)}</b>」${ap.evolved ? '（進化を含みます）' : ''}<br>消費：同じ装備 <b>${ap.n} 個</b> ＋ <b style="color:var(--gold)">${fmt(ap.cost)} コイン</b><br>素材にするのは、未強化・未装備・ロックなしの同じ装備だけです。${ap.stop === 'coin' ? '<br>コインが足りる分までで止まります。' : ap.stop === 'max' ? '<br>強化の上限まで進みます。' : ''}</p><p class="cmph">合成後の性能</p><dl class="cmp">${cmpRows(ap.before, ap.after)}</dl>`, 'まとめて合成する', () => { const r = Prof.fuseAll(P, it.uid); if (!r.ok) { hubToast('合成できませんでした'); renderHub(); return; } fz.mat = null; save(); renderHub(); boom(`${img(iURI(it))}<b>${r.evolved ? '進化成功！' : '合成成功！'}</b><span>${esc(iName(it))}（${r.n}個・${fmt(r.cost)} コイン）</span>`, r.evolved ? 'evo' : ''); Snd.seq(r.evolved ? [523, 659, 784, 1047, 1319, 1568] : [659, 880, 1319], 0.07, 'triangle', 0.14); }); }
     else if (a === 'fgo') { const it = Prof.find(P, fz.base), m = Prof.find(P, fz.mat), pl = it && Prof.fusePlan(P, it.uid); if (!it || !m || !pl) return; const mo = Prof.owner(P, m.uid);
       ask(pl.kind === 'evolve' ? '進化させますか？' : '合成しますか？', `<p class="lead">「${esc(iName(it))}」→「<b>${esc(pl.afterName)}</b>」<br>消費：素材「${esc(iName(m))}」1個 ＋ <b style="color:var(--gold)">${fmt(pl.cost)} コイン</b><br>合成は必ず成功します。</p>${mo ? `<p class="lead" style="color:var(--red)">素材は ${cDef(mo.ch).n} が装備中です。外れて消費されます。</p>` : ''}`, pl.kind === 'evolve' ? '進化させる' : '合成する', () => { const r = Prof.fuse(P, it.uid, m.uid); if (!r.ok) { hubToast(r.why === 'coin' ? 'コインが足りません' : '合成できませんでした'); renderHub(); return; } fz.mat = null; save(); renderHub(); boom(`${img(iURI(it))}<b>${r.kind === 'evolve' ? '進化成功！' : '合成成功！'}</b><span>${esc(iName(it))}</span>`, r.kind === 'evolve' ? 'evo' : ''); Snd.seq(r.kind === 'evolve' ? [523, 659, 784, 1047, 1319, 1568] : [659, 880, 1319], 0.07, 'triangle', 0.14); }); }
     else if (a === 'cgo') { const b = Prof.char(P, fz.cbase), m = Prof.char(P, fz.cmat); if (!b || !m) return; const cost = Prof.charFuseCost(b);
