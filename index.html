@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>PINBALL ROGUE REBOOT</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body><title>PINBALL ROGUE REBOOT</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
 <style>
 /* layout: 拠点は上バー＋スクロールする中身＋下タブ。ダンジョンは上HUD・縦長フィールド・下操作盤（広い画面は右に戦況）。夜空の紺に金のふちどり、主役のボタンだけ橙 */
@@ -324,6 +324,11 @@ img{max-width:100%;image-rendering:auto}
 .clhero .cbig{width:150px;height:150px}.boom img.chr{width:200px;height:200px}
 .tmons img.chr{padding:0;background:none}
 .cbig.max{animation:bob 2.4s ease-in-out infinite}
+/* ---- 連打しても拡大しない：ダブルタップ拡大・ピンチ拡大・長押しの文字選択を止める（スクロールは可） ---- */
+html,body{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior:none}
+*{touch-action:pan-x pan-y;-webkit-tap-highlight-color:transparent}
+.app,.app *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{touch-action:manipulation}
 </style>
 <div class="app" id="app">
   <!-- ===== 拠点 ===== -->
@@ -1780,6 +1785,11 @@ if (typeof module !== 'undefined') module.exports = PRR;
     if (b.dataset.act) hubAct(e);
   }
   document.addEventListener('click', onClick);
+  // 拡大防止：viewport の拡大を止め、iOSのピンチ操作と、連続タップによる拡大も打ち消す（ボタンの連打はそのまま効く）
+  (function noZoom() { try { let m = document.querySelector('meta[name=viewport]'); if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); } m.content = 'width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover'; } catch (e) {}
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, (e) => { e.preventDefault(); }, { passive: false }));
+    document.addEventListener('touchmove', (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+    document.addEventListener('dblclick', (e) => { e.preventDefault(); }, { passive: false }); })();
   const onInput = (e) => { if (live() && e.target && IN[e.target.id]) IN[e.target.id](e); }; document.addEventListener('input', onInput); document.addEventListener('change', onInput);
   document.addEventListener('keydown', (e) => { if (!live() || e.target.tagName === 'INPUT' || view !== 'dun' || (e.repeat && e.code !== 'Space')) return; if (['ovChoose', 'ovConfirm', 'ovResult', 'ovClear'].some(o => !$(o).hidden)) return;
     if (e.code === 'Space') { e.preventDefault(); if (!$('ovPause').hidden) pause(false); else fire(); } else if (e.code === 'KeyA') toggleAuto(); else if (e.code === 'KeyP' || e.code === 'Escape') pause($('ovPause').hidden); });
