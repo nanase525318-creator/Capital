@@ -569,14 +569,18 @@ const CURRENCIES = {
 };
 // the active display currency (set whenever a life is created, loaded or moves country)
 let MONEY = { cur: 'JPY', rate: 1 };
-function setMoneyDisplay(s) { const cur = (s && COUNTRIES[s.country] && COUNTRIES[s.country].cur) || 'JPY'; MONEY = { cur, rate: FX0[cur] || 1, s: s || null }; return MONEY; }
+// Every amount in the game is shown in Japanese yen, whatever the country (the internal unit is the yen). Countries differ in
+// wages, prices, taxes and jobs (COUNTRIES / COUNTRY_ECON), not in the currency shown. Kept as a function so old callers work.
+function setMoneyDisplay(s) { MONEY = { cur: 'JPY', rate: 1, s: s || null }; return MONEY; }
 const groupNum = (v, d) => Number(v.toFixed(d || 0)).toLocaleString('en-US', { maximumFractionDigits: d || 0 });
 // format an amount already converted to the currency
 function fmtCur(a, cur, exact) {
   const C = CURRENCIES[cur] || CURRENCIES.JPY, abs = Math.abs(a);
   const t2 = (v) => trimNum(v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2));
   if (C.style === 'jp' || C.style === 'kr' || C.style === 'cn') {
+    if (exact && abs > 0 && abs < 100 && abs % 1) return trimNum(abs < 1 ? abs.toPrecision(3) : abs.toFixed(abs < 10 ? 2 : 1)) + C.sym; // sub-yen prices (small tokens)
     if (exact || abs < 1e4) return Math.round(abs).toLocaleString('ja-JP') + C.sym;
+    if (abs >= 1e12) return trimNum((abs / 1e12).toFixed(abs >= 1e14 ? 0 : 2)) + '兆' + C.sym;
     if (abs >= 1e8) return trimNum((abs / 1e8).toFixed(abs >= 1e11 ? 0 : 2)) + '億' + C.sym;
     return Math.round(abs / 1e4).toLocaleString('ja-JP') + '万' + C.sym;
   }
@@ -702,6 +706,37 @@ function costLiving(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp; return 
 function costHouse(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp; return C.cost * (C.house || 1); }
 function costEdu(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp; return C.cost * (C.edu || 1); }
 function costMed(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp; return C.cost * (C.med || 1); }
+// ---- country economy details (all multipliers are relative to Japan = 1 and kept separate on purpose: a high-wage country does
+// not automatically have high prices for everything). Values are game assumptions loosely based on real price levels.
+//   food: 食費・日用品   util: 光熱費・通信   transport: 交通費   car: 自動車の価格   uni: 大学の学費
+//   minWage: 最低賃金（円/時・いまの物価で。0 = 法定の最低賃金なし）   jobs: 就職のしやすさ   startup: 起業・事務所の費用
+//   bizMkt: 市場の大きさ（会社の需要・売上の上限）   invest / welfare: 投資環境・社会保障の説明
+const COUNTRY_ECON = {
+  jp: { food: 1.0, util: 1.0, transport: 1.0, car: 1.0, uni: 1.0, minWage: 1050, jobs: 1.0, startup: 1.0, bizMkt: 1.0, invest: 'NISAで非課税投資。配当と株主優待が多い', welfare: '国民皆保険（医療費3割負担）・厚生年金' },
+  us: { food: 1.3, util: 1.1, transport: 1.4, car: 0.8, uni: 3.0, minWage: 1300, jobs: 1.1, startup: 1.2, bizMkt: 1.5, invest: '401(k)など税優遇口座。成長株が多い', welfare: '医療は民間保険中心で自己負担が大きい' },
+  ca: { food: 1.25, util: 1.0, transport: 1.2, car: 0.9, uni: 1.3, minWage: 1600, jobs: 0.95, startup: 1.1, bizMkt: 1.0, invest: 'TFSAで非課税投資', welfare: '公的医療で自己負担が少ない' },
+  gb: { food: 1.2, util: 1.4, transport: 1.4, car: 1.0, uni: 1.8, minWage: 1900, jobs: 1.0, startup: 1.1, bizMkt: 1.1, invest: 'ISAで非課税投資', welfare: 'NHSで医療は原則無料' },
+  de: { food: 1.05, util: 1.5, transport: 1.1, car: 0.95, uni: 0.3, minWage: 1900, jobs: 1.0, startup: 1.1, bizMkt: 1.1, invest: '株式文化は控えめ。預金志向', welfare: '公的保険・手厚い年金。大学はほぼ無料' },
+  fr: { food: 1.15, util: 1.2, transport: 1.1, car: 1.0, uni: 0.3, minWage: 1800, jobs: 0.9, startup: 1.0, bizMkt: 1.0, invest: 'PEAで税優遇', welfare: '医療・年金とも手厚いが社会保険料が高い' },
+  ch: { food: 1.9, util: 1.3, transport: 1.6, car: 1.0, uni: 0.6, minWage: 3200, jobs: 1.05, startup: 1.4, bizMkt: 1.3, invest: '個人の株式売却益は非課税', welfare: '医療保険は強制加入で保険料が高い' },
+  kr: { food: 1.2, util: 0.8, transport: 0.8, car: 0.9, uni: 1.5, minWage: 1000, jobs: 0.85, startup: 0.9, bizMkt: 1.0, invest: '個人投資家が多く値動きが大きい', welfare: '国民健康保険。高齢者の貧困率が高い' },
+  cn: { food: 0.6, util: 0.5, transport: 0.4, car: 0.8, uni: 0.2, minWage: 450, jobs: 0.85, startup: 0.6, bizMkt: 1.3, invest: '個人投資家中心で政策の影響が大きい', welfare: '都市と農村で社会保障の差が大きい' },
+  in: { food: 0.35, util: 0.4, transport: 0.3, car: 0.6, uni: 0.12, minWage: 120, jobs: 0.7, startup: 0.4, bizMkt: 1.0, invest: '成長市場。積立投資（SIP）が広がる', welfare: '公的保障は限定的で家族の支えが大きい' },
+  id: { food: 0.45, util: 0.45, transport: 0.35, car: 0.8, uni: 0.15, minWage: 160, jobs: 0.75, startup: 0.5, bizMkt: 0.9, invest: '新興市場で値動きが大きい', welfare: '国民皆保険を整備中' },
+  sg: { food: 1.4, util: 1.1, transport: 1.2, car: 3.0, uni: 1.4, minWage: 0, jobs: 1.15, startup: 1.2, bizMkt: 1.2, invest: '株式売却益は非課税。金融の中心地', welfare: '積立式のCPFで老後と住宅に備える' },
+  au: { food: 1.3, util: 1.3, transport: 1.2, car: 1.0, uni: 1.6, minWage: 2400, jobs: 1.05, startup: 1.2, bizMkt: 1.1, invest: 'スーパーアニュエーション（年金積立）が強制', welfare: '公的医療メディケア' },
+  br: { food: 0.6, util: 0.7, transport: 0.6, car: 1.3, uni: 0.3, minWage: 250, jobs: 0.75, startup: 0.7, bizMkt: 0.9, invest: '高金利で債券・預金が有利', welfare: '公的医療は無料だが混雑' },
+  mx: { food: 0.6, util: 0.5, transport: 0.5, car: 1.0, uni: 0.2, minWage: 250, jobs: 0.8, startup: 0.6, bizMkt: 0.9, invest: '米国との貿易で景気が動く', welfare: '公的保険は正規雇用が中心' },
+  za: { food: 0.55, util: 0.6, transport: 0.6, car: 1.0, uni: 0.35, minWage: 300, jobs: 0.55, startup: 0.6, bizMkt: 0.8, invest: '資源株が多い', welfare: '格差が大きく公的保障は限定的' },
+};
+for (const k in COUNTRY_ECON) if (COUNTRIES[k]) COUNTRIES[k].econ = COUNTRY_ECON[k];
+const econOf = (s) => (COUNTRIES[s.country] || COUNTRIES.jp).econ || COUNTRY_ECON.jp;
+function costFood(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp, E = econOf(s); return (E.food != null ? E.food : C.cost) * vatAdj(C); }
+function costUtil(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp, E = econOf(s); return E.util != null ? E.util : C.cost; }
+function costTransport(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp, E = econOf(s); return E.transport != null ? E.transport : C.cost; }
+function costUni(s) { const C = COUNTRIES[s.country] || COUNTRIES.jp, E = econOf(s); return E.uni != null ? E.uni : C.cost * (C.edu || 1); }
+// legal minimum for a full-time job (about 1,900 hours a year), in today's prices
+function minAnnualWage(s) { const E = econOf(s); return (E.minWage || 0) * 1900 * (typeof priceIdx === 'function' ? priceIdx(s) : 1); }
 const COUNTRY_W = { jp: 28, in: 12, cn: 11, us: 7, id: 6, br: 5, mx: 4, za: 3, de: 3, gb: 3, fr: 3, kr: 3, ca: 3, au: 3, sg: 3, ch: 3 };
 const WEALTH = [
   { label: '経済的困窮世帯', income: 2.2e6, assets: 0.3e6 },
@@ -1463,7 +1498,7 @@ function initWorld(s) {
   const assets = {};
   for (const a of ASSETS) assets[a.id] = initAssetState(a);
   const cpi = {}; for (const cid in COUNTRIES) cpi[cid] = 1;
-  s.world = { cpi, crypto: { phase: 0.25, sent: 0 }, month: 0, g: 0.1, sentiment: 0, oil: 100, crash: 0, boom: 0, regions, fx: Object.assign({}, FX0), fxPrev: Object.assign({}, FX0), assets, news: [], maTargets: [], sector: {}, jumps: [], lastKey: 0, lastDay: null };
+  s.world = { fxUnified: true, cpi, crypto: { phase: 0.25, sent: 0 }, month: 0, g: 0.1, sentiment: 0, oil: 100, crash: 0, boom: 0, regions, fx: Object.assign({}, FX0), fxPrev: Object.assign({}, FX0), assets, news: [], maTargets: [], sector: {}, jumps: [], lastKey: 0, lastDay: null };
 }
 // make sure a (possibly older) world has every field the market engine needs
 function ensureMarket(s) {
@@ -1490,10 +1525,21 @@ function ensureMarket(s) {
 // cross rate from a currency to the game's internal unit for this life: market rate of the currency against the base currency,
 // expressed at the base currency's fixed internal rate. A Japanese life sees USD at the market dollar-yen rate; an American life
 // sees USD at a constant rate (no currency risk at home) and yen assets move with the dollar-yen rate.
+// One world currency: an asset traded in another currency code is converted to yen with a fixed factor (w.fx, yen per unit).
+// It never depends on where the player lives, so moving abroad never changes what anything is worth.
 function fxOf(s, cur) {
-  const fx = s.world.fx, home = (COUNTRIES[s.country] || COUNTRIES.jp).cur;
-  if (!cur || cur === home) return FX0[home] || 1;
-  return (fx[cur] || FX0[cur] || 1) / (fx[home] || FX0[home] || 1) * (FX0[home] || 1);
+  const fx = s.world.fx; unifyFx(s);
+  if (!cur || cur === 'JPY') return fx.JPY || 1;
+  return fx[cur] || FX0[cur] || 1;
+}
+// older saves stored market rates relative to the player's home currency; turn them once into fixed yen factors that give
+// exactly the values the save showed (nothing jumps on load)
+function unifyFx(s) {
+  const w = s.world; if (w.fxUnified) return;
+  const h = (COUNTRIES[s.country] || COUNTRIES.jp).cur, k = (FX0[h] || 1) / (w.fx[h] || FX0[h] || 1);
+  for (const c in w.fx) w.fx[c] = (w.fx[c] || FX0[c] || 1) * k;
+  if (w.fx.JPY == null) w.fx.JPY = k;
+  w.fxPrev = Object.assign({}, w.fx); w.fxUnified = true;
 }
 // the economy the player lives in: the world region's cycle plus the country's own offsets
 function ecoBase(s, cid) { const C = COUNTRIES[cid || s.country] || COUNTRIES.jp, R = REGIONS[C.eco], A = C.adj || {}; return { gdp: R.gdp + (A.gdp || 0), infl: R.infl + (A.infl || 0), rate: Math.max(R.floor, R.rate + (A.rate || 0)), unemp: R.unemp + (A.unemp || 0), neutral: R.neutral + (A.rate || 0), floor: R.floor, beta: R.beta, vol: R.vol }; }
@@ -1607,8 +1653,10 @@ function stepWorld(s) {
   const J = w.regions;
   w.fxPrev = Object.assign({}, w.fx);
   const fxMove = (cur, reg, vol) => { const r = J[reg]; w.fx[cur] = clamp(w.fx[cur] * Math.exp(0.0007 * (r.rate - J.jp.rate) - (r.infl - J.jp.infl) / 1200 + (shock < 0 ? -0.012 : 0) + vol * gauss(s) + 0.01 * Math.log(FX0[cur] / w.fx[cur])), FX0[cur] * 0.4, FX0[cur] * 2.2); };
-  for (const cur in CUR_MOVE) { if (w.fx[cur] == null) w.fx[cur] = FX0[cur]; if (w.fxPrev[cur] == null) w.fxPrev[cur] = w.fx[cur]; fxMove(cur, CUR_MOVE[cur][0], CUR_MOVE[cur][1]); }
-  if (w.fxShock) { for (const cur in w.fxShock) w.fx[cur] = clamp(w.fx[cur] * w.fxShock[cur], FX0[cur] * 0.4, FX0[cur] * 2.2); w.fxShock = null; }
+  // One world currency (the yen): exchange rates no longer move. Foreign assets keep their own market returns; the conversion
+  // factor stays where it was (FX0 for new lives, the last rate for older saves), so nothing jumps when a save is loaded.
+  for (const cur in CUR_MOVE) { if (w.fx[cur] == null) w.fx[cur] = FX0[cur]; w.fxPrev[cur] = w.fx[cur]; }
+  w.fxShock = null; void fxMove;
   const fxr = (c) => Math.log(w.fx[c] / w.fxPrev[c]);
   const jumps = w.jumps.splice(0);
   const cryptoRet = cryptoMarket(s), allDays = calendarDays(cal.y, cal.m);
@@ -1862,7 +1910,7 @@ function incomeTaxes(s, wages, pension) {
 }
 function capGainsRate(s) { const C = COUNTRIES[s.country]; return s.country === 'jp' ? CONFIG.JP.capitalGainsRate : C && C.cgt != null ? C.cgt : CONFIG.CAPITAL_GAINS_TAX_DEFAULT; }
 
-function eduCost(s, age) { const c = costEdu(s); return (age < 6 ? 300000 : age < 15 ? 400000 : age < 18 ? 600000 : age < 22 ? 1200000 : 0) * c * priceIdx(s); }
+function eduCost(s, age) { const c = age >= 18 ? costUni(s) : costEdu(s); return (age < 6 ? 300000 : age < 15 ? 400000 : age < 18 ? 600000 : age < 22 ? 1200000 : 0) * c * priceIdx(s); }
 
 // Household budget (annual run-rate). Monthly processing applies 1/12 of it.
 function budget(s) {
@@ -1906,7 +1954,13 @@ function budget(s) {
   const L = LIFESTYLES[s.lifestyle];
   const frugal = hasFocus(s, 'frugal') ? 1 - 0.15 * focusShare(s) : 1;
   if (atParents(s)) expense.push({ k: 'living', label: '家に入れるお金・生活費', v: (720000 + 480000 * L.mul) * costLiving(s) * pi * frugal });
-  else expense.push({ k: 'living', label: `生活費（${L.label}）${s.flags.cohabit ? '・同棲' : ''}`, v: (1800000 + 1000000 * (adults - 1) + 600000 * kids) * L.mul * costLiving(s) * pi * frugal * (s.flags.cohabit && adults === 1 ? 0.85 : 1) });
+  else {
+    // the household's living costs, split so each part follows that country's own price level (food, utilities, everything else)
+    const base = (1800000 + 1000000 * (adults - 1) + 600000 * kids) * L.mul * pi * frugal * (s.flags.cohabit && adults === 1 ? 0.85 : 1);
+    expense.push({ k: 'living', label: `食費・日用品（${L.label}）${s.flags.cohabit ? '・同棲' : ''}`, v: base * 0.45 * costFood(s) });
+    expense.push({ k: 'util', label: '光熱費・通信費', v: base * 0.15 * costUtil(s) });
+    expense.push({ k: 'other', label: '衣服・雑費・保険など', v: base * 0.40 * costLiving(s) });
+  }
   const R = s.residence;
   if (!atParents(s) && !R.own && R.rent) expense.push({ k: 'rent', label: '家賃', v: R.rent * 12 });
   if (R.own) expense.push({ k: 'homecost', label: '住宅の維持費・固定資産税', v: R.value * 0.012 });
@@ -1919,7 +1973,7 @@ function budget(s) {
   if (!atParents(s) && age >= 18) expense.push({ k: 'medical', label: '医療費・医療保険', v: (40000 + Math.max(0, age - 40) * 3000 + (s.stats.health < 40 ? 80000 : 0)) * costMed(s) * pi * (adults + kids * 0.4) });
   const carCost = s.vehicles.reduce((a, v) => a + v.maint, 0);
   if (carCost) expense.push({ k: 'cars', label: '車の維持費', v: carCost });
-  if (car.status === 'employed' && s.region.commute && !s.vehicles.length) expense.push({ k: 'commute', label: '通勤費（自己負担分）', v: s.region.commute * priceIdx(s) * C.cost });
+  if (car.status === 'employed' && s.region.commute && !s.vehicles.length) expense.push({ k: 'commute', label: '通勤費（自己負担分）', v: s.region.commute * priceIdx(s) * costTransport(s) });
   if (s.finance.support > 0 && familyParents(s).some((p) => p.alive)) expense.push({ k: 'support', label: '実家への仕送り', v: s.finance.support });
   const sf = atParents(s) ? 0 : sportFee(s); if (sf > 0) expense.push({ k: 'sport', label: '競技の費用（用具・遠征・指導）', v: sf });
   const petCost = s.pets.filter((p) => p.alive && p.owner === 'player').reduce((a, p) => a + p.annual, 0);
@@ -2195,9 +2249,7 @@ function moveCountry(s, cid) {
   s.finance.cash -= cost;
   if (!s.birthCountryId) s.birthCountryId = s.country;
   const from = country(s).name;
-  const before = {}; for (const p of realtyList(s)) { const cur = REALTY[p.type].cur; if (cur) before[p.id] = fxOf(s, cur); }
-  s.country = cid; setMoneyDisplay(s);
-  for (const p of realtyList(s)) if (before[p.id]) p.fx0 *= fxOf(s, REALTY[p.type].cur) / before[p.id]; // keep the value continuous across the change of base currency
+  s.country = cid; setMoneyDisplay(s); // money stays in yen; wages, prices, taxes and jobs of the new country apply from now on
   const reg = pick(s, COUNTRIES[cid].regions);
   s.region = regionFromStyle(reg.n, reg.st, reg.cl);
   const rent = homeRent(s, 'rent_mansion');
@@ -2212,7 +2264,7 @@ function moveCountry(s, cid) {
 }
 
 // ---- vehicles
-function carPrice(s, type) { return CARS[type].price * Math.pow(country(s).cost, 0.5) * priceIdx(s); }
+function carPrice(s, type) { return CARS[type].price * (econOf(s).car != null ? econOf(s).car : Math.pow(country(s).cost, 0.5)) * priceIdx(s); }
 function buyCar(s, type) {
   if (playerAge(s) < 18) return { ok: false, msg: '18歳から購入できます。' };
   if (s.vehicles.length >= 2) return { ok: false, msg: '車は2台まで持てます。先に売却してください。' };
@@ -2270,6 +2322,23 @@ function setFocus(s, list) {
   s.focus = list.filter((k) => avail.includes(k)).slice(0, CONFIG.MAX_FOCUS);
   bump(s);
   return { ok: true };
+}
+
+// ---- the economy of the country you live in, as yen figures for the profile and country screens (all game assumptions).
+// Everything is derived from COUNTRIES / COUNTRY_ECON, so a new country only needs its data entry.
+function countryEconomy(s) {
+  const C = country(s), E = econOf(s), pi = priceIdx(s), avg = 4.6e6 * C.wage * pi;
+  const tx = incomeTaxes(s, avg, 0);
+  return {
+    avgIncome: avg, medianIncome: avg * 0.82, minWageHour: (E.minWage || 0) * pi, minWageYear: minAnnualWage(s),
+    rent: homeRent(s, 'rent_apart'), house: homePrice(s, 'new_house'),
+    food: 1800000 * 0.45 * costFood(s) * pi, util: 1800000 * 0.15 * costUtil(s) * pi, transport: 120000 * costTransport(s) * pi,
+    car: carPrice(s, 'compact'), uniYear: 1200000 * costUni(s) * pi, medical: 40000 * costMed(s) * pi,
+    takeHomeRate: avg > 0 ? 1 - tx.total / avg : 1, vat: C.vat, cgt: capGainsRate(s),
+    unemp: ecoOf(s).unemp, jobs: E.jobs || 1, startupCapital: 5e6 * (E.startup || 1) * C.cost * pi, market: E.bizMkt || 1,
+    pensionRate: C.pensionRate || 0.38, pensionAge: C.pensionAge, retireLiving: (1800000 * 0.45 * costFood(s) + 1800000 * 0.55 * costLiving(s)) * 1.6 * pi,
+    invest: E.invest || '', welfare: E.welfare || '',
+  };
 }
 
 // ---- 04_realty.js
@@ -2542,7 +2611,7 @@ function blankPL() { return { revenue: 0, cogs: 0, labor: 0, depr: 0, other: 0, 
 function makeBusiness(s, o) {
   const b = Object.assign({
     id: newId(s, 'b'), name: o.name, industry: o.industry, foundedYear: s.time.year, parentId: null, parentStake: 0, ownership: 1, listed: false,
-    cash: 0, debt: 0, debtRate: 0.03, ar: 0, equipment: 0, employees: 0, ads: 0, ownerPay: 0, quality: 45, demand: INDUSTRIES[o.industry].demand0 * country(s).cost,
+    cash: 0, debt: 0, debtRate: 0.03, ar: 0, equipment: 0, employees: 0, ads: 0, ownerPay: 0, quality: 45, demand: INDUSTRIES[o.industry].demand0 * country(s).cost * (econOf(s).bizMkt || 1),
     revenueRun: 0, ytd: blankPL(), last: null, valuation: 0, history: [], fullTime: true, acquired: false, crisis: false,
   }, o);
   s.businesses.push(b);
@@ -2586,7 +2655,7 @@ function bizMonth(s, b) {
   const rndEff = Math.min(0.06, (b.rnd || 0) / Math.max(2e7, b.revenueRun) * 0.5);
   // the market is finite (in today's money): the closer demand gets to the whole market, the less ads, quality, R&D and effort can add,
   // and past it demand shrinks back. Very large companies also grow more slowly (each ×10 above ~10億 of sales costs ~3 points).
-  const market = I.market * C.cost * priceIdx(s), room = 1 - b.demand / market;
+  const market = I.market * C.cost * (econOf(s).bizMkt || 1) * priceIdx(s), room = 1 - b.demand / market; // the country's market size caps growth
   const lift = adEff + Math.max(0, (b.quality - 50) / 300) + Math.max(0, ((s.region.biz || 1) - 1) * 0.12) + boost + rndEff;
   const youth = bizYouth(s, b), sizeDrag = 0.06 * Math.log10(Math.max(1, divTotalDemand(b) / (1e9 * C.cost * priceIdx(s))));
   const g = (I.growth * room + lift * clamp(room, 0, 1)) * (room > 0 ? youth : 1) + Math.min(0, (b.quality - 50) / 300) + Math.min(0, ((s.region.biz || 1) - 1) * 0.12) + (eco.gdp - R.gdp) / 40 + (I.rateSens || 0) * (R.rate - eco.rate) / 30 - 0.04 - sizeDrag;
@@ -2599,7 +2668,7 @@ function bizMonth(s, b) {
   const cogs = mRev * clamp(cogsRate, 0.05, 0.95);
   const labor = b.employees * I.wage * C.wage * priceIdx(s) / 12;
   const depr = b.equipment * 0.15 / 12; b.equipment -= depr;
-  const other = (1.5e6 + b.employees * 0.6e6) * C.cost * priceIdx(s) / 12 + (b.rnd || 0) / 12;
+  const other = (1.5e6 + b.employees * 0.6e6) * C.cost * (econOf(s).startup || 1) * priceIdx(s) / 12 + (b.rnd || 0) / 12; // office rent, licences, services
   if (b.rnd) b.quality = clamp(b.quality + Math.min(0.4, b.rnd / Math.max(2e7, rev) * 1.5) / 12 * 3, 10, 100);
   const ads = b.ads / 12, pay = b.ownerPay / 12, interest = b.debt * b.debtRate / 12;
   const principal = Math.min(b.debt, b.debt * 0.0083);
@@ -2994,7 +3063,7 @@ function occEligibility(s, id) {
 function hireChance(s, id) {
   const d = OCC[id];
   if (d.mode !== 'job') return 1;
-  let p = d.p0 * Math.min(1.4, s.region.jobs || 1) * (1 + (ecoOf(s).unemp < 4 ? 0.1 : -0.1));
+  let p = d.p0 * Math.min(1.4, s.region.jobs || 1) * (econOf(s).jobs || 1) * (1 + (ecoOf(s).unemp < 4 ? 0.1 : -0.1));
   for (const k in d.req) p *= 1 + clamp((s.stats[k] - d.req[k]) / 40, -0.5, 0.6);
   if (d.wants && hasLicense(s, d.wants)) p *= 1.5;
   if (d.bonusLic && hasLicense(s, d.bonusLic)) p *= 1.4;
@@ -3010,7 +3079,7 @@ function hireChance(s, id) {
 // the player sees a range, not the exact number; knowledge and financial literacy narrow it
 function chanceRange(s, p) { const err = clamp(24 - s.stats.knowledge / 5 - s.stats.finLit / 10, 4, 24) / 100; return [Math.max(0, Math.round((p - err) * 100)), Math.min(100, Math.round((p + err) * 100))]; }
 function chanceText(s, p) { const [a, b] = chanceRange(s, p); return a === b ? `約${a}%` : `約${a}〜${b}%`; }
-function occBaseSalary(s, id) { const d = OCC[id]; return d.base * country(s).wage * (s.region.wage || 1) * priceIdx(s); }
+function occBaseSalary(s, id) { const d = OCC[id]; const v = d.base * country(s).wage * (s.region.wage || 1) * priceIdx(s); return d.mode === 'job' ? Math.max(v, minAnnualWage(s)) : v; } // never below the legal minimum wage
 function companyNameFor(s, id) {
   if (s.country !== 'jp') { const C = country(s), loc = (s.region && s.region.name || '').replace(/の.*$/, '');
     const pub = { civil_nat: () => `${C.name}政府・${pick(s, ['財務', '経済', '保健', '運輸', '内務'])}省`, civil_loc: () => `${loc}の市役所`, police: () => `${loc}の警察`, fire: () => `${loc}の消防局`, sdf: () => `${C.name}軍` }[id];
@@ -3307,8 +3376,8 @@ function careerYear(s) {
 // When a company the player founded goes public it becomes an ordinary stock in the market: daily candles, volume, PER,
 // dividends, buy/sell. The stock and the business share one id link (b.assetId ↔ def.bizId), so there is exactly one company.
 //
-// Money units: business figures are in the internal unit (yen at fixed rates); the stock is quoted in the founding country's
-// currency (def.cur), converted with fxOf like any foreign stock.
+// Money units: everything is in yen; the stock is quoted in yen (def.cur = 'JPY'; very old saves may carry another code, which
+// fxOf converts at a fixed rate).
 //
 // Ownership: founder shares live in the holding "<id>:founder" (never bought on the market, cannot be topped up there);
 // shares the player buys on the market sit in the normal taxable/NISA holdings. b.ownership is kept = founder shares / shares
@@ -3361,7 +3430,7 @@ function ipoPrepare(s, id) {
 // IPO plan: share structure at listing. Pre-money value = fundamental value × market mood × an IPO discount.
 // 20% new shares are issued (money goes to the company); the founder may also sell some existing shares (money goes to the founder).
 function ipoPlan(s, b, secondaryFrac) {
-  const C = country(s), cur = C.cur, fx = fxOf(s, cur);
+  const C = country(s), cur = 'JPY', fx = fxOf(s, cur); // every stock is quoted in yen
   const pre = Math.max(1, bizFundamental(s, b) * (1 + 0.3 * s.world.sentiment) * 0.85);
   const target = 1500 / (FX0[cur] || 1); // about 1,500 yen per share at listing, in local money
   let price = target; const mag = Math.pow(10, Math.floor(Math.log10(price)) - 1); price = Math.max(mag, Math.round(price / mag) * mag);
@@ -3392,7 +3461,7 @@ function ipoList(s, id, secondaryFrac) {
   const day = s.world.lastDay || (s.time.year * 10000 + 101);
   st.d = [[day, open, rp(Math.max(open, close) * 1.04), rp(Math.min(open, close, P.price) * 0.98), close, Math.round(P.float * 0.25 / 100) * 100]];
   st.mo = [[Math.floor(day / 100), open, st.d[0][2], st.d[0][3], close, st.d[0][5]]];
-  st.price = close; st.hist = [close]; st.yearStart = P.price; st.ev = [{ t: day, k: 'I', txt: `新規上場（公開価格 ${fmtCur(P.price, P.cur, true)}・初値 ${fmtCur(open, P.cur, true)}）`, tone: pop >= 0 ? 'good' : 'bad' }];
+  st.price = close; st.hist = [close]; st.yearStart = P.price; st.ev = [{ t: day, k: 'I', txt: `新規上場（公開価格 ${moneyExact((P.price) * fxOf(s, P.cur))}・初値 ${moneyExact((open) * fxOf(s, P.cur))}）`, tone: pop >= 0 ? 'good' : 'bad' }];
   s.world.assets[aid] = st;
   // money: new shares fund the company, the founder's sold shares pay the founder (capital gain over the paid-in capital)
   b.cash += P.primary;
@@ -3406,7 +3475,7 @@ function ipoList(s, id, secondaryFrac) {
   b.listed = true; b.listYear = s.time.year; b.assetId = aid; b.ipoPrep = null; b.divPolicy = b.divPolicy == null ? 0.3 : b.divPolicy;
   ownSync(s, b);
   b.valuation = bizValuation(s, b);
-  record(s, { cat: 'biz', title: `${b.name}が株式上場`, desc: `${b.name}（コード${code}）が上場しました。公開価格${fmtCur(P.price, P.cur, true)}、発行済株式${Math.round(P.sharesOut).toLocaleString('ja-JP')}株、時価総額${yen(P.sharesOut * close * fx)}。新株発行で会社に${yen(P.primary)}${P.secondary ? `、持株の売出しであなたに${yen(P.secondaryProceeds)}（税引前）` : ''}が入りました。あなたの持株比率は${(b.ownership * 100).toFixed(1)}%です。`, tone: 'good', important: true, stats: addStats(s, { happiness: 12, stress: 4 }) });
+  record(s, { cat: 'biz', title: `${b.name}が株式上場`, desc: `${b.name}（コード${code}）が上場しました。公開価格${moneyExact((P.price) * fxOf(s, P.cur))}、発行済株式${Math.round(P.sharesOut).toLocaleString('ja-JP')}株、時価総額${yen(P.sharesOut * close * fx)}。新株発行で会社に${yen(P.primary)}${P.secondary ? `、持株の売出しであなたに${yen(P.secondaryProceeds)}（税引前）` : ''}が入りました。あなたの持株比率は${(b.ownership * 100).toFixed(1)}%です。`, tone: 'good', important: true, stats: addStats(s, { happiness: 12, stress: 4 }) });
   unlock(s, 'ipo');
   bump(s);
   return { ok: true, msg: `${b.name}が上場しました。投資タブの「${ASSET_CATS[OWN_CAT]}」に表示されます。`, plan: P, id: aid };
@@ -3517,7 +3586,7 @@ function ownTakeover(s, b, premium, why) {
   const mcap = px * st.shares * fxOf(s, d.cur);
   const got = ownDelist(s, d.id, px, why);
   removeBusiness(s, b);
-  record(s, { cat: 'biz', title: `${b.name}を売却`, desc: `${b.name}の株式を1株${fmtCur(px, d.cur, true)}（時価に${Math.round(premium * 100)}%上乗せ、企業価値${yen(mcap)}）ですべて売却し、税引後${yen(got)}を受け取りました。`, money: got, tone: 'good', important: true, stats: addStats(s, { happiness: 8, stress: -10 }) });
+  record(s, { cat: 'biz', title: `${b.name}を売却`, desc: `${b.name}の株式を1株${moneyExact((px) * fxOf(s, d.cur))}（時価に${Math.round(premium * 100)}%上乗せ、企業価値${yen(mcap)}）ですべて売却し、税引後${yen(got)}を受け取りました。`, money: got, tone: 'good', important: true, stats: addStats(s, { happiness: 8, stress: -10 }) });
   bump(s);
   return { ok: true, msg: `会社を売却しました（手取り${yen(got)}）。`, proceeds: got };
 }
@@ -4326,15 +4395,15 @@ function worldShock(s, k) {
     case 'recovery': w.g += 0.7; w.sentiment += 0.35; w.jumps.push({ all: true, size: 0.08 }); addNews(s, '景気回復が鮮明に。求人と設備投資が増加', 'good'); break;
     case 'rate_up': for (const r in R) R[r].rate += r === 'jp' ? 0.5 : 0.75; w.jumps.push({ sector: 'finance', size: 0.08 }, { sector: 'estate', size: -0.1 }, { all: true, size: -0.04 }); addNews(s, '各国の中央銀行が利上げ。住宅ローン金利も上昇へ', 'bad'); break;
     case 'rate_down': for (const r in R) R[r].rate = Math.max(LC_FLOOR(r), R[r].rate - 0.5); w.jumps.push({ sector: 'estate', size: 0.08 }, { all: true, size: 0.04 }); addNews(s, '利下げで市場に資金が流入', 'good'); break;
-    case 'yen_weak': w.fx.USD *= 1.12; w.fx.EUR *= 1.1; R.jp.infl += 0.8; w.jumps.push({ sector: 'mfg', size: 0.07 }); addNews(s, '円安が進行。輸出企業の業績が改善、輸入物価は上昇', 'neutral'); break;
-    case 'yen_strong': w.fx.USD *= 0.9; w.fx.EUR *= 0.91; w.jumps.push({ sector: 'mfg', size: -0.07 }); addNews(s, '円高が進行。海外資産の円換算額が目減り', 'neutral'); break;
+    case 'yen_weak': R.jp.infl += 0.8; w.g += 0.2; w.jumps.push({ sector: 'mfg', size: 0.07 }, { sector: 'ai', size: 0.05 }); addNews(s, '海外の景気が好調。輸出企業の業績が改善し、輸入物価は上昇', 'neutral'); break; // (name kept for old saves; no exchange rates any more)
+    case 'yen_strong': w.jumps.push({ sector: 'mfg', size: -0.07 }); addNews(s, '海外の景気が減速。輸出企業の業績に陰り', 'neutral'); break;
     case 'inflation': R.jp.infl += 2.2; for (const r in R) if (r !== 'jp') R[r].infl += 1.4; addNews(s, '物価上昇が加速。生活費の負担が増加', 'bad'); break;
     case 'ai': sec('ai', 0.6); sec('it', 0.2); sec('service', -0.1); w.jumps.push({ sector: 'ai', size: 0.2 }); addNews(s, '生成AIの普及で産業構造が変化。事務職の求人が減少', 'neutral'); break;
     case 'chip': sec('chip', 0.7); sec('mfg', 0.2); w.jumps.push({ sector: 'chip', size: 0.25 }); addNews(s, '半導体需要が急増。関連企業の受注が過去最高に', 'good'); break;
     case 'energy': w.oil *= 1.6; sec('energy', 0.5); R.jp.infl += 1; w.jumps.push({ sector: 'energy', size: 0.18 }, { all: true, size: -0.03 }); addNews(s, 'エネルギー価格が高騰。電気代・ガソリン代が上昇', 'bad'); break;
     case 'tax': s.policy = s.policy || {}; s.policy.socialAdd = (s.policy.socialAdd || 0) + 0.01; s.policy.nisaMul = Math.min(2, (s.policy.nisaMul || 1) * 1.25); addNews(s, '社会保険料率の引き上げとNISA枠の拡充が決定', 'neutral'); break;
     case 'aging': sec('care', 0.5); sec('service', 0.15); for (const r in R) R[r].unemp = Math.max(1, R[r].unemp - 0.4); addNews(s, '少子高齢化で人手不足が深刻に。医療・介護の賃金が上昇', 'neutral'); break;
-    case 'global_crisis': w.g -= 1.3; w.sentiment -= 0.7; w.crash = Math.max(w.crash, 4); w.fx.USD *= 0.92; w.jumps.push({ all: true, size: -0.2 }); addNews(s, '国際的な金融危機。世界の株式市場が連鎖的に急落', 'bad'); break;
+    case 'global_crisis': w.g -= 1.3; w.sentiment -= 0.7; w.crash = Math.max(w.crash, 4); w.jumps.push({ all: true, size: -0.2 }); addNews(s, '国際的な金融危機。世界の株式市場が連鎖的に急落', 'bad'); break;
     case 'estate_up': sec('estate', 0.4); if (s.residence.own) s.residence.value *= 1.1; if (s.family && !s.family.settled) s.family.realEstate *= 1.1; w.jumps.push({ sector: 'estate', size: 0.12 }); addNews(s, '都市部を中心に不動産価格が上昇', 'good'); break;
     case 'estate_down': sec('estate', -0.4); if (s.residence.own) s.residence.value *= 0.9; if (s.family && !s.family.settled) s.family.realEstate *= 0.9; w.jumps.push({ sector: 'estate', size: -0.12 }); addNews(s, '不動産価格が下落に転じる', 'bad'); break;
     case 'overseas': sec('mfg', -0.3); sec('service', -0.05); addNews(s, '大手企業が生産拠点を海外へ移転。国内の工場求人が減少', 'neutral'); break;
@@ -4364,9 +4433,9 @@ worldEvent('w_rates', '金利の変化', 'rate_up', (s) => `金利が上がり�
     d ? opt('100万円を繰り上げ返済する', '現金 −100万円', '利息の負担が減る', (s) => { const p = Math.min(1e6, d.principal); d.principal -= p; s.finance.cash -= p; d.payment = annuityPayment(d.principal, d.rate, Math.max(12, d.months)); return { desc: '住宅ローンを100万円繰り上げ返済しました。', tone: 'good' }; }, { disabled: s.finance.cash < 1e6, reason: '現金が足りません' })
       : opt('銀行株を買う', '金利上昇の恩恵を受ける銘柄', '景気が悪化すると下がる', (s) => { const amt = Math.max(0, s.finance.cash) * 0.08; buyAsset(s, 'sakura', Math.floor(amt / assetPriceJPY(s, 'sakura')), 'taxable'); return { desc: 'サクラ銀行の株を買いました。', tone: 'neutral' }; }, { disabled: s.finance.cash < assetPriceJPY(s, 'sakura') * 100 || playerAge(s) < 18, reason: '現金が足りません' }),
     responseNothing('何もしない', '金利の変化を受け入れました。')]; });
-worldEvent('w_fx', '為替の大きな変動', 'yen_weak', '円安が進み、海外の株や外貨建て資産の円換算額が増えています。輸入品の値段は上がっています。', (s) => [
-  opt('外国株を増やす', '現金の1割を米国株へ', '円安が続けば有利、円高に戻ると目減り', (s) => { const amt = Math.max(0, s.finance.cash) * 0.1; buyAsset(s, 'usidx', amt / assetPriceJPY(s, 'usidx'), 'taxable'); return { desc: `${yen(amt)}で米国株インデックスを買いました。`, tone: 'neutral' }; }, { disabled: s.finance.cash < 100000 || playerAge(s) < 18, reason: '投資に回せる現金がありません', risk: '為替が戻ると損をする' }),
-  opt('外国株の一部を売って円に戻す', '円安の利益を確定', '', (s) => { let got = 0; for (const h of holdingsList(s)) if (assetDef(h.id).cur !== 'JPY' || h.id === 'usidx') got += sellAsset(s, h.id, assetDef(h.id).kind === 'stock' ? Math.floor(h.qty / 2) : h.qty / 2, h.acct).proceeds || 0; return { desc: `外貨建ての資産の半分を売り、${yen(got)}を円で受け取りました。`, tone: 'neutral' }; }, { disabled: !holdingsList(s).some((h) => assetDef(h.id).cur !== 'JPY' || h.id === 'usidx'), reason: '外貨建ての資産がありません' }),
+worldEvent('w_fx', '海外景気の好調', 'yen_weak', '海外の景気が好調で、輸出企業や海外の株が値上がりしています。輸入品の値段は上がっています。', (s) => [
+  opt('海外株を増やす', '現金の1割を米国株インデックスへ', '海外の好景気が続けば有利、減速すると下がる', (s) => { const amt = Math.max(0, s.finance.cash) * 0.1; buyAsset(s, 'usidx', amt / assetPriceJPY(s, 'usidx'), 'taxable'); return { desc: `${yen(amt)}で米国株インデックスを買いました。`, tone: 'neutral' }; }, { disabled: s.finance.cash < 100000 || playerAge(s) < 18, reason: '投資に回せる現金がありません', risk: '為替が戻ると損をする' }),
+  opt('値上がりした海外株を半分売る', '利益を確定', '', (s) => { let got = 0; for (const h of holdingsList(s)) if (h.acct !== 'founder' && ((assetDef(h.id).region && assetDef(h.id).region !== 'jp') || h.id === 'usidx')) got += sellAsset(s, h.id, assetDef(h.id).kind === 'stock' ? Math.floor(h.qty / 2) : h.qty / 2, h.acct).proceeds || 0; return { desc: `海外の資産の半分を売り、${yen(got)}を受け取りました。`, tone: 'neutral' }; }, { disabled: !holdingsList(s).some((h) => h.acct !== 'founder' && ((assetDef(h.id).region && assetDef(h.id).region !== 'jp') || h.id === 'usidx')), reason: '海外の資産がありません' }),
   responseNothing()]);
 worldEvent('w_inflation', '物価の上昇', 'inflation', '物価が急に上がり、同じ生活でも出費が増えています。', (s) => [responseSpend(s), responseInvest(s, 0.15, '現金を株と金に分けて物価に備える'), opt('物価上昇を理由に給与交渉する', '成功すれば年収 +5%', '', (s) => { if (hasRealJob(s) && chance(s, 0.5)) { s.career.job.salary = Math.round(s.career.job.salary * 1.05); return { title: '昇給', desc: '物価上昇に合わせて給与が上がりました。', tone: 'good' }; } return { desc: '給与交渉は不調に終わりました。', tone: 'neutral' }; }, { disabled: !hasRealJob(s), reason: '会社員のときに選べます' })]);
 worldEvent('w_ai', 'AIによる産業構造の変化', 'ai', (s) => `AIの普及で仕事の中身が大きく変わり始めました。${hasRealJob(s) && OCC[s.career.job.type] && OCC[s.career.job.type].aiRisk > 0.4 ? 'あなたの職種は自動化の影響を受けやすいと言われています。' : ''}`, (s) => [
@@ -5323,11 +5392,12 @@ const COUNTRY_EVENTS = [
       { label: '固定金利に借り換える', now: '手数料がかかる', future: '返済額が確定する', when: (s) => s.finance.debts.some((d) => d.rateType === 'variable'), do: { fn: (s) => { for (const d of s.finance.debts.filter((x) => x.rateType === 'variable')) { s.finance.cash -= d.principal * 0.01; d.rateType = 'fixed'; d.rate += 0.008; d.payment = annuityPayment(d.principal, d.rate, Math.max(1, d.months)); } }, desc: '固定金利に借り換え、将来の返済額を確定させました。' } },
       { label: '預金の金利が上がるので貯める', now: '変化なし', future: '', do: { stats: { selfControl: 2 }, desc: '預金を厚めにして様子を見ることにしました。' } },
       { label: '利回りの上がった債券を買う', when: (s) => playerAge(s) >= 18 && s.finance.cash > money(s, 1e6), now: '現金の1割で債券ファンド', future: '金利が下がれば値上がり、上がり続ければ値下がり', do: { fn: (s) => { const id = assetDef('jbond') ? 'jbond' : null; if (id) { const amt = Math.max(0, s.finance.cash) * 0.1; buyAsset(s, id, amt / assetPriceJPY(s, id), 'taxable'); } }, stats: { finLit: 2 }, desc: '金利が上がったところで債券を買いました。' } }] },
-  { id: 'c_currency', title: '通貨の急落', cat: 'money', age: [18, 100], cooldown: 10, weight: (s) => (['BRL', 'ZAR', 'MXN', 'IDR', 'INR', 'KRW', 'JPY'].includes(country(s).cur) ? 1.2 : 0.4), when: adult, text: (s) => `${LC_CURNAME(s)}が急落しました。輸入品が値上がりし、海外資産の価値は上がります。`,
+  { id: 'c_currency', title: '輸入品の値上がり', cat: 'money', age: [18, 100], cooldown: 10, weight: (s) => (['br', 'za', 'mx', 'id', 'in', 'kr', 'jp'].includes(s.country) ? 1.2 : 0.4), when: adult, text: (s) => `${country(s).name}の経済への信頼が揺らぎ、輸入品やエネルギーの値段が上がっています（物価 +3%）。`,
     choices: [
-      { label: '外貨建ての資産を買う', now: '現金の15%', future: '自国通貨がさらに下がれば得をする', do: { fn: (s) => { currencyShock(s, 0.85); const amt = Math.max(0, s.finance.cash) * 0.15; buyAsset(s, 'usidx', amt / assetPriceJPY(s, 'usidx') / 1.002, 'taxable'); }, stats: { finLit: 2 }, desc: '外国の株式指数を買い、通貨の分散を図りました。' } },
-      { label: '海外資産を売って利益を確定', now: '為替差益を得る', future: '', block: (s) => (!holdingsList(s).some((h) => assetDef(h.id).cur !== country(s).cur) ? '海外資産を持っていません' : null), do: { fn: (s) => { currencyShock(s, 0.85); for (const h of holdingsList(s).filter((x) => assetDef(x.id).cur !== country(s).cur)) sellAsset(s, h.id, h.qty * 0.5, h.acct); }, desc: '値上がりした海外資産の半分を売りました。', tone: 'good' } },
-      { label: '輸入品を控えて節約する', now: '幸福 −2', future: '', do: { fn: (s) => { currencyShock(s, 0.85); s.world.cpi[s.country] *= 1.02; }, stats: { happiness: -2, selfControl: 2 }, desc: '輸入品を控え、国産品中心の生活にしました。' } }] },
+      { label: '物価に強い資産（金）を買う', now: '現金の10%', future: '物価が上がり続ければ価値を守りやすい', block: (s) => (playerAge(s) < 18 ? '18歳から' : null), do: { fn: (s) => { s.world.cpi[s.country] *= 1.03; const amt = Math.max(0, s.finance.cash) * 0.1; if (amt > 0) buyAsset(s, 'gold', amt / assetPriceJPY(s, 'gold'), 'taxable'); }, stats: { finLit: 2 }, desc: '物価の上昇に備えて、金を買いました。' } },
+      { label: '給料の引き上げを交渉する', when: employed, now: '成功すれば年収 +3%', future: '', p: (s) => clamp(0.3 + s.stats.workSkill / 200, 0.2, 0.7), ok: { fn: (s) => { s.world.cpi[s.country] *= 1.03; s.career.job.salary = Math.round(s.career.job.salary * 1.03); }, desc: '物価の上昇に合わせて、給料が上がりました。', tone: 'good' }, ng: { fn: (s) => { s.world.cpi[s.country] *= 1.03; }, stats: { stress: 2 }, desc: '交渉は通らず、生活が苦しくなりました。', tone: 'bad' } },
+      { label: '輸入品を控えて節約する', now: '幸福 −2', future: '', do: { fn: (s) => { s.world.cpi[s.country] *= 1.02; }, stats: { happiness: -2, selfControl: 2 }, desc: '輸入品を控え、国産品中心の生活にしました。' } },
+      { label: '特に何もしない', now: '生活費が上がる', future: '', do: { fn: (s) => { s.world.cpi[s.country] *= 1.03; }, desc: '値上がりを受け入れて暮らしました。' } }] },
   { id: 'c_housing', title: '住宅価格の高騰', cat: 'home', age: [22, 90], cooldown: 10, when: adult, text: (s) => `${country(s).name}の都市部で住宅価格が急上昇しています。`,
     choices: [
       { label: '持ち家を売って利益を得る', when: (s) => s.residence.own, now: '売却して賃貸へ', future: '値下がり前に利益を確定', do: { fn: (s) => { s.residence.value *= 1.15; sellHomeInternal(s); rentHome(s, 'rent_mansion'); }, desc: '高値のうちに家を売り、賃貸に移りました。', tone: 'good' } },
@@ -5356,15 +5426,6 @@ const COUNTRY_EVENTS = [
       { label: '関連銘柄に投資する', now: '現金の1割', future: '', do: { fn: (s) => { const id = pick(s, ['minato', 'northwind', 'quanta'].filter((x) => assetDef(x))); const amt = Math.max(0, s.finance.cash) * 0.1; buyAsset(s, id, Math.floor(amt / assetPriceJPY(s, id)), 'taxable'); }, desc: '成長分野の株を買いました。' } },
       { label: '見送る', now: '変化なし', future: '', do: { desc: '今回は見送りました。' } }] },
 ];
-function LC_CURNAME(s) { const c = CURRENCIES[country(s).cur]; return c ? c.name : '自国通貨'; }
-// a sudden fall (or rise) of the home currency: foreign assets gain in base-currency terms; for the yen every other currency moves instead
-function currencyShock(s, k) {
-  const home = country(s).cur, w = s.world; w.fxShock = w.fxShock || {};
-  if (home === 'JPY') { for (const c in CUR_MOVE) w.fx[c] = clamp(w.fx[c] / k, FX0[c] * 0.4, FX0[c] * 2.2); }
-  else w.fx[home] = clamp(w.fx[home] * k, FX0[home] * 0.4, FX0[home] * 2.2);
-  addNews(s, `${LC_CURNAME(s)}が急落`, 'bad');
-}
-// a tax rise: income tax ×(1 + taxAdd) and the social-insurance rate +socialAdd points (see incomeTaxes); capped so repeated rises stay plausible
 function taxChange(s, add) { s.policy = s.policy || {}; s.policy.taxAdd = clamp((s.policy.taxAdd || 0) + add * 2.5, -0.3, 0.4); s.policy.socialAdd = clamp((s.policy.socialAdd || 0) + add / 4, -0.03, 0.04); }
 // pension reform: future pensions are cut 10% (calcPension), pensions already being paid 5%
 function pensionReform(s) { s.policy = s.policy || {}; s.policy.pensionCut = clamp((s.policy.pensionCut || 0) + 0.1, 0, 0.4); if (s.career.pension > 0) s.career.pension *= 0.95; }
@@ -5374,7 +5435,7 @@ for (const D of LIFE_EVENTS.concat(COUNTRY_EVENTS)) compileLifeEvent(D);
 // ===== IPO review and founder events for the player's listed company =====
 const listedBiz = (s) => playerBusinesses(s).find((b) => ownAssetOf(s, b));
 const ownSt = (s) => { const b = listedBiz(s); return b ? s.world.assets[b.assetId] : null; };
-const ownPx = (s) => { const b = listedBiz(s), d = b && ownAssetOf(s, b); return d ? fmtCur(s.world.assets[d.id].price, d.cur, true) : '—'; };
+const ownPx = (s) => { const b = listedBiz(s), d = b && ownAssetOf(s, b); return d ? moneyExact((s.world.assets[d.id].price) * fxOf(s, d.cur)) : '—'; };
 const pctTxt = (x) => `${(x * 100).toFixed(1)}%`;
 
 EV.ipo_ready = { title: 'IPOの準備', cat: 'biz', blocking: true, important: true, random: false,
@@ -5393,7 +5454,7 @@ EV.ipo_review = { title: '上場審査の結果', cat: 'biz', blocking: true, im
     if (!b || !b.ipoPrep) return { text: '上場準備は取りやめになりました。', choices: [opt('OK', '', '', () => ({ desc: '上場準備は終わりました。', tone: 'neutral' }))] };
     if (c.roll < c.p) {
       const A = ipoPlan(s, b, 0), B = ipoPlan(s, b, 0.1), Cc = ipoPlan(s, b, 0.25);
-      const line = (P) => `公開価格 ${fmtCur(P.price, P.cur, true)}・時価総額 約${yen(P.mcap)}・持株比率 ${pctTxt(P.founderRatio)}`;
+      const line = (P) => `公開価格 ${moneyExact((P.price) * fxOf(s, P.cur))}・時価総額 約${yen(P.mcap)}・持株比率 ${pctTxt(P.founderRatio)}`;
       return { text: `${b.name}の上場審査に通りました！ 証券会社と上場の条件を決めます。新株を${Math.round(A.newShares).toLocaleString('ja-JP')}株発行し、会社が資金を得ます。あなたの持株も一部売り出せます。`, choices: [
         opt('新株だけで上場する', `会社に約${yen(A.primary)}・${line(A)}`, '経営権を最も強く保てる', (s) => { ipoList(s, b.id, 0); return null; }),
         opt('持株の10%も売り出す', `あなたに約${yen(B.secondaryProceeds)}（税引前）・${line(B)}`, '個人の資産を分散できる', (s) => { ipoList(s, b.id, 0.1); return null; }, { risk: '売り出しが多いと株価の重しになる' }),
@@ -5437,7 +5498,7 @@ const OWN_EVENTS = [
       { label: '経費を削って乗り切る', now: '広告費を半分に', future: '売上の伸びが鈍る', do: { fn: (s) => { const b = listedBiz(s); b.ads = Math.round(b.ads / 2); }, stats: { stress: 3 }, desc: '経費を削って資金繰りを改善しました。' } }] },
   { id: 'o_tob', title: '買収提案（TOB）', cat: 'biz', age: [20, 100], cooldown: 6, weight: 0.8, important: true, when: (s) => !!listedBiz(s), prepare: (s) => ({ prem: rfloat(s, 0.25, 0.6) }), text: (s, c) => `大手企業が${listedBiz(s).name}の株式を、いまの株価に${Math.round(c.prem * 100)}%上乗せした価格ですべて買い取りたいと提案してきました（株式公開買付け）。`,
     choices: [
-      { label: '提案に応じて会社を売る', now: (s, c) => { const b = listedBiz(s), st = ownSt(s), d = ownAssetOf(s, b); return `1株 ${fmtCur(st.price * (1 + c.prem), d.cur, true)}・あなたの持株 約${yen((founderShares(s, d.id) + marketSharesHeld(s, d.id)) * st.price * (1 + c.prem) * fxOf(s, d.cur))}（税引前）`; }, future: '会社は相手のものになり、上場は廃止', do: { fn: (s, c) => { ownTakeover(s, listedBiz(s), c.prem, '株式公開買付け（TOB）'); }, desc: '買収提案に応じました。' } },
+      { label: '提案に応じて会社を売る', now: (s, c) => { const b = listedBiz(s), st = ownSt(s), d = ownAssetOf(s, b); return `1株 ${moneyExact((st.price * (1 + c.prem)) * fxOf(s, d.cur))}・あなたの持株 約${yen((founderShares(s, d.id) + marketSharesHeld(s, d.id)) * st.price * (1 + c.prem) * fxOf(s, d.cur))}（税引前）`; }, future: '会社は相手のものになり、上場は廃止', do: { fn: (s, c) => { ownTakeover(s, listedBiz(s), c.prem, '株式公開買付け（TOB）'); }, desc: '買収提案に応じました。' } },
       { label: '価格の引き上げを交渉する', now: '+10%を求める', future: '相手が降りることもある', p: () => 0.5, ok: { fn: (s, c) => { ownTakeover(s, listedBiz(s), c.prem + 0.1, '株式公開買付け（TOB）'); }, stats: { workSkill: 2 }, desc: '交渉の末、より高い価格で売却しました。', tone: 'good' }, ng: { fn: (s) => { ownSt(s).mood -= 0.05; }, desc: '相手は提案を取り下げ、株価は元に戻りました。', tone: 'bad' } },
       { label: '拒否して独立を守る', now: '株価は少し上がる（会社の価値が見直される）', future: '', do: { fn: (s) => { ownSt(s).mood += 0.06; }, stats: { happiness: 2 }, desc: '提案を断り、独立した経営を続けることにしました。' } }] },
   { id: 'o_activist', title: '経営権をめぐる争い', cat: 'biz', age: [20, 100], cooldown: 5, important: true, when: (s) => { const b = listedBiz(s); return !!b && controlRatio(s, b) < 0.5; }, text: (s) => `投資ファンドが${listedBiz(s).name}の株を買い集め、経営陣の交代と大幅な株主還元を求めています。あなたの議決権は${pctTxt(controlRatio(s, listedBiz(s)))}です。`,
@@ -6539,7 +6600,7 @@ function roomModel(s) {
 // ---- 99_export.js
 // ===== public API =====
 const LC = {
-  recencyFactor, noteSeen, taxPolicyMul, OWN_DEFS, marketAssets, ownAssetOf, founderShares, marketSharesHeld, controlRatio, ipoPrepare, ipoPrepCost, ipoChance, ipoPlan, ipoList, ownCapitalIncrease, ownBuyback, ownTakeover, ownDelist, bizFundamental, bizValuation, bizIPOInstant, costLiving, costHouse, costEdu, costMed, calcPension, migrateListed, registerOwnAssets, CONFIG, COUNTRIES, REGIONS, ASSETS, HOMES, CARS, PETS, LIFESTYLES, JOB_TYPES, INDUSTRIES, FOCUS, STAT_LABELS, CAT, WEALTH, ACHIEVEMENTS, STAGE_LABEL, TITLES, EV,
+  recencyFactor, noteSeen, taxPolicyMul, OWN_DEFS, marketAssets, ownAssetOf, founderShares, marketSharesHeld, controlRatio, ipoPrepare, ipoPrepCost, ipoChance, ipoPlan, ipoList, ownCapitalIncrease, ownBuyback, ownTakeover, ownDelist, bizFundamental, bizValuation, bizIPOInstant, costLiving, costHouse, costEdu, costMed, calcPension, costFood, costUtil, costTransport, costUni, minAnnualWage, COUNTRY_ECON, econOf, countryEconomy, payDividends, migrateListed, registerOwnAssets, CONFIG, COUNTRIES, REGIONS, ASSETS, HOMES, CARS, PETS, LIFESTYLES, JOB_TYPES, INDUSTRIES, FOCUS, STAT_LABELS, CAT, WEALTH, ACHIEVEMENTS, STAGE_LABEL, TITLES, EV,
   yen, yenJ, jpyText, signedYen, pct, round, clamp, secondsPerYear, hash01,
   newGame, tick, nextYear, togglePlay, isHeld, RESUME_DELAY, setSpeed, setBaseSeconds, chooseEvent, activeView, autoResolve, processMonth, advanceYear,
   P, playerAge, ageOfChar, country, priceIdx, household, spouse, childrenOf, isIndependent, atParents, statusLabel, stageOf, relLabel, availableFocus, setFocus, setLifestyle, focusShare,
@@ -7683,6 +7744,7 @@ const Scene = (function () {
 
   function fmtPrice(v, cur) {
     if (v == null || !isFinite(v)) return '—';
+    if (Math.abs(v) > 0 && Math.abs(v) < 1) return String(+v.toPrecision(3)); // tiny token prices
     const d = cur === 'JPY' ? (v < 100 ? 1 : 0) : v < 100 ? 2 : 1;
     return v.toLocaleString('ja-JP', { minimumFractionDigits: d, maximumFractionDigits: d });
   }
@@ -7856,11 +7918,11 @@ const Scene = (function () {
   // money typed into forms is in the player's base currency; the engine works in its internal unit
   const IN = (v) => LC.fromBase(v), OUT = (n) => Math.round(LC.toBase(n));
   const niceBase = (internal) => { const v = LC.toBase(internal); const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, v))) - 1)); return Math.max(1, Math.round(v / p) * p); };
-  const curName = () => (LC.CURRENCIES[LC.country(S).cur] || { name: '円' }).name;
+  const curName = () => '円'; // one world currency: every amount is in yen
   const num = (id, d) => { const el = document.getElementById(id); const v = el ? parseFloat(el.value) : NaN; return isFinite(v) ? v : d; };
   const numMoney = (id, d) => IN(num(id, d));
   // fixed amounts written in yen inside texts ("年70万円", "1億円") are shown in the player's currency
-  const locYen = (t) => (LC.country(S).cur === 'JPY' || t == null ? t : String(t).replace(/(\d[\d,]*(?:\.\d+)?)(億|万)円/g, (m, n, u) => LC.yen(parseFloat(n.replace(/,/g, '')) * (u === '億' ? 1e8 : 1e4))));
+  const locYen = (t) => t; // texts are written in yen already (kept for the call sites)
   const SLOT = 'lifecapital.v1.slot.';
   let S = null, lastRev = -1, lastMoodId = null, lastYear = null, lastFrame = 0;
   const ui = { mode: 'main', form: null, prevS: null, lookOpen: false, sheet: null, tab: null, asset: null, buyType: null, logAll: false, logImp: false, open: {}, statsMore: false, wasPlaying: false, confirm: null, msg: null, newOpts: { country: '', name: '' } };
@@ -8152,7 +8214,7 @@ const Scene = (function () {
     }
     // style
     const b = LC.budget(S);
-    let html = `<div class="box"><h4>生活水準</h4><p>生活費と幸福度が変わります。いまの生活費は年${Y((b.expense.find((e) => e.k === 'living') || { v: 0 }).v)}です。</p><div class="seg" style="margin-top:10px">${Object.keys(LC.LIFESTYLES).map((k) => `<button data-act="lifestyle" data-v="${k}" class="${S.lifestyle === k ? 'on' : ''}" ${LC.isIndependent(S) ? '' : 'disabled'}>${LC.LIFESTYLES[k].label}（×${LC.LIFESTYLES[k].mul}）</button>`).join('')}</div></div>`;
+    let html = `<div class="box"><h4>生活水準</h4><p>生活費と幸福度が変わります。いまの生活費は年${Y(b.expense.filter((e) => ['living', 'util', 'other'].includes(e.k)).reduce((x, e) => x + e.v, 0))}です。</p><div class="seg" style="margin-top:10px">${Object.keys(LC.LIFESTYLES).map((k) => `<button data-act="lifestyle" data-v="${k}" class="${S.lifestyle === k ? 'on' : ''}" ${LC.isIndependent(S) ? '' : 'disabled'}>${LC.LIFESTYLES[k].label}（×${LC.LIFESTYLES[k].mul}）</button>`).join('')}</div></div>`;
     html += `<p class="section-title">海外に移住する</p><div class="list">` + Object.keys(LC.COUNTRIES).filter((c) => c !== S.country).map((c) => { const C = LC.COUNTRIES[c]; return `<div class="box opt"><span class="name">${C.name}</span><span class="sub">物価 ×${C.cost} · 賃金 ×${C.wage} · 移住費 ${Y(1000000 * C.cost)}</span>${confirmBtn('move', c, '移住する', '本当に移住（確認）', LC.playerAge(S) < 18)}</div>`; }).join('') + `</div><p class="hint">移住すると仕事は退職になり、持ち家は売却されます。家族の住まいは新しい国の賃貸マンションになります。</p>`;
     return html;
   }
@@ -8204,9 +8266,9 @@ const Scene = (function () {
     // world
     const w = S.world;
     const rows = Object.keys(LC.REGIONS).map((k) => { const r = w.regions[k], R = LC.REGIONS[k]; const h = r.idxHist; const prev = h[Math.max(0, h.length - 5)]; const ch = prev ? r.idx / prev - 1 : 0; return `<tr><td>${R.name}</td><td>${r.gdp.toFixed(1)}%</td><td>${r.infl.toFixed(1)}%</td><td>${r.rate.toFixed(2)}%</td><td>${r.unemp.toFixed(1)}%</td><td>${Math.round(r.idx).toLocaleString('ja-JP')}</td><td class="${ch >= 0 ? 'up' : 'down'}">${LC.pct(ch)}</td></tr>`; }).join('');
-    return `<div class="box"><h4>世界の景気<span>${LC.cycleLabel(S)}</span></h4>${kv(fxRows().concat([['原油価格指数', w.oil.toFixed(0)], ['投資家心理', w.sentiment > 0.3 ? '楽観' : w.sentiment < -0.3 ? '悲観' : 'ふつう'], ['物価指数（' + LC.country(S).name + '）', LC.priceIdx(S).toFixed(2)]]))}</div>
+    return `<div class="box"><h4>世界の景気<span>${LC.cycleLabel(S)}</span></h4>${kv([].concat([['原油価格指数', w.oil.toFixed(0)], ['投資家心理', w.sentiment > 0.3 ? '楽観' : w.sentiment < -0.3 ? '悲観' : 'ふつう'], ['物価指数（' + LC.country(S).name + '）', LC.priceIdx(S).toFixed(2)]]))}</div>
       <div class="box table-wrap"><table class="eco"><thead><tr><th>地域</th><th>成長率</th><th>物価</th><th>金利</th><th>失業率</th><th>株価指数</th><th>1年</th></tr></thead><tbody>${rows}</tbody></table></div>
-      <p class="hint">景気・金利・為替・原油価格は互いに影響し、給与、会社の売上、株価、住宅ローン金利に反映されます。</p>`;
+      <p class="hint">景気・金利・原油価格は互いに影響し、給与、会社の売上、株価、住宅ローン金利に反映されます。</p>`;
   }
   // listing status of a company: preparation, the review, or the stock with founder shares, voting share and dividend policy
   function sellBizEstimate(b) { const d = LC.ownAssetOf(S, b); if (!d) return b.ownership * b.valuation * (1 - LC.capGainsRate(S)); const px = LC.assetPriceJPY(S, d.id) * 1.25; return (LC.founderShares(S, d.id) + LC.marketSharesHeld(S, d.id)) * px * (1 - LC.capGainsRate(S)); }
@@ -8228,7 +8290,7 @@ const Scene = (function () {
     return `<div class="btn-row">${equityBtn}<button class="btn sm" data-act="ipo" data-v="${b.id}" ${ipo.ok && b.cash >= cost ? '' : 'disabled'}>上場準備を始める（${Y(cost)}）</button></div>
       ${ipo.ok ? `<p class="hint">準備に約1年（監査・内部管理・審査）。通過見込み ${LC.chanceText(S, LC.ipoChance(S, b))}。上場すると株は投資タブの「自社・創業企業」で売買できます。</p>` : `<p class="hint">上場の条件：${ipo.reasons.join('、')}</p>`}`;
   }
-  function fmtLocal(a, px) { return LC.fmtCur(px, a.cur, true); } // a quote is shown in the asset's own trading currency
+  function fmtLocal(a, px) { return px == null ? '—' : YP(px * LC.fxOf(S, a.cur)); } // every price is shown in yen (one world currency)
   function sparkline(arr) {
     const data = arr.slice(-120); if (data.length < 2) return '';
     const mn = Math.min(...data), mx = Math.max(...data), w = 300, h = 90, pad = 6;
@@ -8252,8 +8314,8 @@ const Scene = (function () {
     const ind = ui.ind || (ui.ind = { ma: true, bb: false, vol: true, rsi: false, macd: false });
     let html = `<button class="btn sm" data-act="assetBack">← 一覧に戻る</button>
       <div class="box quote"><h4>${esc(a.name)}<span class="tag">${esc(a.sector)}</span></h4>
-        <div class="q-main"><span class="q-px num">${fmtLocal(a, st.price)}</span>${a.cur !== LC.country(S).cur ? `<span class="q-jpy">（${YP(pxJ)}）</span>` : ''}
-        <span class="q-chg num ${chgCls}">前日比 ${q.chg == null ? '—' : (q.chg >= 0 ? '+' : '') + CandleChart.fmtPrice(q.chg, a.cur) + `（${(q.chgPct * 100 >= 0 ? '+' : '') + (q.chgPct * 100).toFixed(2)}%）`}</span></div>
+        <div class="q-main"><span class="q-px num">${fmtLocal(a, st.price)}</span>
+        <span class="q-chg num ${chgCls}">前日比 ${q.chg == null ? '—' : (q.chg >= 0 ? '+' : '') + CandleChart.fmtPrice(q.chg * LC.fxOf(S, a.cur), 'JPY') + '円' + `（${(q.chgPct * 100 >= 0 ? '+' : '') + (q.chgPct * 100).toFixed(2)}%）`}</span></div>
         <p class="hint">${a.region === 'world' ? '世界' : LC.REGIONS[a.region].name} · ${q.day ? `${CandleChart.dateLabel({ t: q.day }, '日足', true)} 終値` : 'まだ取引日がありません'}</p></div>
       <div class="box chart-box"><div class="seg tf-seg" role="group" aria-label="期間">${LC.TIMEFRAMES.map((x) => `<button data-act="tf" data-v="${x.id}" class="${tf === x.id ? 'on' : ''}">${x.label}</button>`).join('')}</div>
         <div class="ind-row" role="group" aria-label="指標">${[['ma', '移動平均'], ['bb', 'ボリンジャー'], ['vol', '出来高'], ['rsi', 'RSI'], ['macd', 'MACD']].map(([k, l]) => `<button class="chip-btn ${ind[k] ? 'on' : ''}" data-act="ind" data-v="${k}" aria-pressed="${!!ind[k]}">${l}</button>`).join('')}</div>
@@ -8291,12 +8353,14 @@ const Scene = (function () {
   function mountChart() {
     const cv = document.getElementById('chart'); if (!cv || !ui.asset) { chartInst = null; return; }
     const a = LC.assetDef(ui.asset), r = LC.chartBars(S, ui.asset, ui.tf || '3m');
-    const model = { bars: r.bars, all: r.all, offset: r.offset, unit: r.unit, intraday: !!r.intraday, cur: a.cur, ind: ui.ind, events: (S.world.assets[ui.asset].ev || []), hover: null, TA: LC };
+    // prices are drawn in yen: assets traded abroad are converted at the (fixed) conversion factor; bars are fresh copies
+    const k = LC.fxOf(S, a.cur); if (k !== 1) for (const b of r.all) { b.o *= k; b.h *= k; b.l *= k; b.c *= k; }
+    const model = { bars: r.bars, all: r.all, offset: r.offset, unit: r.unit, intraday: !!r.intraday, cur: 'JPY', ind: ui.ind, events: (S.world.assets[ui.asset].ev || []), hover: null, TA: LC };
     const read = (i) => {
       const el = document.getElementById('chartRead'); if (!el) return;
       const b = r.bars[i == null ? r.bars.length - 1 : i];
       if (!b) { el.innerHTML = '<span>データなし</span>'; return; }
-      const P = (v) => CandleChart.fmtPrice(v, a.cur), up = b.c >= b.o;
+      const P = (v) => CandleChart.fmtPrice(v, 'JPY'), up = b.c >= b.o;
       el.innerHTML = `<span class="d">${CandleChart.dateLabel(b, r.unit, true)}</span><span>始 ${P(b.o)}</span><span>高 ${P(b.h)}</span><span>安 ${P(b.l)}</span><span class="${up ? 'up' : 'down'}">終 ${P(b.c)}</span><span>出来高 ${b.v == null ? '対象外' : CandleChart.fmtVol(b.v)}</span>`;
     };
     chartInst = CandleChart.mount(cv, model, read); read(null);
@@ -8641,7 +8705,7 @@ const Scene = (function () {
         <h3>始め方</h3>
         <div class="mode-list two-col"><button class="mode ${f.start !== 'random' ? 'on' : ''}" data-act="fStart" data-v="custom" aria-pressed="${f.start !== 'random'}"><b>自分で設定する</b><span>名前・性別・見た目と生まれ方を選ぶ</span></button>
           <button class="mode ${f.start === 'random' ? 'on' : ''}" data-act="fStart" data-v="random" aria-pressed="${f.start === 'random'}"><b>すべてランダム</b><span>国・名前・性別・生まれた年・家庭をすべて運に任せる</span></button></div>
-        ${f.start === 'random' ? `<p class="hint">世界${Object.keys(LC.COUNTRIES).length}か国のどこかに生まれます（日本 ${Math.round(LC.COUNTRY_W.jp / Object.values(LC.COUNTRY_W).reduce((a, b) => a + b, 0) * 100)}%・インド・中国・米国・インドネシアなど）。名前はその国の文化に合わせて決まり、お金はその国の通貨で暮らします。</p>` : ''}
+        ${f.start === 'random' ? `<p class="hint">世界${Object.keys(LC.COUNTRIES).length}か国のどこかに生まれます（日本 ${Math.round(LC.COUNTRY_W.jp / Object.values(LC.COUNTRY_W).reduce((a, b) => a + b, 0) * 100)}%・インド・中国・米国・インドネシアなど）。名前はその国の文化に合わせて決まります。お金はすべて円で表示し、給与・物価・税金はその国の水準になります。</p>` : ''}
       </div>
       ${f.start === 'random' ? '' : `<div class="card form-card">
         <h3>あなたの名前</h3>
@@ -8662,7 +8726,7 @@ const Scene = (function () {
         ${f.mode === 'choose' ? `<div class="two"><label class="fld">家庭の経済階層<select id="fTier" data-f="tier"><option value="">ランダム</option>${LC.TIERS.map((t, i) => `<option value="${i}" ${String(f.tier) === String(i) ? 'selected' : ''}>${i + 1}. ${t.label}</option>`).join('')}</select></label>
           <label class="fld">都道府県<select id="fPref" data-f="pref"><option value="">ランダム</option>${LC.JP_PREFS.map((p) => `<option ${f.pref === p.n ? 'selected' : ''}>${p.n}</option>`).join('')}</select></label></div>` : ''}
         ${f.mode === 'normal' ? `<p class="hint">生まれる家庭の確率：${LC.TIERS.map((t, i) => `${t.short} ${Math.round(LC.tierProbabilities()[i] * 100)}%`).join(' · ')}（ゲーム用の設定です）</p>` : ''}
-        ${f.mode === 'choose' ? `<label class="fld">生まれる国<select id="fCountry" data-f="country">${Object.keys(LC.COUNTRIES).map((c) => `<option value="${c}" ${(f.country || 'jp') === c ? 'selected' : ''}>${LC.COUNTRIES[c].name}（${LC.CURRENCIES[LC.COUNTRIES[c].cur].name}）</option>`).join('')}</select></label>${f.country && f.country !== 'jp' ? '<p class="hint">日本以外では都道府県の指定は使われません。</p>' : ''}` : ''}
+        ${f.mode === 'choose' ? `<label class="fld">生まれる国<select id="fCountry" data-f="country">${Object.keys(LC.COUNTRIES).map((c) => `<option value="${c}" ${(f.country || 'jp') === c ? 'selected' : ''}>${LC.COUNTRIES[c].name}（平均年収 約${Math.round(4.6e6 * LC.COUNTRIES[c].wage / 1e4).toLocaleString('ja-JP')}万円）</option>`).join('')}</select></label>${f.country && f.country !== 'jp' ? '<p class="hint">日本以外では都道府県の指定は使われません。</p>' : ''}` : ''}
       </div>`}
       </div>
       <div class="pre-bar"><button class="btn primary big" data-act="createLife">${f.start === 'random' ? 'ランダムな人生に生まれる' : 'この人物で人生を始める'}</button></div>`;
@@ -8976,7 +9040,7 @@ const Scene = (function () {
           <label>返済期間<select id="rfYears" data-act="rform">${[10, 15, 20, 25, 30, 35].map((y) => `<option value="${y}" ${f.years === y ? 'selected' : ''}>${y}年</option>`).join('')}</select></label></div>
           ${kv([['頭金＋諸費用（7%）', Y(q.down + q.fees)], ['借入', q.loan > 0 ? `${Y(q.loan)}（${(q.rate * 100).toFixed(2)}%・変動）` : 'なし'], ['毎月の返済', Y(q.payment)], ['家賃（空室を見込んだ月額）', Y(q.rentM)], ['管理・税・修繕（月）', Y(q.runM)], ['月の手残り（税引前）', `<span class="${q.cf >= 0 ? 'up' : 'down'}">${LC.signedYen(q.cf)}</span>`], ['表面利回り', (q.grossYield * 100).toFixed(1) + '%']])}
           ${q.ok ? '' : `<p class="occ-why">${esc(q.reason)}</p>`}<div class="btn-row"><button class="btn primary" data-act="buyProp" data-v="${L.id}" ${q.ok ? '' : 'disabled'}>この条件で購入する</button></div>
-          <p class="hint">変動金利のため、金利が上がると返済額が増えます。${R.cur ? '海外物件は為替で基本通貨での価値が変わります。' : ''}${R.pop < 0 ? '人口が減っている地域で、空室が出やすい物件です。' : ''}</p></div>`;
+          <p class="hint">変動金利のため、金利が上がると返済額が増えます。${R.cur ? '海外物件の価格はその国の不動産市場で動きます。' : ''}${R.pop < 0 ? '人口が減っている地域で、空室が出やすい物件です。' : ''}</p></div>`;
       }
       return `<div class="box"><h4>${esc(L.name)}<span class="tag">${esc(L.loc)}・築${L.age}年</span></h4>${kv([['価格', Y(L.price)], ['想定家賃（年・満室）', Y(L.rentYear)], ['表面利回り', (L.rentYear / L.price * 100).toFixed(1) + '%'], ['戸数', L.units + '戸'], ['状態', L.cond >= 1.05 ? '良好' : L.cond >= 0.9 ? 'ふつう' : '傷みあり']])}
         <div class="btn-row"><button class="btn sm ${open ? 'on' : ''}" data-act="rlist" data-v="${L.id}">${open ? '閉じる' : '購入を検討する'}</button></div>${form}</div>`; }).join('') || '<div class="box"><p>今年の売り出し物件はありません。</p></div>'}</div>`;
@@ -9248,21 +9312,18 @@ const Scene = (function () {
   }
 
   // exchange rates as seen from the player's base currency (one shared rule: LC.fxOf)
-  function fxRows() {
-    const home = LC.country(S).cur, out = [];
-    for (const c of ['USD', 'EUR', 'JPY', 'GBP', 'CNY']) { if (c === home) continue; const per = LC.fxOf(S, c) / LC.fxOf(S, home); out.push([`1 ${LC.CURRENCIES[c].name}`, LC.fmtCur(per, home, true).replace(/\.\d+$/, '') + (per < 10 ? `（${per.toFixed(3)}）` : '')]); if (out.length >= 3) break; }
-    return out;
-  }
   // the economy of the country you were born into (game assumptions, shown as such)
   function countryCard() {
-    const C = LC.country(S), cur = LC.CURRENCIES[C.cur], e = LC.ecoOf(S), lvl = (v) => (v >= 1.6 ? 'とても高い' : v >= 1.15 ? '高い' : v >= 0.85 ? '日本並み' : v >= 0.5 ? '低い' : 'とても低い');
-    const tax = C.tax ? `実効 約${Math.round((C.tax.base + C.tax.prog * 0.4) * 100)}%＋社会保険 約${Math.round(C.tax.social * 100)}%（平均的な収入で）` : '累進課税＋住民税10%＋社会保険 約15%';
-    return `<div class="card"><h3>${esc(C.name)}の暮らしとお金</h3><p class="hint">すべての金額は${esc(cur.name)}（${esc(C.cur)}）で表示されます。${C.cur !== 'JPY' ? '仕事の年収やお金の画面には、日本円での目安（いまの為替）も並べて表示します。' : ''}数値はゲーム用の仮定値です。</p>
-      ${kv([['通貨', `${esc(cur.name)}（${esc(C.cur)}）`]].concat(C.cur !== 'JPY' ? [['日本円にすると', `1 ${esc(cur.name)} ≈ ${(() => { const v = LC.fxOf(S, C.cur) / LC.fxOf(S, 'JPY'); return v >= 10 ? Math.round(v).toLocaleString('ja-JP') : v >= 0.1 ? v.toFixed(2) : v.toFixed(4); })()}円（いまの為替）`], ['会社員の年収の目安', YJ(LC.occBaseSalary(S, 'office'))]] : []).concat([['賃金の水準', lvl(C.wage)], ['物価の水準', lvl(C.cost)], ['住宅価格', lvl(C.cost * (C.house || 1))], ['教育費', lvl(C.cost * (C.edu || 1))], ['医療費の自己負担', lvl(C.cost * (C.med || 1))],
-        ['消費税・付加価値税', `${(C.vat * 100).toFixed(C.vat * 100 % 1 ? 1 : 0)}%`], ['所得税・社会保険', tax], ['投資の利益への税', `約${Math.round(LC.capGainsRate(S) * 100)}%`],
-        ['経済成長率', `${e.gdp.toFixed(1)}%`], ['インフレ率', `${e.infl.toFixed(1)}%`], ['政策金利', `${e.rate.toFixed(2)}%`], ['失業率', `${e.unemp.toFixed(1)}%`], ['年金の受給開始', `${C.pensionAge}歳`]]))}
-      <p class="hint" style="margin-top:6px">株式市場：${esc(C.market || '')}<br>不動産：${esc(C.estate || '')}</p></div>`;
+    const C = LC.country(S), e = LC.ecoOf(S), X = LC.countryEconomy(S), lvl = (v) => (v >= 1.3 ? 'しやすい' : v >= 0.95 ? 'ふつう' : v >= 0.75 ? 'やや難しい' : '難しい');
+    return `<div class="card"><h3>${esc(C.name)}の暮らしとお金</h3><p class="hint">お金はすべて円で表示します。国ごとに違うのは給与・物価・税金・仕事の見つけやすさです。数値はゲーム用の想定値です。</p>
+      ${kv([['平均年収 / 中央値', `${Y(X.avgIncome)} / ${Y(X.medianIncome)}`], ['最低賃金', X.minWageHour ? `時給 ${YP(X.minWageHour)}（年 約${Y(X.minWageYear)}）` : '法定の最低賃金なし'], ['手取りの割合（平均年収で）', `約${Math.round(X.takeHomeRate * 100)}%`],
+        ['家賃（アパート・月）', Y(X.rent)], ['新築の家', Y(X.house)], ['食費・日用品（1人・年）', Y(X.food)], ['光熱費・通信（1人・年）', Y(X.util)], ['小型車', Y(X.car)],
+        ['大学の学費（年）', Y(X.uniYear)], ['医療費の自己負担（年・目安）', Y(X.medical)], ['消費税・付加価値税', `${(X.vat * 100).toFixed(X.vat * 100 % 1 ? 1 : 0)}%`], ['投資の利益への税', `約${Math.round(X.cgt * 100)}%`],
+        ['失業率', `${e.unemp.toFixed(1)}%`], ['就職', lvl(X.jobs)], ['起業資金の目安', Y(X.startupCapital)], ['経済成長率 / インフレ率', `${e.gdp.toFixed(1)}% / ${e.infl.toFixed(1)}%`],
+        ['年金', `${C.pensionAge}歳から・現役時代の約${Math.round(X.pensionRate * 100)}%`], ['老後の生活費（夫婦・年）', Y(X.retireLiving)]])}
+      <p class="hint" style="margin-top:6px">投資：${esc(X.invest)}<br>社会保障：${esc(X.welfare)}<br>株式市場：${esc(C.market || '')}<br>不動産：${esc(C.estate || '')}</p></div>`;
   }
+
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.sheet input[type=text], .sheet input[type=number]')) ui.typing = true; });
