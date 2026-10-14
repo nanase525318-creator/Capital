@@ -417,6 +417,57 @@ details.box[open] > summary { margin-bottom: 8px; }
 .snap figcaption { font-size: 11.5px; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
 .snap figcaption b { color: var(--text); }
 @media (max-width: 380px) { .snap-pair { grid-template-columns: 1fr; } .ev-row { grid-template-columns: 6.5em minmax(0, 1fr) 2.2em 2.6em; } }
+/* ---- fusion update ---- */
+.chip-btn .fx { display: block; font-size: 10px; opacity: 0.75; font-family: var(--f-num); letter-spacing: 0; }
+.peer { margin: 10px 0 0; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+.peer b { color: var(--gold); font-family: var(--f-num); }
+.lifemap { display: grid; gap: 3px; margin-top: 4px; }
+.mrow { display: grid; grid-template-columns: 1.8em repeat(10, minmax(0, 1fr)); gap: 3px; align-items: center; }
+.mlab { font-family: var(--f-num); font-size: 10px; color: var(--faint); text-align: right; padding-right: 2px; }
+.mc { aspect-ratio: 1; border-radius: 3px; background: var(--line); display: grid; place-items: center; font-style: normal; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.92); position: relative; min-width: 0; }
+.lifemap.big .mc { font-size: 12px; }
+.mc.past { background-color: rgba(91,191,178,0.15); }
+.mc.cur { outline: 2px solid var(--pink); outline-offset: -1px; }
+.mc.exp { box-shadow: inset 0 0 0 2px var(--gold); }
+.mc.fav::after { content: '★'; position: absolute; top: -3px; right: -1px; font-size: 8px; color: var(--gold); }
+.rivals { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 6px; }
+.rivals li { display: grid; grid-template-columns: 1.6em minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.rivals li.me { border-color: var(--gold); }
+.rivals li.gone { opacity: 0.55; }
+.rivals .rk { font-family: var(--f-display); font-size: 16px; text-align: center; color: var(--gold); }
+.rivals .nm { min-width: 0; font-size: 13.5px; }
+.rivals .nm b { font-weight: 500; color: var(--gold); font-size: 12px; }
+.rivals .nm small { display: block; color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+.rivals .nw { font-size: 13px; text-align: right; }
+.rv-news { margin-top: 8px; }
+.rec-li { position: relative; }
+.rec-li .rec { padding-right: 34px; }
+.rec-li .star { position: absolute; top: 6px; right: 6px; z-index: 1; width: 28px; height: 28px; border: 0; background: none; color: var(--faint); font-size: 16px; line-height: 1; padding: 0; }
+.rec-li .star.on { color: var(--gold); }
+.rec.faved { border-color: color-mix(in srgb, var(--gold) 45%, transparent); }
+.ev-top { position: relative; }
+.ev-peek { margin-left: auto; border: 1px solid var(--line-2); background: transparent; color: var(--muted); border-radius: 999px; font-size: 11.5px; padding: 3px 10px; white-space: nowrap; }
+.ev-note { display: grid; gap: 4px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.ev-note textarea { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px; font: inherit; font-size: 14px; resize: vertical; }
+.auto-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 12.5px; }
+.event.peek { pointer-events: none; align-items: end; background: none; }
+.peek-bar { pointer-events: auto; margin: 0 var(--gut) 10px; width: calc(100% - 2 * var(--gut)); max-width: 560px; display: flex; gap: 8px; align-items: center; justify-content: space-between; background: var(--panel); border: 1px solid var(--pink-deep); border-radius: 12px; padding: 10px 12px; color: var(--text); box-shadow: 0 10px 26px rgba(0,0,0,.45); font-size: 13px; }
+.peek-bar span:last-child { color: var(--muted); font-size: 12px; }
+.ending { position: fixed; inset: 0; z-index: 200; background: #0a0d13; color: var(--text); display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top)) var(--gut) max(16px, env(safe-area-inset-bottom)); overflow-y: auto; }
+.end-in { width: 100%; max-width: 520px; display: grid; gap: 14px; justify-items: center; text-align: center; animation: ocIn 0.6s ease-out; cursor: pointer; }
+.end-in.epitaph { cursor: default; }
+.end-in h2 { font-family: var(--f-display); font-size: 30px; margin: 0; font-weight: 400; }
+.end-in p { margin: 0; color: #cfc9bd; font-size: 14.5px; line-height: 1.8; }
+.end-cv { width: 100%; max-width: 440px; height: auto; image-rendering: pixelated; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.e-age { font-family: var(--f-num); color: var(--muted) !important; font-size: 12px !important; }
+.e-cap { font-size: 17px !important; color: var(--text) !important; }
+.e-desc { font-size: 13px !important; }
+.e-name { font-size: 34px !important; }
+.e-years { font-family: var(--f-num); color: var(--muted) !important; }
+.e-one { font-size: 16px !important; color: var(--text) !important; margin-top: 6px !important; }
+.end-prog { width: 100%; max-width: 440px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.end-prog i { display: block; height: 100%; background: var(--know); transition: width .4s; }
+.end-skip { border: 1px solid var(--line-2); background: transparent; color: var(--muted); border-radius: 999px; padding: 4px 14px; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -448,6 +499,8 @@ details.box[open] > summary { margin-bottom: 8px; }
     <section class="card" id="secLife"></section>
     <section class="card" id="secStats"></section>
     <section class="card" id="secMoney"></section>
+    <section class="card" id="secMap"></section>
+    <section class="card" id="secRivals"></section>
     <section class="card" id="secLog"></section>
     <p class="foot-note">金額・税・年金・相続などはゲーム用の近似モデルです。実際の制度や投資判断の参考にはしないでください。</p>
   </main>
@@ -461,6 +514,7 @@ details.box[open] > summary { margin-bottom: 8px; }
   </div>
   <div id="eventLayer" class="event" hidden></div>
   <div id="outcome" class="outcome" hidden></div>
+  <div id="ending" class="ending" hidden></div>
   <div id="toast" class="toast" role="status" hidden></div>
   </div>
   <nav class="dock" aria-label="操作">
@@ -1110,6 +1164,7 @@ function newGame(seed, opts) {
   updateWealth(s);
   genRealtyMarket(s);
   initStory(s);
+  initRivals(s);
   scheduleYear(s);
   return s;
 }
@@ -1127,6 +1182,8 @@ function record(s, r) {
   // the life chronicle keeps every turning point for the whole life (the log above keeps only the latest 600 entries)
   if (e.important || CHRONICLE_RE.test(e.title)) { (s.chronicle || (s.chronicle = [])).push({ id: e.id, age: e.age, year: e.year, month: e.month, cat: e.cat, title: e.title, desc: e.desc, tone: e.tone, money: e.money }); if (s.chronicle.length > 900) s.chronicle.splice(0, s.chronicle.length - 900); }
   if (s.history.length > 600) s.history.splice(0, s.history.length - 600);
+  // the room at turning points is kept for the closing film of the life
+  if (e.important && s.timeline && s.snaps && s.snaps.length < 40 && /結婚|誕生|購入|起業|上場|就職|入学|プロ|入団|引退/.test(e.title) && typeof takeSnapshot === 'function') { try { takeSnapshot(s, 'moment'); } catch (err) { /* the snapshot is decorative */ } }
   s.lastMood = { tone: e.tone, rev: s.rev + 1, id: e.id };
   bump(s);
   return e;
@@ -1297,6 +1354,7 @@ function ensureMarket(s) {
   for (const a of ASSETS) {
     if (!w.assets[a.id]) { w.assets[a.id] = initAssetState(a); continue; }
     const st = w.assets[a.id];
+    if (!(st.price > 0)) { const lastOk = (st.d || []).map((r) => r && r[4]).filter((x) => x > 0).pop(); st.price = lastOk || a.price * 0.01; } // repair saves hit by an old crash bug
     if (!st.d) st.d = [];
     if (!st.ev) st.ev = [];
     if (st.shares === undefined) st.shares = a.sharesOut || null;
@@ -1459,7 +1517,7 @@ function stepWorld(s) {
     for (let i = 0; i < n; i++) { const x = sd * gauss(s); xs.push(x); sx += x; }
     const adj = (ret - sx) / n;
     for (let i = 0; i < n; i++) xs[i] += adj;
-    for (const e of evs) xs[e.day] += Math.log(1 + e.size);
+    for (const e of evs) xs[e.day] += Math.log(Math.max(0.05, 1 + e.size)); // a crash can wipe out most of the value, never more than all of it
     let prev = st.price, mo = null;
     const baseVol = (a.kind === 'stock' || a.kind === 'crypto') && st.shares ? st.shares * (a.kind === 'crypto' ? (a.tier === 'meme' ? 0.0004 : 0.006) : 0.0035) : null;
     for (let i = 0; i < n; i++) {
@@ -1485,7 +1543,7 @@ function stepWorld(s) {
     }
     if (st.ev.length > 12) st.ev.length = 12;
     st.lastRet = Math.log(prev / st.price);
-    st.price = Math.max(0.01, prev);
+    st.price = Math.max(a.price * 1e-4, prev); // floor relative to the asset (sub-cent tokens must not be lifted to 1 cent)
     st.hist.push(rp(st.price)); if (st.hist.length > 60) st.hist.splice(0, st.hist.length - 60);
   }
   for (const k in w.sector) { w.sector[k] *= 0.97; if (Math.abs(w.sector[k]) < 0.01) delete w.sector[k]; }
@@ -4555,6 +4613,290 @@ EV.parents_need = { title: '親の生活費', cat: 'family', random: true, minAg
     opt('公的な支援の申請を手伝う', '人間関係 +1', '自分の負担は少ないが、親の生活は厳しいまま', (s) => { s.family.support = (s.family.support || 0) + money(s, 1.5e5); addStats(s, { relations: 1 }); return { desc: '親と一緒に役所へ行き、支援制度を申請しました。', tone: 'neutral' }; }),
   ] }) };
 
+// ---- 08_cohort.js
+// ===== cohort: peers born on the same day, comparison with the generation, yearly money review, the life map,
+// ten-year goals at life milestones, notes, favourites, auto-decisions and the closing sequence of a life =====
+// Everything is derived from the save or from in-game models. Comparison curves are the game's own estimates (labelled as such),
+// never presented as real statistics.
+
+// ---------- separate dice for the peers, so adding them never changes the player's own future
+function rvRand(s) { const R = s.rv || (s.rv = { rng: (s.seed * 2654435761 + 97) >>> 0 }); R.rng = (R.rng + 0x6D2B79F5) >>> 0; let t = R.rng; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+const rvPick = (s, a) => a[Math.floor(rvRand(s) * a.length)];
+const rvGauss = (s) => { let u = 0, v = 0; while (u === 0) u = rvRand(s); while (v === 0) v = rvRand(s); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+// ---------- the generation: in-game estimates of income and net worth by age (today's yen, Japan scale)
+const PEER_INCOME = [[18, 1.2e6], [22, 2.6e6], [25, 3.3e6], [30, 4.0e6], [35, 4.4e6], [40, 4.7e6], [45, 5.0e6], [50, 5.2e6], [55, 5.2e6], [60, 4.0e6], [65, 2.6e6], [70, 2.1e6], [90, 1.9e6]];
+const PEER_NET = [[18, 2e5], [22, 5e5], [25, 1.5e6], [30, 4e6], [35, 7e6], [40, 1.0e7], [45, 1.3e7], [50, 1.7e7], [55, 2.1e7], [60, 2.5e7], [65, 2.7e7], [75, 2.6e7], [90, 2.2e7]];
+function interpAge(tab, a) { if (a <= tab[0][0]) return tab[0][1]; for (let i = 1; i < tab.length; i++) if (a <= tab[i][0]) { const [a0, v0] = tab[i - 1], [a1, v1] = tab[i]; return v0 + (v1 - v0) * (a - a0) / (a1 - a0); } return tab[tab.length - 1][1]; }
+function normCdf(z) { const t = 1 / (1 + 0.2316419 * Math.abs(z)); const d = 0.3989423 * Math.exp(-z * z / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+// share of the same generation that has MORE than v (0…1): "上位 x%"
+function peerTop(s, kind, v, age) {
+  age = age == null ? playerAge(s) : age;
+  const C = country(s), real = v / priceIdx(s) / (kind === 'income' ? C.wage : C.cost);
+  const med = interpAge(kind === 'income' ? PEER_INCOME : PEER_NET, age), sig = kind === 'income' ? 0.5 : 1.05;
+  if (real <= 0) return kind === 'income' ? 0.97 : 0.9 + clamp(-real / Math.max(1, med) * 0.05, 0, 0.09);
+  return clamp(1 - normCdf(Math.log(real / med) / sig), 0.001, 0.999);
+}
+function topText(p) { return p < 0.5 ? `上位${p < 0.01 ? (p * 100).toFixed(1) : Math.max(1, Math.round(p * 100))}%` : `下位${Math.max(1, Math.round((1 - p) * 100))}%`; }
+// survival and life expectancy implied by the game's own mortality model (typical health), for the map frame and the curve
+function survivalCurve(s, cid) {
+  const out = [1]; let alive = 1;
+  for (let a = 1; a <= 110; a++) { alive *= 1 - mortality(s, a, 60, cid || s.country); out.push(alive); }
+  return out;
+}
+function lifeExpectancy(s, cid) { const c = survivalCurve(s, cid); return Math.round(c.reduce((a, b) => a + b, 0) - 0.5); }
+
+// ---------- yearly money review (called in yearEnd after the books close, before the year's timeline entry)
+function moneyReview(s) {
+  if (!isIndependent(s) || playerAge(s) < 18) return;
+  const T = s.timeline || [], prev = T.length ? T[T.length - 1] : null, ly = s.finance.lastYear; if (!prev || !ly) return;
+  const bs = balanceSheet(s), d = bs.net - prev.net, flow = (ly.income || 0) - (ly.tax || 0) - (ly.expense || 0), other = d - flow;
+  const parts = [`収入 +${yen(ly.income || 0)}`, `税・社会保険 −${yen(ly.tax || 0)}`, `支出 −${yen(ly.expense || 0)}`];
+  if (Math.abs(other) >= 1e4) parts.push(`資産・負債の値動きなど ${signedYen(other)}`);
+  const pn = peerTop(s, 'net', bs.net), pi = peerTop(s, 'income', ly.income || 0);
+  s.finance.peer = { net: pn, income: pi, year: s.time.year };
+  record(s, { cat: 'money', title: '1年の家計', desc: `今年、純資産が${yen(Math.abs(d))}${d >= 0 ? '増えました' : '減りました'}（${yen(prev.net)} → ${yen(bs.net)}）。内訳：${parts.join('・')}。同い年の中で純資産は${topText(pn)}、年収は${topText(pi)}です（ゲーム内の推計）。`, tone: d >= 0 ? 'good' : 'bad' });
+}
+
+// ---------- peers: four people born on the same day somewhere in Japan
+const RV_JOBS = {
+  office: { label: '会社員', base: 4.2e6, grow: 0.022, edu: 0 }, civil: { label: '公務員', base: 4.0e6, grow: 0.02, edu: 0, stable: 1 },
+  engineer: { label: 'エンジニア', base: 4.8e6, grow: 0.03, edu: 1 }, doctor: { label: '医師', base: 9.0e6, grow: 0.025, edu: 2 },
+  nurse: { label: '看護師', base: 4.3e6, grow: 0.015, edu: 1 }, teacher: { label: '教員', base: 4.2e6, grow: 0.02, edu: 1, stable: 1 },
+  craft: { label: '職人', base: 3.4e6, grow: 0.018, edu: 0 }, care: { label: '介護職', base: 3.1e6, grow: 0.01, edu: 0 },
+  shop: { label: '販売・サービス業', base: 3.0e6, grow: 0.012, edu: 0 }, farmer: { label: '農業', base: 2.8e6, grow: 0.01, edu: 0 },
+  finance: { label: '金融', base: 5.6e6, grow: 0.035, edu: 1 }, artist: { label: '音楽家・作家', base: 1.6e6, grow: 0.0, edu: 0, vol: 0.6 },
+  athlete: { label: 'プロスポーツ選手', base: 6.0e6, grow: 0.0, edu: 0, vol: 0.5 }, founder: { label: '会社経営者', base: 6.0e6, grow: 0.0, edu: 0, vol: 0.45 },
+};
+function rvName(s, g) { const N = NAMES.jp; return `${rvPick(s, N.sur)} ${rvPick(s, g === 'f' ? N.f : N.m)}`; }
+function initRivals(s) {
+  const w = [8, 25, 42, 20, 5];
+  s.rivals = [];
+  const used = new Set([P(s).name]);
+  for (let i = 0; i < 4; i++) {
+    const g = rvRand(s) < 0.5 ? 'f' : 'm'; let name = rvName(s, g); for (let k = 0; k < 5 && used.has(name); k++) name = rvName(s, g); used.add(name);
+    let x = rvRand(s) * 100, tier = 0; for (; tier < 4 && x >= w[tier]; tier++) x -= w[tier];
+    const pref = rvPick(s, JP_PREFS).n;
+    s.rivals.push({ id: 'rv' + i, name, g, tier, pref, talent: round(clamp(Math.exp(rvGauss(s) * 0.22), 0.6, 1.7), 2), grit: round(clamp(0.5 + rvGauss(s) * 0.2, 0.1, 0.95), 2),
+      edu: null, job: null, inc: 0, net: 0, alive: true, married: false, kids: 0, deathAge: null, peak: 0, log: [], biz: null });
+  }
+}
+function rvNote(s, r, text, tone, important) {
+  r.log.push({ a: playerAge(s), y: s.time.year, t: text }); if (r.log.length > 40) r.log.shift();
+  record(s, { cat: 'life', title: `同じ日に生まれた${r.name}`, desc: text, tone: tone || 'neutral', important: !!important, rival: r.id });
+}
+// one year of a peer's life; light, but uses the same ideas: family background, talent, effort, luck
+function rivalYear(s, r, quiet) {
+  if (!r.alive) return;
+  const a = playerAge(s), say = (t, tone, imp) => { if (!quiet) rvNote(s, r, t, tone, imp); else { r.log.push({ a, y: s.time.year, t }); if (r.log.length > 40) r.log.shift(); } };
+  // health and death (better-off families live a little longer in this model)
+  const pDie = mortality(s, a, 55 + r.tier * 6 + r.grit * 10, 'jp');
+  if (a >= 1 && rvRand(s) < pDie) { r.alive = false; r.deathAge = a; say(`${r.name}が${a}歳で亡くなりました。`, 'bad', a < 60); return; }
+  if (a === 18) {
+    const pUni = clamp(0.2 + r.tier * 0.13 + (r.talent - 1) * 0.6 + (r.grit - 0.5) * 0.4, 0.05, 0.95);
+    r.edu = rvRand(s) < pUni ? (r.talent > 1.25 && rvRand(s) < 0.4 ? 'elite' : 'uni') : rvRand(s) < 0.35 ? 'voc' : 'high';
+    if (r.edu === 'elite') say(`${r.name}は難関大学に進学しました。`, 'good');
+  }
+  const startAge = r.edu === 'elite' || r.edu === 'uni' ? 22 : r.edu === 'voc' ? 20 : 18;
+  if (a === startAge && !r.job) {
+    const opts = [];
+    const add = (k, wgt) => opts.push([k, wgt]);
+    add('office', 30); add('civil', 10 + r.tier * 2); add('shop', r.edu === 'high' ? 22 : 6); add('craft', r.edu === 'high' || r.edu === 'voc' ? 14 : 2); add('care', 8); add('farmer', 3);
+    if (r.edu !== 'high') { add('engineer', 14); add('nurse', 7); add('teacher', 6); add('finance', 4 + r.tier * 2); }
+    if (r.edu === 'elite') { add('doctor', 10); add('finance', 10); }
+    if (r.talent > 1.3) { add('artist', 3); add('athlete', r.talent > 1.45 ? 3 : 0); }
+    let t = opts.reduce((x, o) => x + o[1], 0), roll = rvRand(s) * t, k = opts[0][0]; for (const [kk, ww] of opts) { roll -= ww; if (roll <= 0) { k = kk; break; } }
+    r.job = k; r.inc = RV_JOBS[k].base * (0.75 + 0.25 * r.talent) * (r.edu === 'elite' ? 1.2 : 1) * (0.8 + rvRand(s) * 0.4);
+    say(`${r.name}は${RV_JOBS[k].label}として働き始めました。`, 'neutral');
+  }
+  if (r.job) {
+    const J = RV_JOBS[r.job];
+    // career growth slows with age; shocks: losing a job, starting a business, a big break
+    r.inc *= 1 + (a < 50 ? J.grow + (r.grit - 0.5) * 0.02 : a < 60 ? 0.003 : -0.01) + (J.vol || 0.05) * rvGauss(s) * 0.5;
+    if (!J.stable && a < 60 && rvRand(s) < 0.025) { r.inc *= 0.65; say(`${r.name}が勤め先を離れ、収入が減りました。`, 'bad'); }
+    if (r.job !== 'founder' && a >= 26 && a <= 50 && rvRand(s) < 0.012 + (r.grit - 0.5) * 0.01) { r.job = 'founder'; r.biz = { year: s.time.year, cap: Math.max(0, r.net * 0.5) }; r.net -= r.biz.cap; say(`${r.name}が会社を立ち上げました。`, 'neutral', true); }
+    else if (r.job === 'founder' && r.biz) {
+      const y = s.time.year - r.biz.year, roll = rvRand(s);
+      if (y <= 6 && roll < 0.1) { r.job = 'office'; r.inc = RV_JOBS.office.base * 0.9; r.net -= RV_JOBS.office.base; r.biz = null; say(`${r.name}の会社が倒産しました。会社員として出直しています。`, 'bad', true); }
+      else if (roll > 0.985 - r.talent * 0.004) { const v = r.inc * rfloatR(s, 8, 25); r.net += v; r.inc *= 1.5; say(`${r.name}の会社が大きく成長し、持株の価値が${yen(v)}になりました。`, 'good', true); }
+    }
+    if ((r.job === 'artist' || r.job === 'athlete') && rvRand(s) < 0.03 * r.talent) { const v = r.inc * rfloatR(s, 3, 12); r.inc *= 2; say(`${r.name}が${r.job === 'artist' ? '作品のヒットで' : '大舞台での活躍で'}一躍有名になりました。`, 'good', true); r.net += v * 0.3; }
+    if (r.job === 'athlete' && a >= 34) { r.job = 'office'; r.inc = RV_JOBS.office.base * 0.8; say(`${r.name}が現役を引退しました。`, 'neutral'); }
+    if (a >= 65 && r.inc > 2.2e6) { r.inc = 2.2e6 + (r.inc - 2.2e6) * 0.15; if (a === 65) say(`${r.name}が仕事を引退しました。`, 'neutral'); }
+  }
+  if (!r.married && a >= 24 && a <= 45 && rvRand(s) < 0.08) { r.married = true; say(`${r.name}が結婚しました。`, 'good'); }
+  if (r.married && a >= 26 && a <= 42 && r.kids < 3 && rvRand(s) < 0.1) { r.kids++; if (r.kids === 1) say(`${r.name}に子どもが生まれました。`, 'good'); }
+  // money: savings from income (a richer start saves more), market returns, inheritance around 55
+  const save = clamp(0.05 + r.grit * 0.12 + r.tier * 0.015 - r.kids * 0.02, 0, 0.3);
+  r.net += r.inc * save + Math.max(0, r.net) * (0.025 + 0.12 * rvGauss(s) * 0.5);
+  if (a === 55 && r.tier >= 2) { const inh = [0, 0, 8e6, 3e7, 1.5e8][r.tier] * (0.5 + rvRand(s)); r.net += inh; if (r.tier >= 3) say(`${r.name}が親から${yen(inh)}を相続しました。`, 'neutral'); }
+  if (r.net >= 1e8 && r.peak < 1e8) say(`${r.name}の資産が1億円を超えたようです。`, 'good', true);
+  r.peak = Math.max(r.peak, r.net);
+}
+function rfloatR(s, a, b) { return a + (b - a) * rvRand(s); }
+function rivalsYear(s) { if (!s.rivals) initRivals(s); for (const r of s.rivals) rivalYear(s, r, false); }
+// old saves: create the peers and replay their lives up to the player's age without filling the player's log
+function ensureRivals(s) { if (s.rivals) return; initRivals(s); const a = playerAge(s); for (let y = 1; y <= a; y++) for (const r of s.rivals) { const save = s.time.year; s.time.year = P(s).birthYear + y; rivalYear(s, r, true); s.time.year = save; } }
+// money in today's yen for everyone, so the ranking is fair
+function cohortRanking(s) {
+  const me = { id: 'me', name: P(s).name, me: true, alive: !s.over, net: balanceSheet(s).net / priceIdx(s), job: statusLabel(s), deathAge: s.over ? playerAge(s) : null };
+  const list = (s.rivals || []).map((r) => ({ id: r.id, name: r.name, me: false, alive: r.alive, net: r.net, job: r.alive ? (r.job ? (r.job === 'founder' ? '会社経営者' : RV_JOBS[r.job].label) : r.edu ? '学生' : '子ども') : `${r.deathAge}歳で死去`, deathAge: r.deathAge, pref: r.pref, tier: r.tier, kids: r.kids, married: r.married }));
+  return list.concat([me]).sort((a, b) => b.net - a.net).map((x, i) => Object.assign(x, { rank: i + 1 }));
+}
+
+// ---------- life map: one square per year, shade = happiness (or 財産), icons for turning points
+const MAP_ICONS = [[/入学|進学/, '学'], [/卒業/, '卒'], [/就職|働き始め|プロ契約|入団/, '職'], [/結婚/, '婚'], [/誕生|出産|子どもを迎え/, '子'], [/家を購入|マイホーム|住宅を購入/, '家'], [/起業/, '起'], [/上場/, '上'], [/買収/, '買'], [/1億|FIRE/, '¥'], [/病気|ケガ|故障|入院/, '病'], [/との別れ|亡くな/, '別'], [/倒産|破産|リストラ|解雇|失業/, '落'], [/引退/, '退'], [/節目/, '節']];
+function lifeMap(s) {
+  const T = s.timeline || [], ch = s.chronicle || [], fav = new Set((s.favs || []));
+  const byAge = {};
+  for (const e of T) byAge[e.a] = { a: e.a, hp: e.hp, w: e.w, icons: [] };
+  for (const h of ch) { if (h.title === '誕生日') continue; const m = MAP_ICONS.find(([re]) => re.test(h.title)); const cell = byAge[h.age] || (byAge[h.age] = { a: h.age, hp: null, w: null, icons: [] }); if (m && !cell.icons.includes(m[1])) cell.icons.push(m[1]); if (fav.has(h.id)) cell.fav = true; }
+  for (const h of s.history) if (fav.has(h.id) && byAge[h.age]) byAge[h.age].fav = true;
+  const cur = playerAge(s), exp = lifeExpectancy(s);
+  return { cells: Object.values(byAge).sort((a, b) => a.a - b.a), current: cur, expect: exp, span: Math.max(exp + 5, cur + 1, 90) };
+}
+
+// ---------- milestones: look back on the decade, choose what the next one is for
+const MILESTONE_AGES = [18, 30, 45, 60, 75];
+function milestoneGoals(s) {
+  const a = playerAge(s), bs = balanceSheet(s), pi = priceIdx(s), realNet = bs.net / pi, b = budget(s), C = country(s), out = [];
+  const nextAt = MILESTONE_AGES.find((x) => x > a) || a + 10;
+  const r10 = (v) => Math.max(1e6, Math.round(v / 1e6) * 1e6);
+  const wTarget = r10(Math.max(realNet * 2.2, a < 30 ? 5e6 : a < 45 ? 2e7 : 4e7) * C.cost);
+  out.push({ k: 'wealth', label: `純資産を今の価値で${yen(wTarget)}にする`, target: wTarget, hint: '貯蓄・投資・事業で資産を増やす' });
+  if (a < 60) { const inc = Math.max(b.totalIncome / pi, 3e6 * C.wage); const t = r10(inc * (a < 30 ? 1.6 : 1.35)); out.push({ k: 'income', label: `年収を今の価値で${yen(t)}にする`, target: t, hint: '昇進・転職・資格・独立で稼ぐ力を伸ばす' }); }
+  if (a >= 18 && a < 60) out.push(playerBusinesses(s).length ? { k: 'biz', label: '会社の社員を30人以上にする', target: 30, hint: '採用と需要の拡大。上場はさらに大きな成果になる' } : { k: 'found', label: '起業して黒字の会社を持つ', target: 1, hint: '失敗しても再挑戦できる。資本金は自分で用意する' });
+  const married = Object.values(s.characters).some((c) => c.relation === 'spouse' && c.alive);
+  if (a < 50) out.push(!married ? { k: 'family', label: '家族を持つ（結婚する）', target: 1, hint: '人間関係が高いほど縁が生まれやすい' } : { k: 'kids', label: '子どもを育てる', target: childrenOf(s).length + 1, hint: '幸福と人間関係が上がる。お金はかかる' });
+  out.push({ k: 'health', label: '健康を70以上に保つ', target: 70, hint: '重点「健康」・ストレスを減らす' });
+  if (a >= 45) out.push({ k: 'social', label: '人間関係を80以上にする', target: 80, hint: '家族や友人、地域との時間を増やす' });
+  return { goals: out.slice(0, 4), until: nextAt };
+}
+function goalProgress(s, g) {
+  if (!g) return null;
+  const pi = priceIdx(s), bs = balanceSheet(s);
+  switch (g.k) {
+    case 'wealth': return { v: bs.net / pi, done: bs.net / pi >= g.target, show: `${yen(bs.net / pi)} / ${yen(g.target)}` };
+    case 'income': { const v = budget(s).totalIncome / pi; return { v, done: v >= g.target, show: `${yen(v)} / ${yen(g.target)}` }; }
+    case 'biz': { const v = playerBusinesses(s).reduce((a, b) => a + b.employees, 0); return { v, done: v >= g.target, show: `${v}人 / ${g.target}人` }; }
+    case 'found': { const v = playerBusinesses(s).filter((b) => b.last && b.last.net > 0).length; return { v, done: v >= 1, show: v ? '黒字の会社あり' : '未達成' }; }
+    case 'family': { const v = Object.values(s.characters).some((c) => c.relation === 'spouse' && c.alive) ? 1 : 0; return { v, done: !!v, show: v ? '結婚した' : '未達成' }; }
+    case 'kids': { const v = childrenOf(s).length; return { v, done: v >= g.target, show: `${v}人 / ${g.target}人` }; }
+    case 'health': return { v: s.stats.health, done: s.stats.health >= g.target, show: `${Math.round(s.stats.health)} / ${g.target}` };
+    case 'social': return { v: s.stats.relations, done: s.stats.relations >= g.target, show: `${Math.round(s.stats.relations)} / ${g.target}` };
+  }
+  return null;
+}
+// judge the running goal (at the next milestone, or when life ends)
+function judgeGoal(s, why) {
+  const g = s.goal10; if (!g || g.judged) return null;
+  const p = goalProgress(s, g); g.judged = true; g.result = !!(p && p.done);
+  s.goalLog = s.goalLog || []; s.goalLog.push({ from: g.from, to: playerAge(s), label: g.label, done: g.result });
+  if (g.result) { s.goalsDone = (s.goalsDone || 0) + 1; record(s, { cat: 'life', title: '10年目標を達成', desc: `${g.from}歳で決めた「${g.label}」を達成しました。`, tone: 'good', important: true, stats: addStats(s, { happiness: 8, selfControl: 2 }) }); }
+  else if (why !== 'end') record(s, { cat: 'life', title: '10年目標に届かず', desc: `${g.from}歳で決めた「${g.label}」には届きませんでした（${p ? p.show : ''}）。次の10年で取り返せます。`, tone: 'neutral', stats: addStats(s, { happiness: -2 }) });
+  return g.result;
+}
+function decadeRecap(s) {
+  const a = playerAge(s), T = s.timeline || [], from = T.filter((e) => e.a <= a - 10 || e.a === T[0].a).pop() || T[0], bs = balanceSheet(s);
+  const sinceAge = from ? from.a : 0, H = (s.chronicle || []).filter((h) => h.age > sinceAge && h.important && !/誕生日/.test(h.title)).slice(-5).map((h) => h.title);
+  const realNow = bs.net / priceIdx(s), realThen = from ? from.net / (from.pi || 1) : 0;
+  const rank = s.rivals ? cohortRanking(s).find((x) => x.me) : null;
+  return { from: sinceAge, net: bs.net, dNet: realNow - realThen, events: H, rank: rank ? rank.rank : null, of: s.rivals ? s.rivals.length + 1 : null, wealth: wealthLabel(s.stats.wealth || 0) };
+}
+function addNote(s, text) {
+  text = String(text || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 120); if (!text) return { ok: false };
+  (s.notes || (s.notes = [])).push({ age: playerAge(s), year: s.time.year, text });
+  record(s, { cat: 'life', title: '思いを書き残した', desc: `「${text}」`, tone: 'neutral', important: true });
+  return { ok: true };
+}
+function toggleFav(s, id) { s.favs = s.favs || []; const i = s.favs.indexOf(id); if (i >= 0) s.favs.splice(i, 1); else s.favs.push(id); bump(s); return i < 0; }
+
+// ---------- auto decisions ("おまかせ"): a style chosen by the player, applied to every later choice until turned off
+const AUTO_STYLES = { safe: '安定重視', balanced: 'バランス', bold: '挑戦重視' };
+function autoPick(s, style) {
+  const v = activeView(s); if (!v) return -1;
+  let best = -1, bv = -1e9;
+  v.choices.forEach((c, i) => {
+    if (c.disabled) return;
+    const txt = c.label + ' ' + (c.now || '') + ' ' + (c.future || '');
+    let sc = -i * 0.3; // the game lists the steady option first
+    const bold = /挑戦|起業|全力|攻め|独立|海外|プロ|上場|買収|投資|大胆|受ける|参入|移籍/.test(txt), safe = /見送|断る|今のまま|続ける|貯金|安定|守|休|相談|様子/.test(txt);
+    if (style === 'bold') sc += (bold ? 3 : 0) + (c.risk ? 1.5 : 0) - (safe ? 1 : 0);
+    else if (style === 'safe') sc += (safe ? 2 : 0) - (c.risk ? 2 : 0) - (bold ? 1.5 : 0);
+    else sc += (c.risk ? -0.5 : 0);
+    if (sc > bv) { bv = sc; best = i; }
+  });
+  return best;
+}
+function setAuto(s, style) { s.flags.auto = style && AUTO_STYLES[style] ? style : null; bump(s); return { ok: true, msg: s.flags.auto ? `これからの決断を「${AUTO_STYLES[style]}」でおまかせにします。` : 'おまかせをやめました。決断は自分で選びます。' }; }
+
+// ---------- the closing sequence of a life
+function lastWords(s) {
+  const kids = childrenOf(s).filter((c) => c.alive).length, sp = Object.values(s.characters).some((c) => c.relation === 'spouse' && c.alive), biz = playerBusinesses(s).length;
+  const happy = s.stats.happiness, A = s.achievements;
+  const opts = [];
+  if (kids >= 2) opts.push('みんな、ありがとう。にぎやかで、楽しい家だった。');
+  if (sp) opts.push('ずっと隣にいてくれて、本当に心強かった。');
+  if (biz || A.ipo) opts.push('会社のみんなによろしく。いい仲間に恵まれた。');
+  if (s.sport && s.sport.proYears) opts.push('もう一度、あの歓声の中に立ちたかったな。');
+  if (happy < 40) opts.push('思うようにいかないことも多かったけれど、よくやったと思う。');
+  if (!opts.length) opts.push('いろいろあったけれど、悪くない一生だった。');
+  return opts[(s.seed + playerAge(s)) % opts.length];
+}
+function causeOfDeath(s) {
+  const a = playerAge(s), last = (s.history || []).slice(-30).reverse().find((h) => /病気|入院|がん|心臓|脳/.test(h.title + h.desc));
+  if (a >= 90) return '老衰';
+  if (last) return '病気';
+  if (s.stats.health < 35) return '体の衰え';
+  return a < 60 ? '突然の病' : '病気';
+}
+function mourners(s) {
+  const alive = Object.values(s.characters).filter((c) => c.alive && c.relation !== 'self');
+  const cnt = (rel) => alive.filter((c) => c.relation === rel).length;
+  const parts = [];
+  if (cnt('spouse')) parts.push('配偶者'); if (cnt('child')) parts.push(`子ども${cnt('child')}人`); if (cnt('grandchild')) parts.push(`孫${cnt('grandchild')}人`);
+  if (cnt('sibling')) parts.push('きょうだい');
+  const friends = Math.round(s.stats.relations / 12); if (friends >= 3) parts.push(`古い友人${friends}人`);
+  const staff = (s.lifeStats && s.lifeStats.maxEmployees) || 0; if (staff >= 10) parts.push('かつての社員たち');
+  const rivals = (s.rivals || []).filter((r) => r.alive).map((r) => r.name); if (rivals.length) parts.push(`同じ日に生まれた${rivals[0]}`);
+  return { text: parts.length ? parts.join('、') : '近所の人たち', n: alive.length + friends + (staff >= 10 ? Math.min(30, Math.round(staff / 10)) : 0) };
+}
+function lifeHighlights(s) {
+  const fav = new Set(s.favs || []), ch = (s.chronicle || []).filter((h) => !/誕生日|1年の家計|同じ日に生まれた/.test(h.title));
+  const PRI = /結婚|誕生|就職|起業|上場|購入|入学|卒業|達成|プロ|入団|合格|相続|奇跡|開花/;
+  let pick = ch.filter((h) => fav.has(h.id)).concat(ch.filter((h) => !fav.has(h.id) && PRI.test(h.title)));
+  const seen = new Set(), out = [];
+  for (const h of pick.sort((a, b) => a.age - b.age)) { const key = h.title + h.age; if (seen.has(key)) continue; seen.add(key); out.push(h); }
+  // keep it to a short film: favourites first, then spread over the life
+  let film = out; if (film.length > 9) { const favs = film.filter((h) => fav.has(h.id)), rest = film.filter((h) => !fav.has(h.id)); const step = rest.length / Math.max(1, 9 - favs.length); film = favs.concat(rest.filter((_, i) => Math.floor(i % step) === 0)).sort((a, b) => a.age - b.age).slice(0, 9); }
+  const snaps = (s.snaps || []).slice().sort((a, b) => a.age - b.age);
+  const snapFor = (age) => { let best = 0; snaps.forEach((x, i) => { if (x.age <= age) best = i; }); return best; };
+  return film.map((h) => ({ age: h.age, year: h.year, title: h.title, desc: h.desc, snap: snapFor(h.age), fav: fav.has(h.id) }));
+}
+function lifeFacts(s) {
+  const T = s.timeline || [], adults = T.filter((e) => e.a >= 6);
+  const best = adults.length ? adults.reduce((a, b) => (b.hp > a.hp ? b : a)) : null;
+  const focusCount = {}; for (const e of T) if (e.a >= 18 && e.f) for (const f of e.f) focusCount[f] = (focusCount[f] || 0) + 1 / e.f.length;
+  const topFocus = Object.keys(focusCount).sort((a, b) => focusCount[b] - focusCount[a]).slice(0, 2).map((f) => `${FOCUS[f] ? FOCUS[f].label : f} ${Math.round(focusCount[f])}年`);
+  const exp = lifeExpectancy(s), age = playerAge(s), curve = survivalCurve(s);
+  return { happiest: best ? { age: best.a, year: best.y } : null, focus: topFocus, expect: exp, age, outlived: Math.round((1 - (curve[Math.min(110, age)] || 0)) * 100), cause: causeOfDeath(s), mourners: mourners(s), words: lastWords(s) };
+}
+
+// ---------- the milestone event itself (18, 30, 45, 60, 75)
+EV.milestone = { title: '人生の節目', cat: 'life', blocking: true, important: true, random: false,
+  prepare: () => ({}),
+  build: (s) => {
+    const a = playerAge(s), R = decadeRecap(s), G = milestoneGoals(s), last = (s.goalLog || []).slice(-1)[0];
+    const lines = [`${a}歳になりました。${R.from}歳からの${a - R.from}年で、純資産は今の価値で${signedYen(R.dNet)}変わり、いまは「${R.wealth}」の暮らしです。`];
+    if (R.events.length) lines.push(`この間の大きな出来事：${R.events.join('、')}。`);
+    if (last && last.to === a) lines.push(last.done ? `前の節目で決めた「${last.label}」は達成しました。` : `前の節目で決めた「${last.label}」には届きませんでした。`);
+    if (R.rank) lines.push(`同じ日に生まれた${R.of}人の中で、資産はいま${R.rank}番目です。`);
+    lines.push(`次の節目（${G.until}歳）までの目標を決めましょう。達成すると幸福が上がり、人生の評価（挑戦・成長）に加わります。`);
+    const choices = G.goals.map((g) => opt(g.label, `判定は${G.until}歳`, g.hint, (s) => { s.goal10 = { k: g.k, target: g.target, label: g.label, from: playerAge(s), until: G.until }; return { title: '次の10年の目標', desc: `「${g.label}」を${G.until}歳までの目標にしました。`, tone: 'good' }; }, { notes: ['目標と進み具合は「目標」タブで確認できる'] }));
+    choices.push(opt('目標は決めず、流れに任せる', '変化なし', '縛られずに生きる', (s) => { s.goal10 = null; addStats(s, { stress: -3 }); return { title: '次の10年', desc: '目標は決めずに、そのときどきの気持ちで生きることにしました。', tone: 'neutral' }; }));
+    return { text: lines.join(''), choices };
+  } };
+
 // ---- 08_story.js
 // ===== life story: yearly timeline, room snapshots, end-of-life evaluation and titles =====
 // Everything here is built from what actually happened (history records, yearly snapshots, the save itself). Nothing is invented.
@@ -4568,7 +4910,7 @@ function pushTimeline(s, start) {
   const bs = balanceSheet(s), ly = s.finance.lastYear, L = s.lifeStats;
   const e = { a: playerAge(s), y: s.time.year, net: Math.round(bs.net), cash: Math.round(bs.cash), inv: Math.round(bs.investable), re: Math.round(bs.realEstate), eq: Math.round(bs.equity), debt: Math.round(bs.debts),
     inc: start || !ly ? 0 : Math.round(ly.income || 0), exp: start || !ly ? 0 : Math.round((ly.expense || 0) + (ly.tax || 0)),
-    w: s.stats.wealth != null ? s.stats.wealth : wealthIndex(s), h: Math.round(s.stats.health), hp: Math.round(s.stats.happiness), r: Math.round(s.stats.relations), k: Math.round(s.stats.knowledge), ab: abilAvg(s), pi: round(priceIdx(s), 3), fam: s.family && !s.family.settled ? Math.round(familyNet(s)) : null };
+    w: s.stats.wealth != null ? s.stats.wealth : wealthIndex(s), h: Math.round(s.stats.health), hp: Math.round(s.stats.happiness), r: Math.round(s.stats.relations), k: Math.round(s.stats.knowledge), ab: abilAvg(s), pi: round(priceIdx(s), 3), f: s.focus.slice(), fam: s.family && !s.family.settled ? Math.round(familyNet(s)) : null };
   s.timeline.push(e);
   if (!start && ly) { L.income += ly.income || 0; L.expense += ly.expense || 0; L.tax += ly.tax || 0; }
   if (bs.net > L.maxNet) { L.maxNet = bs.net; L.maxNetAge = e.a; }
@@ -4633,14 +4975,14 @@ function evaluateLife(s) {
   let health = avgH * 0.75 + clamp((age - 60) * 0.6, -15, 18) + (count(/回復|完治/) * 2);
   // 幸福
   const avgHp = avgOf(T, 'hp');
-  let happy = avgHp * 0.9 + (fire ? 6 : 0) + (s.flags.dreamJob ? 5 : 0) + Math.min(6, count(/結婚|誕生|旅行/) * 1.5);
+  let happy = avgHp * 0.9 + Math.min(6, (s.goalsDone || 0) * 1.5) + (fire ? 6 : 0) + (s.flags.dreamJob ? 5 : 0) + Math.min(6, count(/結婚|誕生|旅行/) * 1.5);
   // 人間関係・家族
   const avgR = avgOf(T, 'r'), kids = childrenOf(s).length, married = Object.values(s.characters).some((c) => c.relation === 'spouse');
   let rel = avgR * 0.7 + (married ? 10 : 0) + Math.min(12, kids * 4) + Math.min(6, count(/友|仲間|恩返し|支援/) * 1.5) - (count(/離婚|絶縁|争い/) * 4);
   // 挑戦・成長
   const tries = count(/起業|独立|挑戦|移住|転職|プロ|入団|上場|デビュー|留学|資格|合格/), recover = (s.achievements.comeback ? 12 : 0) + count(/再起|立ち直|復帰/) * 4;
   const growth = T.length > 1 ? Math.max(0, (T[T.length - 1].ab || 0) - (T[0].ab || 0)) : 0;
-  let challenge = 15 + Math.min(40, tries * 4) + recover + Math.min(25, growth * 0.6);
+  let challenge = 15 + Math.min(40, tries * 4) + recover + Math.min(25, growth * 0.6) + Math.min(20, (s.goalsDone || 0) * 6);
   // 社会への影響
   let social = 10 + Math.min(35, Math.log2(1 + (L.maxEmployees || 0)) * 6) + Math.min(15, count(/寄付|支援|地域|ボランティア|恩返し|子ども食堂/) * 4) + Math.min(15, kids * 3) + Math.min(20, Math.log10(1 + (L.tax || 0) / 1e6) * 8) + (sp && sp.fame > 50 ? 8 : 0) + (cr && cr.fame > 50 ? 8 : 0);
   // 運（参考値）
@@ -4687,6 +5029,8 @@ function lifeTitles(s, ev) {
   if (s.flags.eliteUni && s.flags.miracle) add('奇跡の合格者', '低い学力から特別選抜で難関大学へ');
   if (A.centenarian) add('百寿者', '100歳まで生きた');
   if (s.creator && (s.creator.hits || 0) >= 2) add('ヒットメーカー', `ヒット作${s.creator.hits}本`);
+  if ((s.goalsDone || 0) >= 3) add('目標を貫いた人', `節目で決めた目標を${s.goalsDone}回達成`);
+  if (s.rivals && s.rivals.length) { const rk = cohortRanking(s).find((x) => x.me); if (rk && rk.rank === 1) add('同じ日に生まれた中でいちばんの資産家', `${s.rivals.length + 1}人の中で1位`); }
   if (ev.scores.happy >= 80 && ev.scores.econ < 50) add('お金より大切なものを知る人', '資産は控えめでも幸福度が高い');
   return out;
 }
@@ -4736,6 +5080,7 @@ function scheduleYear(s) {
   else if (hasRealJob(s) && (a === C.pensionAge + (s.career.reemploy ? 0 : 5) || (a > C.pensionAge + 5 && a % 3 === 0))) fixed.push('final_retire');
   if (s.career.status === 'unemployed' && !s.businesses.length && a >= 18 && a < C.pensionAge && !s.career.benefitMonths && !(s.sport && !s.sport.retired && ['pro', 'abroad', 'indy'].includes(s.sport.stage))) fixed.push(s.sport && s.sport.retired && s.sport.retireAge === a - 1 ? 'sport_second' : 'job_hunt');
   sportSchedule(s, fixed);
+  if (MILESTONE_AGES.includes(a) && !s.over) { judgeGoal(s, 'milestone'); fixed.push('milestone'); }
   for (const b of playerBusinesses(s)) if (ipoReady(s, b).ok && !(s.flags.bizIpoAsked[b.id] >= s.time.year - 2)) { s.flags.bizIpoAsked[b.id] = s.time.year; queueEvent(s, 'ipo_ready', { bizId: b.id }, rfloat(s, 0.1, 0.3)); }
   for (const id of fixed) if (!s.events.queue.some((q) => q.defId === id)) queueEvent(s, id, {}, rfloat(s, 0.12, 0.3));
   for (const q of (s.events.nextYear || [])) queueEvent(s, q.defId, q.ctx, rfloat(s, 0.1, 0.3));
@@ -4994,6 +5339,8 @@ function yearEnd(s) {
   abilityYear(s, statsBefore);
   realtyYear(s);
   updateWealth(s);
+  moneyReview(s);
+  rivalsYear(s);
   storyYear(s);
   s.finance.ytd = blankYtd();
   s.finance.nisa.annualUsed = 0;
@@ -5083,6 +5430,7 @@ function playerDies(s) {
   record(s, { cat: 'life', title: '人生の終わり', desc: `${age}歳で人生を終えました。最後の純資産は${yen(bs.net)}。${kids.length ? `資産は子ども${kids.length}人に引き継がれます。` : ''}`, tone: 'bad', important: true });
   s.summary = { age, net: bs.net, year: s.time.year, achievements: Object.keys(s.achievements).length, kids: kids.length };
   updateWealth(s);
+  judgeGoal(s, 'end');
   finishStory(s);
 }
 
@@ -5097,7 +5445,9 @@ function deserialize(json) {
   if (s.version === 3) migrateV3(s);
   if (s.version === 4) migrateV4(s);
   // assets added in later versions (new stocks, crypto) are created on load so old saves can trade them immediately
+  if (s.characters && s.time) ensureRivals(s);
   if (s.world && s.world.assets) { ensureMarket(s); if (!s.world.crypto) s.world.crypto = { phase: 0.25, sent: 0 }; if (!s.world.realtyMarket) genRealtyMarket(s); }
+  if (s.summary && s.summary.eval && !(s.summary.eval.total >= 0)) { try { s.summary.eval = evaluateLife(s); } catch (e) { /* keep the old summary */ } }
   s.time.playing = false; s.time.resumeIn = 0; delete s.time.pausedByEvent; delete s.time.autoPause;
   // guard against duplicated ids in order
   s.order = Array.from(new Set(s.order)).filter((id) => s.characters[id]);
@@ -5336,6 +5686,7 @@ const LC = {
   quoteHome, buyHome, rentHome, sellHome, homePrice, homeRent, moveCountry, carPrice, buyCar, sellCar, adoptPet, careForPet, petAge, visiblePets,
   foundCompany, bizHire, bizSetAds, bizSetPay, bizCapex, bizLoan, bizLoanLimit, bizRaiseEquity, bizEquityOffer, bizIPO, ipoReady, bizSellShares, bizDividend, bizInject, bizSellCompany, bizAcquire, bizById, subsidiaries, bizCapacity, bizNetAssets, controlledCompanies,
   OCC, CAREER_CATS, DEG_LABEL, MAJORS, LICENSES, SPORTS, occEligibility, hireChance, chanceText, chanceRange, occBaseSalary, applyJob, setStudyTarget, examPassChance, licenseEligible, hasLicense, startSport, sportRating, draftChance, proSalary, sportRetire, startCreator, freelanceIncome, ladderOf, jobHuntOffers, makeOffer, sportFee, careerYear,
+  peerTop, topText, survivalCurve, lifeExpectancy, moneyReview, initRivals, ensureRivals, rivalsYear, cohortRanking, RV_JOBS, lifeMap, MILESTONE_AGES, milestoneGoals, goalProgress, judgeGoal, decadeRecap, addNote, toggleFav, AUTO_STYLES, autoPick, setAuto, lastWords, lifeHighlights, lifeFacts, mourners,
   ABIL, abilityYear, checkReveals, realtyMonth, realtyYear, genMaTargets, bizRecalcValuations, lifeRecords, TALENT_WORD, WEALTH_BANDS, wealthLabel, wealthIndex, updateWealth, addAbil, abilMul, REALTY, realtyList, realtyQuote, buyRealty, sellRealty, propValueJPY, propLoan, genRealtyMarket, realtyBudgetLines, realtyRunningCost, realtyValue, otherAssets, ASSET_CATS, cryptoTaxRate, tradeFee, cryptoLiquidity, ensureDivs, divTotalDemand, bizSetRnd, bizNewDivision, bizCloseDivision, bizRepay, bizBuyStake, bizSellSub, bizDueDiligence, bizOperatingProfit, groupSummary, evaluateLife, EVAL_LABEL, RANKS, rankOf, lifeTitles, storyTimeline, finishStory, compactRoom, takeSnapshot, sportRole, initAbilities, initStory, pushTimeline,
   roomModel, FURNITURE, FURNITURE_GROUPS, ROOM_SIZE, buyFurniture, sellFurniture, canBuyFurniture, furniturePrice, placedFurniture, homeCapacity, furnitureSlotsUsed, furnitureList, giveStarterKit,
   TIMEFRAMES, chartBars, assetQuote, dailyBars, monthlyBars, intradayBars, taSMA, taEMA, taRSI, taMACD, taBoll, barsByWeek, barsByMonth, barValid, stepWorld, worldShock, tradingDays, ensureMarket, packBars, unpackBars, raiseCash, sportGoPro, sportYear, startFreelance, startInvestor, changeCareerTo, eligibleJobIds, grantLicense, CORP_LADDER, randomEvents, buildEvent, startSport, sportStageLabel, creatorYear, playerBusinesses,
@@ -6634,6 +6985,7 @@ const Scene = (function () {
     lastFrame = now;
     if (ui.mode !== 'main') { if (S && ui.mode === 'intro') Scene.frame(S, now); requestAnimationFrame(loop); return; }
     if (!ui.sheet) LC.tick(S, dt);
+    autoStep(dt);
     if (S.time.year !== lastYear) { lastYear = S.time.year; saveTo('auto'); }
     Scene.frame(S, now);
     updateClock();
@@ -6667,7 +7019,7 @@ const Scene = (function () {
 
   // ---------- main render
   function renderAll() {
-    renderScene(); renderLife(); renderStats(); renderMoney(); renderLog(); renderEvent();
+    renderScene(); renderLife(); renderStats(); renderMoney(); renderMap(); renderRivals(); renderLog(); renderEvent();
     if (ui.sheet && !ui.typing) renderSheet();
   }
   function renderScene() {
@@ -6705,7 +7057,7 @@ const Scene = (function () {
     if (S.over) focus = '<p>人生を終えました。</p>';
     else if (!avail.length) focus = `<p>まだ${LC.STAGE_LABEL[LC.stageOf(age)]}です。親に育てられています。幼いころの出来事が積み重なって5歳ごろに気質が見え、6歳からはその年の重点を選べます。この時期は8×で進めても大丈夫です。</p>`;
     else {
-      focus = `<div class="seg">${avail.map((k) => { const on = S.focus.includes(k); const dis = !on && S.focus.length >= LC.CONFIG.MAX_FOCUS; return `<button class="chip-btn ${on ? 'on' : ''}" data-act="focus" data-v="${k}" ${dis ? 'disabled' : ''} aria-pressed="${on}">${LC.FOCUS[k].label}</button>`; }).join('')}</div>
+      focus = `<div class="seg">${avail.map((k) => { const on = S.focus.includes(k); const dis = !on && S.focus.length >= LC.CONFIG.MAX_FOCUS; return `<button class="chip-btn ${on ? 'on' : ''}" data-act="focus" data-v="${k}" ${dis ? 'disabled' : ''} aria-pressed="${on}">${LC.FOCUS[k].label}<small class="fx">${focusHint(k)}</small></button>`; }).join('')}</div>
         <p>${S.focus.length === 2 ? '2つ選ぶと時間を分け合うため、それぞれの効果は6割になります。' : S.focus.length ? '1つに絞ると効果は最大です。もう1つ選ぶと時間を分け合います。' : '重点を選ぶと、その年の成長や収入が変わります。'}${focusEffectText()}</p>`;
     }
     $('#secLife').innerHTML = `
@@ -6757,13 +7109,14 @@ const Scene = (function () {
         const nt = r.notes && r.notes.length ? `<span class="note">今後：${r.notes.map(esc).join('／')}</span>` : '';
         detail = `<div class="detail"><span>${r.year}年${r.month}月・${r.age}歳</span>${st}${ab}${mo}${nt}${!st && !mo && !ab ? '<span>数値の変化なし</span>' : ''}</div>`;
       }
-      return `<li><button class="rec ${r.important ? 'imp' : ''} ${r.tone}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
+      const fav = (S.favs || []).includes(r.id);
+      return `<li class="rec-li"><button class="star ${fav ? 'on' : ''}" data-act="fav" data-v="${r.id}" aria-label="${fav ? '☆を外す' : '☆を付ける（大切な思い出）'}" aria-pressed="${fav}">${fav ? '★' : '☆'}</button><button class="rec ${r.important ? 'imp' : ''} ${r.tone} ${fav ? 'faved' : ''}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
         <span class="when"><b>${r.age}歳</b>${r.year}</span>
         <span class="ttl"><span class="tag ${LC.CAT[r.cat] ? LC.CAT[r.cat].color : ''}">${LC.CAT[r.cat] ? LC.CAT[r.cat].label : ''}</span><span class="t">${esc(r.title)}</span></span>
         <span class="desc">${esc(r.desc)}</span>${detail}</button></li>`;
     }).join('');
     $('#secLog').innerHTML = `<div class="card-head"><h3>人生の記録</h3><div class="log-tools"><button class="chip-btn ${ui.logImp ? '' : 'on'}" data-act="logImp" data-v="0">すべて</button><button class="chip-btn ${ui.logImp ? 'on' : ''}" data-act="logImp" data-v="1">重要のみ</button></div></div>
-      <p class="hint" style="margin:-6px 0 10px">新しい順 · タップで詳細</p><ol class="log">${items}</ol>
+      <p class="hint" style="margin:-6px 0 10px">新しい順 · タップで詳細 · ☆で大切な思い出に（人生の最後に振り返ります）</p><ol class="log">${items}</ol>
       ${total > 30 ? `<div class="btn-row"><button class="btn sm" data-act="logAll">${ui.logAll ? '最新30件だけ表示' : `すべて表示（${total}件）`}</button></div>` : ''}`;
   }
 
@@ -6776,17 +7129,18 @@ const Scene = (function () {
       const key = 'over' + S.rev;
       if (shownEvent === 'over') return;
       shownEvent = 'over';
+      if (!S.flags.endingSeen) { S.flags.endingSeen = true; startEnding(false); }
       layer.className = 'event block'; layer.hidden = false;
       layer.innerHTML = `<div class="ev-card end-card important"><h3>${esc(LC.P(S).name)} の人生</h3>
         <p class="ev-text">${LC.P(S).birthYear}年に生まれ、${sm.year || S.time.year}年に${sm.age != null ? sm.age : LC.playerAge(S)}歳で人生を終えました。</p>
         <dl class="kv"><dt>最後の純資産</dt><dd>${Y(sm.net)}</dd><dt>達成した目標</dt><dd>${Object.keys(S.achievements).length} / ${Object.keys(LC.ACHIEVEMENTS).length}</dd><dt>子ども</dt><dd>${sm.kids || 0}人</dd><dt>記録の数</dt><dd>${S.history.length}件</dd></dl>
         ${sm.eval ? `<div class="end-rank"><span class="rank-big r-${sm.eval.rank.rank}">${sm.eval.rank.rank}</span><span>総合 ${sm.eval.total}点 · ${esc(sm.eval.rank.label)}</span></div>` : ''}
-        <div class="btn-row"><button class="btn primary" data-act="history">人生ヒストリーを見る</button><button class="btn" data-act="newgame">新しい人生を始める</button><button class="btn" data-act="hideEnd">記録を読み返す</button></div></div>`;
+        <div class="btn-row"><button class="btn primary" data-act="history">人生ヒストリーを見る</button><button class="btn" data-act="ending">最後の瞬間をもう一度見る</button><button class="btn" data-act="newgame">新しい人生を始める</button><button class="btn" data-act="hideEnd">記録を読み返す</button></div></div>`;
       return;
     }
     const v = LC.activeView(S);
-    const key = v ? v.n + ':' + S.events.active.defId + JSON.stringify(S.events.active.ctx) + ':' + v.choices.map((c) => (c.disabled ? 0 : 1)).join('') + ':' + S.time.playing : null;
-    if (!v) { if (!layer.hidden) { layer.hidden = true; layer.innerHTML = ''; } shownEvent = null; return; }
+    const key = v ? v.n + ':' + S.events.active.defId + JSON.stringify(S.events.active.ctx) + ':' + v.choices.map((c) => (c.disabled ? 0 : 1)).join('') + ':' + S.time.playing + ':' + (S.flags.auto || '') + ':' + !!ui.peek : null;
+    if (!v) { if (!layer.hidden) { layer.hidden = true; layer.innerHTML = ''; } shownEvent = null; ui.peek = false; return; }
     if (shownEvent === key) return;
     shownEvent = key;
     $('#outcome').hidden = true; // a new decision takes the screen; the previous result stays in the log
@@ -6794,13 +7148,16 @@ const Scene = (function () {
     layer.hidden = false;
     const cat = LC.CAT[v.cat] || LC.CAT.life;
     layer.innerHTML = `<div class="ev-card ${v.important ? 'important' : ''}" role="dialog" aria-label="${esc(v.title)}">
-      <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span></div>
+      <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span><button class="ev-peek" data-act="peek" aria-label="いったん下ろして画面を見る">いったん下ろす ▾</button></div>
       <p class="ev-text">${esc(v.text)}</p>
       <p class="ev-hold">${S.time.playing ? '時間は止まっています。選ぶと結果を反映して、自動で再開します。' : '一時停止中です。選んだあとも止まったままです（▶ で再開）。'}</p>
       <div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-v="${i}" data-n="${v.n}" ${c.disabled ? 'disabled' : ''}>
         <span class="c-l">${esc(c.label)}</span>
         ${c.now ? `<span class="c-fx"><b>いま</b><span>${esc(c.now)}</span></span>` : ''}${c.future ? `<span class="c-fx"><b>この先</b><span>${esc(c.future)}</span></span>` : ''}${c.risk ? `<span class="c-fx risk"><b>リスク</b><span>${esc(c.risk)}</span></span>` : ''}
-        ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</button>`).join('')}</div></div>`;
+        ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</button>`).join('')}</div>
+      ${v.id === 'milestone' ? `<label class="ev-note">思いを書き残す（任意・120字まで。人生の年表に残ります）<textarea id="evNote" maxlength="120" rows="2" placeholder="例）この10年でいちばん大事だったこと"></textarea></label>` : ''}
+      ${autoBar()}</div>`;
+    if (ui.peek) peekLayer(v);
   }
 
   // ---------- sheets
@@ -7137,7 +7494,7 @@ const Scene = (function () {
   function sheetGoals() {
     const bs = LC.balanceSheet(S), f = LC.fireStatus(S);
     const pi = LC.priceIdx(S), prog = Math.max(0, Math.min(1, bs.net / pi / 1e8));
-    let html = `<div class="btn-row" style="margin-bottom:8px"><button class="btn sm" data-act="history">人生ヒストリー（途中経過）を見る</button></div><div class="box"><h4>純資産1億円まで<span class="num">${Math.round(prog * 100)}%</span></h4><div class="cap-bar"><i style="width:${prog * 100}%;background:var(--gold)"></i></div><p style="margin-top:6px">いまの純資産 ${Y(bs.net)}${pi > 1.02 ? `（今の価値で${Y(bs.net / pi)}・物価指数${pi.toFixed(2)}）` : ''}</p></div>
+    let html = `<div class="btn-row" style="margin-bottom:8px"><button class="btn sm" data-act="history">人生ヒストリー（途中経過）を見る</button></div>${goalBox()}<div class="box"><h4>純資産1億円まで<span class="num">${Math.round(prog * 100)}%</span></h4><div class="cap-bar"><i style="width:${prog * 100}%;background:var(--gold)"></i></div><p style="margin-top:6px">いまの純資産 ${Y(bs.net)}${pi > 1.02 ? `（今の価値で${Y(bs.net / pi)}・物価指数${pi.toFixed(2)}）` : ''}</p></div>
       <div class="box"><h4>FIREの目安</h4>${kv([['年間の生活費（税以外）', Y(f.spend)], ['投資収入の目安（資産の4%＋年金）', Y(f.investIncome)], ['事業収入の目安（利益の50%＋年金）', Y(f.bizIncome)], ['住宅ローン以外の借金', Y(f.nonMortgageDebt)]])}
       <div class="cap-bar"><i style="width:${Math.min(100, f.ratio * 100)}%"></i></div><p style="margin-top:6px">投資収入で生活費の${Math.round(f.ratio * 100)}%をまかなえます。100%を超えて借金がなければFIREです。</p></div>`;
     html += `<div class="box"><div class="list">${Object.keys(LC.ACHIEVEMENTS).map((k) => { const A = LC.ACHIEVEMENTS[k], d = S.achievements[k]; return `<div class="goal ${d ? 'done' : ''}"><span class="mark"></span><span class="g-name">${A.label}</span><span class="g-sub">${A.desc}${d ? `（${d.age}歳・${d.year}年に達成）` : ''}</span></div>`; }).join('')}</div></div>`;
@@ -7166,6 +7523,7 @@ const Scene = (function () {
     if (ui.tab === 'settings') {
       return `<div class="box"><h4>1年の長さ（1倍速）</h4><div class="form"><label>秒数（5〜300）<input id="setSec" type="number" inputmode="numeric" min="5" max="300" value="${S.time.baseSeconds}"></label><div class="btn-row"><button class="btn" data-act="setSec">変更する</button></div></div><p class="hint" style="margin-top:6px">速度ボタンはこの長さを割ります。例：26秒なら2倍速は13秒、4倍速は6.5秒。</p></div>
         <div class="box"><h4>見た目を変える</h4>${lookControls(LC.P(S).look, 'myLook')}</div>
+        <div class="box"><h4>決断のおまかせ</h4><p>選んだ方針で、これからの決断をゲームが代わりに選びます（いつでも自分で選ぶに戻せます）。</p><div class="btn-row">${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm ${S.flags.auto === k ? 'on' : ''}" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}<button class="btn sm ${!S.flags.auto ? 'on' : ''}" data-act="auto" data-v="">自分で選ぶ</button></div></div>
         <div class="box"><h4>選択イベント</h4><p>選択が必要な出来事が起きると、その瞬間に時間が止まります。選ぶと結果が反映され、少し間をおいて自動で再開します。⏸ で止めていた場合は、選んだあとも止まったままです。</p></div>`;
     }
     if (ui.tab === 'new') {
@@ -7202,10 +7560,11 @@ const Scene = (function () {
       case 'next': { const had = !!S.events.active; const r = LC.nextYear(S); if (r.blocked && had) toast('先に選択肢を選んでください。', true); break; }
       case 'choose': {
         if (ui.choosing) break; ui.choosing = true; setTimeout(() => { ui.choosing = false; }, 300); // one tap = one decision
-        const h0 = S.history.length;
+        const h0 = S.history.length; const noteEl = document.getElementById('evNote'); const noteTxt = noteEl ? noteEl.value : '';
         const r = LC.chooseEvent(S, +v, false, el.dataset.n != null ? +el.dataset.n : null);
         if (!r.ok) { if (r.msg) toast(r.msg, true); break; }
         const rec = S.history.length > h0 ? S.history[S.history.length - 1] : null;
+        if (noteTxt && noteTxt.trim()) LC.addNote(S, noteTxt);
         void rec; if (r.outcome) showOutcome(Object.assign({}, r.outcome, { paused: !S.time.playing }));
         shownEvent = null; renderEvent(); break;
       }
@@ -7268,6 +7627,15 @@ const Scene = (function () {
       case 'sellShares': result(LC.bizSellShares(S, v, +el.dataset.k)); break;
       case 'sellBiz': ui.confirm = null; result(LC.bizSellCompany(S, v)); break;
       case 'acquire': result(LC.bizAcquire(S, el.dataset.b, v, +el.dataset.k)); break;
+      case 'fav': LC.toggleFav(S, v); renderLog(); break;
+      case 'peek': ui.peek = true; shownEvent = null; renderEvent(); break;
+      case 'unpeek': ui.peek = false; shownEvent = null; renderEvent(); break;
+      case 'auto': { const r = LC.setAuto(S, v || null); toast(r.msg); shownEvent = null; renderEvent(); if (ui.sheet) renderSheet(); autoT = 0; break; }
+      case 'mapMode': ui.mapMode = v; renderMap(); if (ui.sheet === 'history') renderSheet(); break;
+      case 'ending': startEnding(true); break;
+      case 'endHistory': endingFinish(); $('#eventLayer').hidden = true; openSheet('history'); break;
+      case 'endNext': endingNext(); break;
+      case 'endSkip': endingFinish(); break;
       case 'ocClose': $('#outcome').hidden = true; break;
       case 'history': $('#eventLayer').hidden = true; openSheet('history'); break;
       case 'propOpen': ui.prop = v; renderSheet(); $('#sheetBody').scrollTop = 0; break;
@@ -7519,7 +7887,7 @@ const Scene = (function () {
         ${cell('現金', bs.cash)}${cell('投資（株・投信・仮想通貨など）', invest)}${cell('不動産', re)}
         ${bs.equity ? cell('会社の持分', bs.equity) : ''}${cell('負債', -bs.debts)}${cell('純資産', bs.net, 'net')}
         ${cell('年収（税引前）', b.totalIncome)}${cell('年間支出（税込）', b.totalExpense + b.totalTax)}${cell('年間の貯蓄', save)}
-      </div>`;
+      </div>${peerLine()}`;
   }
 
   // ---------- result of a choice: shown right away, with every number that moved
@@ -7569,9 +7937,10 @@ const Scene = (function () {
     const head = `<div class="box hist-head"><h4>${esc(P.name)}<span class="hint">${P.birthYear}年生まれ · ${S.over ? `${LC.playerAge(S)}歳で永眠` : `いま${LC.playerAge(S)}歳（途中経過）`}</span></h4></div>`;
     if (ui.tab === 'time') {
       const tl = LC.storyTimeline(S);
-      if (!tl.length) return head + '<div class="box"><p>まだ年表に載る出来事がありません。</p></div>';
+      const mapBox = `<div class="box"><h4>人生地図<span class="log-tools"><button class="chip-btn ${(ui.mapMode || 'hp') === 'hp' ? 'on' : ''}" data-act="mapMode" data-v="hp">幸福</button><button class="chip-btn ${ui.mapMode === 'w' ? 'on' : ''}" data-act="mapMode" data-v="w">財産</button></span></h4>${mapGrid(true)}</div>`;
+      if (!tl.length) return head + mapBox + '<div class="box"><p>まだ年表に載る出来事がありません。</p></div>';
       let last = null;
-      return head + `<ol class="tline">${tl.map((h) => { const sep = last !== h.age ? `<li class="tl-age">${h.age}歳<span>${h.year}年</span></li>` : ''; last = h.age; return sep + `<li class="tl-ev ${h.tone || ''}"><b>${esc(h.title)}</b><span>${esc(h.desc)}</span>${h.money != null && Math.abs(h.money) >= 1 ? `<em class="${h.money >= 0 ? 'up' : 'down'}">${LC.signedYen(h.money)}</em>` : ''}</li>`; }).join('')}</ol><p class="hint">実際に起きた出来事の記録だけを、年齢順に並べています。</p>`;
+      return head + mapBox + `<ol class="tline">${tl.map((h) => { const sep = last !== h.age ? `<li class="tl-age">${h.age}歳<span>${h.year}年</span></li>` : ''; last = h.age; return sep + `<li class="tl-ev ${h.tone || ''}"><b>${esc(h.title)}</b><span>${esc(h.desc)}</span>${h.money != null && Math.abs(h.money) >= 1 ? `<em class="${h.money >= 0 ? 'up' : 'down'}">${LC.signedYen(h.money)}</em>` : ''}</li>`; }).join('')}</ol><p class="hint">実際に起きた出来事の記録だけを、年齢順に並べています。</p>`;
     }
     if (ui.tab === 'money') {
       const ages = T.map((e) => e.a + '歳');
@@ -7599,6 +7968,7 @@ const Scene = (function () {
     html += `<div class="box"><h4>8つの評価<span class="hint">各0〜100・資産だけでは決まりません</span></h4><div class="evals">${Object.keys(LC.EVAL_LABEL).map((k) => `<div class="ev-row"><span class="e-l">${LC.EVAL_LABEL[k]}</span><div class="meter"><i style="width:${sc[k]}%;background:${EVAL_COL[k]}"></i></div><span class="e-v num">${sc[k]}</span><span class="e-r r-${ev[k + 'Rank']}">${ev[k + 'Rank']}</span></div>`).join('')}</div>
       <div class="ev-row luck"><span class="e-l">運（参考）</span><div class="meter"><i style="width:${ev.luck.score}%;background:var(--faint)"></i></div><span class="e-v num">${ev.luck.score}</span><span class="e-r">幸${ev.luck.good}・不${ev.luck.bad}</span></div>
       <p class="hint">運は総合評価に含めません。貧しい家庭に生まれたことは減点されず、出発点からの上昇が加点されます。</p></div>`;
+    html += historyFacts();
     html += `<div class="box"><h4>称号</h4>${ev.titles.length ? `<ul class="titles">${ev.titles.map((t) => `<li><b>${esc(t.t)}</b><span>${esc(t.why)}</span></li>`).join('')}</ul>` : '<p>まだ称号はありません。</p>'}</div>`;
     html += `<div class="box"><h4>ランクの基準</h4><p class="hint">${LC.RANKS.map((r) => `${r[1]} ${r[0] ? r[0] + '点以上' : '34点未満'}`).join(' · ')}</p></div>`;
     return html;
@@ -7833,6 +8203,111 @@ const Scene = (function () {
       <div class="btn-row"><button class="btn sm" data-act="sellSub" data-v="${x.id}" data-k="0.5">半分を売却</button>${confirmBtn('sellSubAll', x.id, 'すべて売却', `全株を売却（約${Y(myVal)}）`)}</div>
       <p class="hint">買い増しの代金と売却代金は親会社（${esc(parent ? parent.name : '')}）の現金で受け渡しします。あなた個人のお金は動きません。</p></div>`;
     return html;
+  }
+
+  // ======================= fusion update: life map, peers, milestones, auto decisions, closing film =======================
+  const ARROW = (v) => (v > 0 ? '↑' : '↓');
+  const FX_SHORT = { health: '健康', happiness: '幸福', knowledge: '知識', relations: '人間関係', stress: 'ストレス', selfControl: '自制', finLit: '金融', workSkill: '仕事' };
+  function focusHint(k) {
+    const d = LC.FOCUS[k] && LC.FOCUS[k].d; if (!d) return '';
+    return Object.keys(d).filter((x) => FX_SHORT[x] && Math.abs(d[x]) >= 1).sort((a, b) => Math.abs(d[b]) - Math.abs(d[a])).slice(0, 2).map((x) => `${FX_SHORT[x]}${x === 'stress' ? (d[x] > 0 ? '↑' : '↓') : ARROW(d[x])}`).join(' ');
+  }
+  // ---- 人生地図: one square per year
+  function mapGrid(big) {
+    const M = LC.lifeMap(S), mode = ui.mapMode || 'hp', byAge = {}; for (const c of M.cells) byAge[c.a] = c;
+    const rows = []; const last = Math.ceil((M.span + 1) / 10) * 10;
+    for (let d = 0; d < last; d += 10) {
+      let cells = '';
+      for (let a = d; a < d + 10; a++) {
+        const c = byAge[a], past = c && (a < M.current || S.over && a <= M.current), cur = a === M.current && !S.over;
+        const v = c ? (mode === 'w' ? c.w : c.hp) : null, alpha = v == null ? 0 : 0.15 + 0.85 * Math.max(0, Math.min(100, v)) / 100;
+        const bg = past && v != null ? `background:rgba(${mode === 'w' ? '231,194,106' : '91,191,178'},${alpha.toFixed(2)})` : '';
+        const icon = c && c.icons.length ? c.icons[0] : '';
+        cells += `<i class="mc ${past ? 'past' : ''} ${cur ? 'cur' : ''} ${a === M.expect ? 'exp' : ''} ${c && c.fav ? 'fav' : ''}" style="${bg}" title="${a}歳${c && c.icons.length ? '・' + c.icons.join('') : ''}">${esc(icon)}</i>`;
+      }
+      rows.push(`<div class="mrow"><span class="mlab">${d}</span>${cells}</div>`);
+    }
+    return `<div class="lifemap ${big ? 'big' : ''}">${rows.join('')}</div>
+      <p class="hint">1マス＝1年 · 濃いほど${mode === 'w' ? '財産に余裕があった' : '幸福だった'}年 · 金の枠＝平均寿命（${M.expect}歳・ゲーム内の推計） · ★＝☆を付けた思い出<br>学 入学　職 就職　婚 結婚　子 子ども　家 住まい　起 起業　上 上場　¥ 1億・FIRE　病 病気　別 別れ　落 失業・倒産</p>`;
+  }
+  function renderMap() {
+    const el = $('#secMap'); if (!el || !S) return;
+    const mode = ui.mapMode || 'hp';
+    el.innerHTML = `<div class="card-head"><h3>人生地図</h3><div class="log-tools"><button class="chip-btn ${mode === 'hp' ? 'on' : ''}" data-act="mapMode" data-v="hp">幸福</button><button class="chip-btn ${mode === 'w' ? 'on' : ''}" data-act="mapMode" data-v="w">財産</button></div></div>${mapGrid(false)}`;
+  }
+  // ---- peers born on the same day
+  function rivalRows() {
+    const R = LC.cohortRanking(S);
+    return `<ol class="rivals">${R.map((x) => `<li class="${x.me ? 'me' : ''} ${x.alive ? '' : 'gone'}"><span class="rk">${x.rank}</span><span class="nm">${esc(x.name)}${x.me ? '<b>（あなた）</b>' : ''}<small>${x.me ? esc(x.job) : `${esc(x.pref)} · ${esc(x.job)}${x.married ? ' · 既婚' : ''}${x.kids ? ` · 子${x.kids}` : ''}`}</small></span><span class="nw num">${Y(x.net)}</span></li>`).join('')}</ol>`;
+  }
+  function renderRivals() {
+    const el = $('#secRivals'); if (!el || !S || !S.rivals) return;
+    const recent = S.history.filter((h) => h.rival).slice(-2).reverse();
+    el.innerHTML = `<div class="card-head"><h3>同じ日に生まれた人たち</h3><span class="hint">純資産（今の価値）の順</span></div>${rivalRows()}
+      ${recent.length ? `<ul class="news rv-news">${recent.map((h) => `<li><b>${h.age}歳</b><span class="${h.tone === 'good' ? 'up' : h.tone === 'bad' ? 'down' : ''}">${esc(h.desc)}</span></li>`).join('')}</ul>` : ''}`;
+  }
+  // ---- decisions: peek and auto
+  function autoBar() {
+    const cur = S.flags.auto;
+    return `<div class="auto-bar">${cur ? `<span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button>` : `<span class="hint">これからの決断をおまかせ：</span>${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}`}</div>`;
+  }
+  function peekLayer(v) {
+    const layer = $('#eventLayer');
+    layer.className = 'event peek'; layer.innerHTML = `<button class="peek-bar" data-act="unpeek"><span class="tag">決断待ち</span><b>${esc(v.title)}</b><span>タップで戻る ▴</span></button>`;
+  }
+  let autoT = 0;
+  function autoStep(dt) {
+    if (!S || S.over || !S.flags.auto || !S.events.active || ui.sheet || ui.peek || ui.mode !== 'main') { autoT = 0; return; }
+    autoT += dt; if (autoT < 0.9) return; autoT = 0;
+    const i = LC.autoPick(S, S.flags.auto); if (i < 0) return;
+    const r = LC.chooseEvent(S, i, false, S.events.active.n);
+    if (r.ok && r.outcome) showOutcome(Object.assign({}, r.outcome, { title: r.outcome.title + '（おまかせ）' }));
+    shownEvent = null; renderEvent();
+  }
+  // ---- the closing film of a life
+  const END = { steps: [], i: 0, t: null };
+  function startEnding(replay) {
+    const F = LC.lifeFacts(S), H = LC.lifeHighlights(S), P = LC.P(S), snaps = (S.snaps || []).slice().sort((a, b) => a.age - b.age), ev = (S.summary && S.summary.eval) || LC.evaluateLife(S);
+    const endSnap = snaps.length ? snaps.length - 1 : -1, days = Math.round(F.age * 365.25);
+    END.snaps = snaps;
+    END.steps = [{ k: 'title', html: `<h2>最後の年、${F.age}歳</h2><p>${esc(LC.country(S).name)}で、静かに息を引き取りました。</p><p>最後の言葉は「${esc(F.words)}」でした。</p><p>これまでの日々が、ひとつずつ思い出されてきます。</p>`, dur: 4200 }]
+      .concat(H.map((h) => ({ k: 'slide', snap: h.snap, html: `<p class="e-age">${h.age}歳${h.fav ? ' ★' : ''}</p><p class="e-cap">${esc(h.title)}</p><p class="e-desc">${esc(h.desc.length > 70 ? h.desc.slice(0, 70) + '…' : h.desc)}</p>`, dur: 2900 })))
+      .concat([{ k: 'slide', snap: endSnap, html: `<p class="e-cap">${esc(F.mourners.text)}が、最後の旅立ちを見送りました。</p>`, dur: 3600 },
+        { k: 'epitaph', html: `<h2 class="e-name">${esc(P.name)}</h2><p class="e-years">${P.birthYear} – ${S.time.year}</p><p>${esc(LC.country(S).name)}に生まれ、${F.age}年、日数にすると約${days.toLocaleString('ja-JP')}日を生きました。</p><p>同じ年に生まれた人の約${F.outlived}%より長く生きました（ゲーム内の推計）。</p>
+          <div class="end-rank"><span class="rank-big r-${ev.rank.rank}">${ev.rank.rank}</span><span>総合 ${ev.total}点 · ${esc(ev.rank.label)}</span></div>
+          <p class="e-one">ただ一度きりの、あなただけの人生でした。</p>
+          <div class="btn-row"><button class="btn primary" data-act="endHistory">人生ヒストリーを見る</button><button class="btn" data-act="endSkip">閉じる</button></div>`, dur: 0 }]);
+    END.i = 0; const el = $('#ending'); el.hidden = false; showEndStep(); void replay;
+  }
+  function showEndStep() {
+    const el = $('#ending'), st = END.steps[END.i]; clearTimeout(END.t); if (!st) return endingFinish();
+    const prog = Math.round(END.i / Math.max(1, END.steps.length - 1) * 100);
+    el.innerHTML = `<div class="end-in ${st.k}" data-act="${st.k === 'epitaph' ? '' : 'endNext'}">${st.k === 'slide' && st.snap >= 0 ? `<canvas class="end-cv" width="${176 * 3}" height="${146 * 3}"></canvas>` : ''}<div class="end-txt">${st.html}</div>
+      ${st.k !== 'epitaph' ? `<div class="end-prog"><i style="width:${prog}%"></i></div><button class="end-skip" data-act="endSkip">スキップ</button>` : ''}</div>`;
+    if (st.k === 'slide' && st.snap >= 0) { const cv = el.querySelector('canvas'); const x = END.snaps[st.snap]; if (cv && x) Scene.snapshot(cv, x.m); }
+    if (st.dur) END.t = setTimeout(endingNext, st.dur);
+  }
+  function endingNext() { END.i++; if (END.i >= END.steps.length) END.i = END.steps.length - 1; showEndStep(); }
+  function endingFinish() { clearTimeout(END.t); const el = $('#ending'); el.hidden = true; el.innerHTML = ''; }
+  // extra blocks used by the history sheet, goals and money card
+  function historyFacts() {
+    const F = LC.lifeFacts(S), goals = (S.goalLog || []), notes = (S.notes || []);
+    let html = `<div class="box"><h4>この人生について</h4>${kv([['いちばん幸せだった年', F.happiest ? `${F.happiest.age}歳（${F.happiest.year}年）` : '—'], ['大人になってから時間を注いだこと', F.focus.join('、') || '—'], S.over && ['最期を見送った人', esc(F.mourners.text)], S.over && ['亡くなった理由', esc(F.cause)], ['平均寿命（ゲーム内の推計）', `${F.expect}歳`], S.over && ['同じ年に生まれた人と比べて', `約${F.outlived}%より長く生きた`]])}</div>`;
+    if (S.rivals) html += `<div class="box"><h4>同じ日に生まれた人たち</h4>${rivalRows()}</div>`;
+    if (goals.length) html += `<div class="box"><h4>節目で決めた目標</h4><ul class="news">${goals.map((g) => `<li><b>${g.from}→${g.to}歳</b><span class="${g.done ? 'up' : ''}">${g.done ? '達成' : '未達'}：${esc(g.label)}</span></li>`).join('')}</ul></div>`;
+    if (notes.length) html += `<div class="box"><h4>書き残した思い</h4><ul class="news">${notes.map((n) => `<li><b>${n.age}歳</b><span>「${esc(n.text)}」</span></li>`).join('')}</ul></div>`;
+    return html;
+  }
+  function goalBox() {
+    const g = S.goal10; const next = LC.MILESTONE_AGES.find((x) => x > LC.playerAge(S));
+    if (!g || g.judged) return `<div class="box"><h4>10年目標</h4><p>${next ? `${next}歳の節目で次の目標を決められます。` : 'これからは自由に過ごしましょう。'}達成した目標：${S.goalsDone || 0}回</p></div>`;
+    const p = LC.goalProgress(S, g);
+    return `<div class="box"><h4>10年目標<span class="hint">${g.until}歳で判定</span></h4><p><b>${esc(g.label)}</b></p><p>いま：${p ? esc(p.show) : '—'} ${p && p.done ? '<span class="up">（達成ライン）</span>' : ''}</p><p class="hint">達成した目標：${S.goalsDone || 0}回</p></div>`;
+  }
+  function peerLine() {
+    if (!LC.isIndependent(S) || LC.playerAge(S) < 18) return '';
+    const b = LC.budget(S), bs = LC.balanceSheet(S);
+    return `<p class="peer">同い年の中で：純資産 <b>${LC.topText(LC.peerTop(S, 'net', bs.net))}</b> · 年収 <b>${LC.topText(LC.peerTop(S, 'income', b.totalIncome))}</b><span class="hint">（ゲーム内の推計）</span></p>`;
   }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
