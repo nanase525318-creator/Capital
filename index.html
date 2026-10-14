@@ -134,6 +134,7 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 .money-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; }
 .money-grid div { min-width: 0; }
 .money-grid .lbl { color: var(--muted); font-size: 12px; display: block; }
+.money-grid .jpy { color: var(--muted); font-size: 11px; display: block; margin-top: 1px; }
 .money-grid .v { font-family: var(--f-num); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
 .money-grid .v.net { color: var(--gold); }
 .v.neg { color: var(--bad); }
@@ -568,7 +569,7 @@ const CURRENCIES = {
 };
 // the active display currency (set whenever a life is created, loaded or moves country)
 let MONEY = { cur: 'JPY', rate: 1 };
-function setMoneyDisplay(s) { const cur = (s && COUNTRIES[s.country] && COUNTRIES[s.country].cur) || 'JPY'; MONEY = { cur, rate: FX0[cur] || 1 }; return MONEY; }
+function setMoneyDisplay(s) { const cur = (s && COUNTRIES[s.country] && COUNTRIES[s.country].cur) || 'JPY'; MONEY = { cur, rate: FX0[cur] || 1, s: s || null }; return MONEY; }
 const groupNum = (v, d) => Number(v.toFixed(d || 0)).toLocaleString('en-US', { maximumFractionDigits: d || 0 });
 // format an amount already converted to the currency
 function fmtCur(a, cur, exact) {
@@ -600,6 +601,15 @@ function yen(n, exact) {
   if (n == null || !isFinite(n)) return '—';
   return (n < 0 ? '−' : '') + fmtCur(Math.abs(n) / MONEY.rate, MONEY.cur, exact);
 }
+// the same amount in Japanese yen at today's market exchange rate (empty for a life in Japan), e.g. "約750万円"
+function jpyText(n) {
+  if (MONEY.cur === 'JPY' || n == null || !isFinite(n)) return '';
+  const w = MONEY.s && MONEY.s.world, fx = w && w.fx ? w.fx : FX0;
+  const v = Math.abs(n) / MONEY.rate * ((fx[MONEY.cur] || FX0[MONEY.cur] || 1) / (fx.JPY || 1));
+  return '約' + (n < 0 ? '−' : '') + fmtCur(v, 'JPY');
+}
+// base currency with the yen equivalent: "$50,000（約750万円）" — used for salaries and job offers
+function yenJ(n, exact) { const t = yen(n, exact), j = jpyText(n); return j ? `${t}（${j}）` : t; }
 function moneyExact(n) { return yen(n, true); }
 // base-currency amount typed by the player → internal amount, and back
 function fromBase(v) { return (+v || 0) * MONEY.rate; }
@@ -3050,7 +3060,7 @@ function applyJob(s, id) {
   if (!chance(s, p)) { addStats(s, { stress: 2 }); bump(s); return { ok: false, msg: `${d.label}の選考に落ちました。能力を上げるか、来年また挑戦しましょう。` }; }
   const offer = makeOffer(s, id);
   changeCareerTo(s, () => startJob(s, offer));
-  record(s, { cat: 'work', title: s.flags.firstJobDone ? '転職' : '就職', desc: `${offer.company}に${d.label}（${offer.title}）として採用されました。年収は${yen(offer.salary)}です。`, tone: 'good', important: true, stats: addStats(s, { happiness: 4, stress: 3 }) });
+  record(s, { cat: 'work', title: s.flags.firstJobDone ? '転職' : '就職', desc: `${offer.company}に${d.label}（${offer.title}）として採用されました。年収は${yenJ(offer.salary)}です。`, tone: 'good', important: true, stats: addStats(s, { happiness: 4, stress: 3 }) });
   s.flags.firstJobDone = true;
   return { ok: true, msg: `${d.label}として採用されました。` };
 }
@@ -3938,7 +3948,7 @@ EV.family_econ = { title: '親の仕事の変化', cat: 'family', random: true, 
       p.income = Math.round(p.income * (c.up ? 1 + c.k : 1 - c.k) / 10000) * 10000;
       s.family.income = familyBudget(s).income; s.family.wealth = tierFromIncome(s, familyBudget(s).parentsIncome);
       if (c.up) addStats(s, { happiness: 3 }); else addStats(s, { happiness: -3, relations: 3, stress: 3, selfControl: 1 });
-      return { desc: `${who}の年収が${yen(p.income)}になりました。実家は「${TIERS[s.family.wealth].label}」の水準です。`, tone: c.up ? 'good' : 'bad' }; } },
+      return { desc: `${who}の年収が${yenJ(p.income)}になりました。実家は「${TIERS[s.family.wealth].label}」の水準です。`, tone: c.up ? 'good' : 'bad' }; } },
   ] }; } };
 EV.hs_choice = { title: '高校進学', cat: 'school', blocking: true, important: true, random: false,
   prepare: () => ({}),
@@ -3978,8 +3988,8 @@ EV.uni_choice = { title: '高校卒業後の進路', cat: 'school', blocking: tr
 EV.job_hunt = { title: '就職先の選択', cat: 'work', blocking: true, important: true, random: false,
   prepare: (s) => ({ offers: jobOffers(s, 3) }),
   build: (s, c) => ({ text: c.reason === 'move' ? `${country(s).name}での仕事探しです。届いた内定から選びましょう。` : '就職活動の結果、次の会社から内定をもらいました。', choices: c.offers.map((o) => ({
-    label: `${o.company}（${JOB_TYPES[o.type].label}）`, now: `年収 ${yen(o.salary)}`, future: `安定性 ${Math.round(o.stability * 100)}・昇給 ${(o.raise * 100).toFixed(1)}%/年`,
-    run: (s) => { startJob(s, o); addStats(s, { happiness: 4, stress: 3 }); return { title: '就職', desc: `${o.company}に${JOB_TYPES[o.type].label}の社員として入社しました。初年度の年収は${yen(o.salary)}です。`, tone: 'good' }; } })).concat([
+    label: `${o.company}（${JOB_TYPES[o.type].label}）`, now: `年収 ${yenJ(o.salary)}`, future: `安定性 ${Math.round(o.stability * 100)}・昇給 ${(o.raise * 100).toFixed(1)}%/年`,
+    run: (s) => { startJob(s, o); addStats(s, { happiness: 4, stress: 3 }); return { title: '就職', desc: `${o.company}に${JOB_TYPES[o.type].label}の社員として入社しました。初年度の年収は${yenJ(o.salary)}です。`, tone: 'good' }; } })).concat([
     { label: '今回は見送る', now: '収入なし', future: '翌年また探す', run: (s) => { if (s.career.status !== 'student') s.career.status = 'unemployed'; s.education.stage = 'done'; return { desc: '就職を見送りました。', tone: 'neutral' }; } }]) }) };
 EV.parttime_offer = { title: 'アルバイトの誘い', cat: 'work', random: true, minAge: 16, maxAge: 22, once: true, cond: (s) => s.career.status === 'student', weight: () => 0.8,
   prepare: () => ({}),
@@ -3995,21 +4005,21 @@ EV.promotion = { title: '昇進の打診', cat: 'work', random: true, minAge: 24
   weight: (s) => 1 + (hasFocus(s, 'promote') ? 2 : 0),
   prepare: () => ({}),
   build: (s) => { const j = s.career.job, next = TITLES[j.level + 1]; return { text: `上司から${next}への昇進を打診されました。責任は重くなります。`, choices: [
-    { label: '昇進を受ける', now: `年収 +6〜15%`, future: 'ストレス増・次の昇進へ', run: (s) => { j.level++; j.title = TITLES[j.level]; j.salary = Math.round(Math.max(j.salary * 1.06, Math.min(j.salary * 1.15, marketSalary(s, j.type, j.level)))); addStats(s, { stress: 7, workSkill: 3, happiness: 3 }); return { title: `${j.title}に昇進`, desc: `${j.title}に昇進しました。年収は${yen(j.salary)}になりました。`, tone: 'good' }; } },
+    { label: '昇進を受ける', now: `年収 +6〜15%`, future: 'ストレス増・次の昇進へ', run: (s) => { j.level++; j.title = TITLES[j.level]; j.salary = Math.round(Math.max(j.salary * 1.06, Math.min(j.salary * 1.15, marketSalary(s, j.type, j.level)))); addStats(s, { stress: 7, workSkill: 3, happiness: 3 }); return { title: `${j.title}に昇進`, desc: `${j.title}に昇進しました。年収は${yenJ(j.salary)}になりました。`, tone: 'good' }; } },
     { label: '今の立場にとどまる', now: 'ストレス −3', future: '昇給は通常どおり', run: (s) => { addStats(s, { stress: -3, happiness: 1 }); return { desc: '昇進の話を断り、今の仕事を続けます。', tone: 'neutral' }; } },
     { label: '専門職の道を選ぶ', now: '年収 +4%', future: '管理職にはならず、専門性を磨く', run: (s) => { const j = s.career.job; j.salary = Math.round(j.salary * 1.04); j.specialist = true; addStats(s, { workSkill: 3, stress: -1 }); return { desc: '管理職ではなく、専門職として腕を磨く道を選びました。', tone: 'neutral' }; } },
   ] }; } };
 EV.raise_talk = { title: '給与交渉', cat: 'work', random: true, minAge: 22, maxAge: 60, cooldown: 4, cond: (s) => hasRealJob(s) && s.career.yearsInJob >= 2, weight: () => 0.6,
   prepare: (s) => ({ roll: rnd(s) }),
   build: (s, c) => ({ text: '評価面談の時期です。給与について話す機会があります。', choices: [
-    { label: '昇給を交渉する', now: '成功すれば年収 +8%', future: '失敗すると関係が少し悪化', run: (s) => { const ok = c.roll < 0.3 + s.stats.workSkill / 150; const j = s.career.job; if (ok) { j.salary = Math.round(j.salary * 1.08); addStats(s, { happiness: 3 }); return { title: '給与の増加', desc: `交渉が実り、年収が${yen(j.salary)}になりました。`, tone: 'good' }; } addStats(s, { relations: -3, stress: 3 }); return { desc: '交渉はうまくいきませんでした。', tone: 'bad' }; } },
+    { label: '昇給を交渉する', now: '成功すれば年収 +8%', future: '失敗すると関係が少し悪化', run: (s) => { const ok = c.roll < 0.3 + s.stats.workSkill / 150; const j = s.career.job; if (ok) { j.salary = Math.round(j.salary * 1.08); addStats(s, { happiness: 3 }); return { title: '給与の増加', desc: `交渉が実り、年収が${yenJ(j.salary)}になりました。`, tone: 'good' }; } addStats(s, { relations: -3, stress: 3 }); return { desc: '交渉はうまくいきませんでした。', tone: 'bad' }; } },
     { label: '今回は見送る', now: '変化なし', future: '', run: () => ({ desc: '給与交渉はしませんでした。', tone: 'neutral' }) },
     { label: '実績を積んでから交渉する', now: '仕事の能力 +2', future: '次の交渉が通りやすくなる', run: (s) => { s.flags.raisePrep = (s.flags.raisePrep || 0) + 0.2; addStats(s, { workSkill: 2, stress: 1 }); return { desc: '今回は交渉せず、まず実績を積むことにしました。', tone: 'neutral' }; } },
   ] }) };
 EV.job_offer = { title: '転職の誘い', cat: 'work', random: true, minAge: 25, maxAge: 58, cooldown: 4, cond: (s) => hasRealJob(s) && s.stats.workSkill >= 30 && s.career.job.salary < marketSalary(s, 'big', Math.min(s.career.job.level, 3)), weight: () => 0.7,
   prepare: (s) => { const o = jobOffers(s, 1, { mul: 1 })[0]; o.salary = Math.round(Math.min(s.career.job.salary * rfloat(s, 1.08, 1.3), marketSalary(s, 'big', Math.min(s.career.job.level, 3)) * 1.15) / 10000) * 10000; o.type = pick(s, ['big', 'tech', 'sme']); const T = JOB_TYPES[o.type]; o.company = pick(s, JOB_PREFIX[s.country === 'jp' ? 'east' : 'west']) + pick(s, T.suffix); o.stability = T.stability; o.raise = T.raise; o.level = Math.min(s.career.job.level, 3); o.title = TITLES[o.level]; return { o }; },
   build: (s, c) => ({ text: `${c.o.company}（${JOB_TYPES[c.o.type].label}）から${c.o.title}として来てほしいと連絡がありました。`, choices: [
-    { label: '転職する', now: `年収 ${yen(s.career.job.salary)} → ${yen(c.o.salary)}`, future: `安定性 ${Math.round(c.o.stability * 100)}・勤続年数はリセット`, run: (s) => { const yrs = s.career.yearsInJob; const old = s.career.job; const allowance = old.salary / 14 * yrs * JOB_TYPES[old.type].allowance * 0.6; s.finance.cash += allowance; startJob(s, c.o); addStats(s, { stress: 5, happiness: 3 }); return { title: '転職', desc: `${c.o.company}に転職しました（年収${yen(c.o.salary)}）。前の会社から退職金${yen(allowance)}を受け取りました。`, tone: 'good' }; } },
+    { label: '転職する', now: `年収 ${yenJ(s.career.job.salary)} → ${yenJ(c.o.salary)}`, future: `安定性 ${Math.round(c.o.stability * 100)}・勤続年数はリセット`, run: (s) => { const yrs = s.career.yearsInJob; const old = s.career.job; const allowance = old.salary / 14 * yrs * JOB_TYPES[old.type].allowance * 0.6; s.finance.cash += allowance; startJob(s, c.o); addStats(s, { stress: 5, happiness: 3 }); return { title: '転職', desc: `${c.o.company}に転職しました（年収${yenJ(c.o.salary)}）。前の会社から退職金${yenJ(allowance)}を受け取りました。`, tone: 'good' }; } },
     { label: '今の会社に残る', now: '人間関係 +2', future: '勤続年数を積み上げる', run: (s) => { addStats(s, { relations: 2 }); return { desc: '誘いを断り、今の会社に残りました。', tone: 'neutral' }; } },
   ] }) };
 EV.side_job = { title: '副業の誘い', cat: 'work', random: true, minAge: 22, maxAge: 60, once: true, cond: (s) => hasRealJob(s) && s.stats.workSkill >= 20 && !s.career.sideBase, weight: () => 0.6,
@@ -4023,14 +4033,14 @@ function sideIncomeFor(s, preview) { const base = (s.career.sideBase || preview 
 EV.layoff = { title: '失業', cat: 'work', blocking: true, important: true, random: true, minAge: 20, maxAge: 63, cooldown: 3, cond: (s) => hasRealJob(s),
   weight: (s) => (1 - s.career.job.stability) * (s.world.g < -0.4 ? 3 : 0.5),
   prepare: (s) => ({ offers: jobOffers(s, 2, { mul: 0.92 }) }),
-  build: (s, c) => ({ text: `景気悪化の影響で、${s.career.job.company}から退職を求められました。`, choices: c.offers.map((o) => ({ label: `${o.company}に再就職`, now: `年収 ${yen(o.salary)}`, future: `安定性 ${Math.round(o.stability * 100)}`, run: (s) => { const old = s.career.job; loseJob(s); startJob(s, o); addStats(s, { stress: 8, happiness: -5 }); return { desc: `${old.company}を離れ、${o.company}に再就職しました。`, tone: 'bad' }; } })).concat([
+  build: (s, c) => ({ text: `景気悪化の影響で、${s.career.job.company}から退職を求められました。`, choices: c.offers.map((o) => ({ label: `${o.company}に再就職`, now: `年収 ${yenJ(o.salary)}`, future: `安定性 ${Math.round(o.stability * 100)}`, run: (s) => { const old = s.career.job; loseJob(s); startJob(s, o); addStats(s, { stress: 8, happiness: -5 }); return { desc: `${old.company}を離れ、${o.company}に再就職しました。`, tone: 'bad' }; } })).concat([
     { label: 'しばらく休んで考える', now: '失業給付を受け取る', future: '翌年に求職', run: (s) => { const old = s.career.job; loseJob(s); addStats(s, { stress: 4, happiness: -6, health: 2 }); queueEventNextYear(s, 'job_hunt', {}); return { desc: `${old.company}を退職しました。しばらく休みます。`, tone: 'bad' }; } },
   ]) }) };
 EV.retirement = { title: '定年退職', cat: 'work', blocking: true, important: true, random: false,
   prepare: () => ({}),
   build: (s) => { const j = s.career.job; const yrs = s.career.yearsInJob; return { text: `${j.company}で定年を迎えました（勤続${yrs}年）。`, choices: [
     { label: '退職する', now: `退職金 約${yen(j.salary / 14 * yrs * JOB_TYPES[j.type].allowance)}`, future: `年金は${country(s).pensionAge}歳から`, run: (s) => { const a = retire(s); addStats(s, { stress: -15, happiness: 4 }); return { title: '引退', desc: `${j.company}を退職し、退職金${yen(a)}を受け取りました。年金見込み額は年${yen(s.career.pension)}です。`, tone: 'good' }; } },
-    { label: '再雇用で働き続ける', now: '年収 −40%', future: `${country(s).pensionAge}歳まで勤務`, run: (s) => { j.salary = Math.round(j.salary * 0.6); s.career.reemploy = true; addStats(s, { stress: -4 }); return { desc: `再雇用で働き続けます（年収${yen(j.salary)}）。`, tone: 'neutral' }; } },
+    { label: '再雇用で働き続ける', now: '年収 −40%', future: `${country(s).pensionAge}歳まで勤務`, run: (s) => { j.salary = Math.round(j.salary * 0.6); s.career.reemploy = true; addStats(s, { stress: -4 }); return { desc: `再雇用で働き続けます（年収${yenJ(j.salary)}）。`, tone: 'neutral' }; } },
     { label: '退職して顧問・フリーランスで働く', now: `退職金 約${yen(j.salary / 14 * yrs * ((JOB_TYPES[j.type] || JOB_TYPES.sme).allowance || 0))}`, future: '経験を生かして自由に働く', disabled: s.stats.workSkill < 40, reason: '仕事の能力40以上が必要', run: (s) => { const a = retire(s); s.career.status = 'freelance'; s.career.retired = false; s.career.freelance = { occ: 'freelance', rate: 0.8, clients: 1, startYear: s.time.year }; addStats(s, { stress: -8, happiness: 4 }); return { title: '独立', desc: `退職金${yen(a)}を受け取り、これまでの経験を生かしてフリーランスとして働き始めました。`, tone: 'good' }; } },
   ] }; } };
 EV.final_retire = { title: '引退', cat: 'work', blocking: true, important: true, random: false,
@@ -4255,7 +4265,7 @@ EV.startup_idea = { title: '起業のチャンス', cat: 'biz', blocking: true, 
   prepare: (s) => { const ks = Object.keys(INDUSTRIES); const a = pick(s, ks); let b = pick(s, ks); if (b === a) b = ks[(ks.indexOf(a) + 3) % ks.length]; return { a, b }; },
   build: (s, c) => { const cap = 3000000 * country(s).cost; return { text: `温めてきた事業アイデアがあります。${INDUSTRIES[c.a].label}か${INDUSTRIES[c.b].label}で会社を作れそうです。`, choices: [
     { label: `${INDUSTRIES[c.a].label}で起業（会社員を続ける）`, now: `資本金 ${yen(cap)}`, future: '副業として小さく始める', run: (s) => { foundCompany(s, { industry: c.a, capital: cap, quitJob: false }); return null; } },
-    { label: `${INDUSTRIES[c.b].label}で起業して専念`, now: `資本金 ${yen(cap)}・給与がなくなる`, future: '成長は速いがリスクも大きい', run: (s) => { foundCompany(s, { industry: c.b, capital: cap, quitJob: true }); return null; } },
+    { label: `${INDUSTRIES[c.b].label}で起業して専念`, now: `資本金 ${yenJ(cap)}・給与がなくなる`, future: '成長は速いがリスクも大きい', run: (s) => { foundCompany(s, { industry: c.b, capital: cap, quitJob: true }); return null; } },
     { label: '今は見送る', now: '変化なし', future: '', run: () => ({ desc: '起業は見送りました。', tone: 'neutral' }) },
   ] }; } };
 EV.biz_crisis = { title: '資金ショート', cat: 'biz', blocking: true, important: true, random: false,
@@ -4343,7 +4353,7 @@ const responseNothing = (label, desc) => opt(label || '特に何もしない', '
 const responseIncome = opt('副業や転職で収入源を増やす', '仕事の能力 +3・ストレス +3', '収入が下がる局面に強くなる', (s) => { s.career.sideBase = Math.max(s.career.sideBase || 0, 0.5); addStats(s, { workSkill: 3, stress: 3 }); return { desc: '収入源を増やすため、副業の準備を始めました。', tone: 'neutral' }; });
 worldEvent('w_recession', '景気後退', 'recession', '世界的な景気後退が始まりました。企業は採用を絞り、株価も下がっています。', (s) => [responseSpend(s), responseInvest(s, 0.2, '下がった株を少しずつ買う'), responseIncome]);
 worldEvent('w_recovery', '景気回復', 'recovery', '景気が回復し、求人や給与が増え始めています。', (s) => [
-  opt('この機会に給与交渉をする', '成功すれば年収 +6%', '', (s) => { if (hasRealJob(s) && chance(s, 0.45 + s.stats.workSkill / 200)) { s.career.job.salary = Math.round(s.career.job.salary * 1.06); return { title: '昇給', desc: `好景気を追い風に昇給を勝ち取りました（年収${yen(s.career.job.salary)}）。`, tone: 'good' }; } addStats(s, { stress: 2 }); return { desc: '交渉しましたが、昇給は見送られました。', tone: 'neutral' }; }, { disabled: !hasRealJob(s), reason: '会社員のときに選べます' }),
+  opt('この機会に給与交渉をする', '成功すれば年収 +6%', '', (s) => { if (hasRealJob(s) && chance(s, 0.45 + s.stats.workSkill / 200)) { s.career.job.salary = Math.round(s.career.job.salary * 1.06); return { title: '昇給', desc: `好景気を追い風に昇給を勝ち取りました（年収${yenJ(s.career.job.salary)}）。`, tone: 'good' }; } addStats(s, { stress: 2 }); return { desc: '交渉しましたが、昇給は見送られました。', tone: 'neutral' }; }, { disabled: !hasRealJob(s), reason: '会社員のときに選べます' }),
   responseInvest(s, 0.15, '景気回復に乗って投資を増やす'),
   opt('好景気のうちに転職先を探す', '仕事の能力 +2', '求人が多い時期に良い条件を狙える', (s) => { s.flags.recoveryHunt = s.time.year; addStats(s, { workSkill: 2 }); queueEventNextYear(s, 'job_offer', {}); return { desc: '求人が増えているうちに、転職先を探し始めました。', tone: 'neutral' }; }, { disabled: !hasRealJob(s), reason: '会社員のときに選べます' })]);
 worldEvent('w_rates', '金利の変化', 'rate_up', (s) => `金利が上がりました。${s.finance.debts.some((d) => d.type === 'mortgage' && d.rateType === 'variable') ? '変動金利の住宅ローンの返済額が増えそうです。' : '預金や債券の利回りが上がっています。'}`, (s) => {
@@ -4469,8 +4479,8 @@ EV.license_exam = { title: '資格試験', cat: 'school', blocking: true, import
 // ---------- career ----------
 EV.indep_offer = { title: '独立の誘い', cat: 'work', random: true, minAge: 27, maxAge: 58, cooldown: 6, cond: (s) => hasRealJob(s) && s.stats.workSkill >= 45, weight: (s) => 0.4 + s.stats.workSkill / 150,
   prepare: () => ({}),
-  build: (s) => { const est = freelanceIncome(Object.assign({}, s, { career: Object.assign({}, s.career, { freelance: { occ: 'freelance', rate: 1 } }) })); return { text: `取引先から「独立するなら仕事を回すよ」と声をかけられました。今の年収は${yen(s.career.job.salary)}です。`, choices: [
-    opt('フリーランスとして独立する', `年収の目安 ${yen(est * 0.7)}〜${yen(est * 1.4)}`, '自由だが収入は不安定', (s) => startFreelance(s, 'freelance') && null, { risk: '仕事が途切れると収入が大きく減る' }),
+  build: (s) => { const est = freelanceIncome(Object.assign({}, s, { career: Object.assign({}, s.career, { freelance: { occ: 'freelance', rate: 1 } }) })); return { text: `取引先から「独立するなら仕事を回すよ」と声をかけられました。今の年収は${yenJ(s.career.job.salary)}です。`, choices: [
+    opt('フリーランスとして独立する', `年収の目安 ${yenJ(est * 0.7)}〜${yenJ(est * 1.4)}`, '自由だが収入は不安定', (s) => startFreelance(s, 'freelance') && null, { risk: '仕事が途切れると収入が大きく減る' }),
     opt('副業として小さく試す', '副業収入が増える', '本業は続けられる', (s) => { s.career.sideBase = Math.max(1, s.career.sideBase || 0); addStats(s, { workSkill: 2, stress: 3 }); return { desc: '本業を続けながら、副業として仕事を受けることにしました。', tone: 'neutral' }; }),
     opt('今の会社で頑張る', '人間関係 +2', '', (s) => { addStats(s, { relations: 2 }); return { desc: '独立の話は断り、今の会社で頑張ることにしました。', tone: 'neutral' }; })] }; } };
 EV.overseas_post = { title: '海外勤務の打診', cat: 'work', random: true, minAge: 25, maxAge: 52, cooldown: 6, cond: (s) => hasRealJob(s) && OCC[s.career.job.type] && OCC[s.career.job.type].cat === 'corp', weight: (s) => 0.3 + (s.flags.abroadExp ? 0.4 : 0) + (hasLicense(s, 'english') ? 0.4 : 0),
@@ -4497,11 +4507,11 @@ EV.sport_pro_offer = { title: 'プロへの分かれ道', cat: 'work', blocking:
   skipIf: (s) => !sportOn(s),
   prepare: (s) => ({ roll: rnd(s), stage: s.sport.stage }),
   build: (s, c) => { const sp = s.sport, D = SD(s), p = draftChance(s), a = playerAge(s);
-    const proOpt = opt(`${D.st.pro}入りに挑戦する（${sp.id === 'baseball' ? 'ドラフト' : '入団テスト・スカウト'}）`, `成功率 ${chanceText(s, p)}`, `成功すれば年俸 ${yen(D.proMin)}〜`, (s) => { if (c.roll < p) { sportGoPro(s, 'pro'); const bonus = Math.round(D.proMin * rfloat(s, 1, 1 + Math.max(0, sp.perf - D.proBar) / 2) / 1e4) * 1e4; s.finance.cash += bonus; addStats(s, { happiness: 12, stress: 5 }); return { title: `${D.st.pro}と契約`, desc: `${D.st.pro}の球団・クラブと契約しました。契約金${yen(bonus)}、年俸${yen(sp.salary)}。`, tone: 'good' }; } addStats(s, { happiness: -6 }); return { title: '指名漏れ', desc: `${D.st.pro}からの声はかかりませんでした。`, tone: 'bad' }; }, { risk: '指名されなければ、別の進路を急いで探すことになる' });
+    const proOpt = opt(`${D.st.pro}入りに挑戦する（${sp.id === 'baseball' ? 'ドラフト' : '入団テスト・スカウト'}）`, `成功率 ${chanceText(s, p)}`, `成功すれば年俸 ${yenJ(D.proMin)}〜`, (s) => { if (c.roll < p) { sportGoPro(s, 'pro'); const bonus = Math.round(D.proMin * rfloat(s, 1, 1 + Math.max(0, sp.perf - D.proBar) / 2) / 1e4) * 1e4; s.finance.cash += bonus; addStats(s, { happiness: 12, stress: 5 }); return { title: `${D.st.pro}と契約`, desc: `${D.st.pro}の球団・クラブと契約しました。契約金${yenJ(bonus)}、年俸${yenJ(sp.salary)}。`, tone: 'good' }; } addStats(s, { happiness: -6 }); return { title: '指名漏れ', desc: `${D.st.pro}からの声はかかりませんでした。`, tone: 'bad' }; }, { risk: '指名されなければ、別の進路を急いで探すことになる' });
     const choices = [proOpt];
     if (c.stage === 'hs' || c.stage === 'jhs') choices.push(opt(`大学で${D.label}を続けて実績を積む`, 'スポーツ推薦で大学へ', '4年後にもう一度プロを目指せる・大卒になる', (s) => { s.education = { stage: 'university', school: '体育大学', degree: 'high', target: 'bachelor', gradYear: s.time.year + 4, track: 'sports', major: 'edu' }; s.career.status = 'student'; sp.stage = 'college'; sp.team.level = 4; return { desc: `スポーツ推薦で大学に進み、${D.st.college}でプレーします。`, tone: 'good' }; }));
     if (c.stage !== 'corp') choices.push(opt(`企業に就職して${D.st.corp}でプレーする`, '会社員の給与を得ながら競技を続ける', '活躍すればプロへの道も残る', (s) => { const o = makeOffer(s, 'sales'); o.title = '選手兼社員'; startJob(s, o); sp.stage = 'corp'; sp.team.level = 3; return { desc: `${o.company}に就職し、${D.st.corp}の選手としてもプレーします。`, tone: 'good' }; }));
-    if (c.stage !== 'indy') choices.push(opt(`${D.st.indy}で挑戦する`, `年俸 約${yen(D.indyPay)}`, '低収入だが、プロのスカウトに見てもらえる', (s) => { sportGoPro(s, 'indy'); return { desc: `${D.st.indy}に入り、プロを目指して挑戦を続けます。`, tone: 'neutral' }; }, { risk: '数年でプロに届かないと生活が苦しい' }));
+    if (c.stage !== 'indy') choices.push(opt(`${D.st.indy}で挑戦する`, `年俸 約${yenJ(D.indyPay)}`, '低収入だが、プロのスカウトに見てもらえる', (s) => { sportGoPro(s, 'indy'); return { desc: `${D.st.indy}に入り、プロを目指して挑戦を続けます。`, tone: 'neutral' }; }, { risk: '数年でプロに届かないと生活が苦しい' }));
     choices.push(opt('競技をやめて別の道へ', '進学・就職に専念', '', (s) => { sp.retired = true; sp.retireAge = a; s.focus = s.focus.filter((f) => f !== 'practice'); if (s.career.status === 'athlete') s.career.status = 'unemployed'; return { desc: `${D.label}は区切りをつけ、別の道へ進むことにしました。`, tone: 'neutral' }; }));
     return { text: `${D.st[c.stage] || D.label}での成績は${Math.round(sp.perf || sp.rating)}（プロの目安 ${D.proBar}）。${sp.fame > 20 ? 'スカウトの注目を集めています。' : ''}進路を決める時です。`, choices }; } };
 EV.sport_regular = { title: 'レギュラー争い', cat: 'work', random: true, minAge: 12, maxAge: 40, cooldown: 3, cond: (s) => sportOn(s) && !['kids'].includes(s.sport.stage), weight: () => 1,
@@ -4526,15 +4536,15 @@ EV.sport_injury = { title: '故障', cat: 'health', blocking: true, important: t
 EV.sport_transfer = { title: '海外移籍のチャンス', cat: 'work', blocking: true, important: true, random: true, minAge: 20, maxAge: 33, cooldown: 3, cond: (s) => sportOn(s) && s.sport.stage === 'pro' && s.sport.perf >= SPORTS[s.sport.id].topBar - 3 && s.sport.proYears >= 2, weight: () => 2,
   prepare: (s) => ({ roll: rnd(s) }),
   build: (s, c) => { const sp = s.sport, D = SD(s), p = clamp((sp.perf - D.topBar + 8) / 14, 0.15, 0.9); return { text: `${D.st.abroad}のチームが獲得に興味を示しています。`, choices: [
-    opt(`${D.st.abroad}に挑戦する`, `成功率 ${chanceText(s, p)}`, `活躍すれば年俸 ${yen(D.abroadMin)}以上`, (s) => { if (c.roll < p) { sportGoPro(s, 'abroad'); sp.fame = clamp(sp.fame + 15, 0, 100); addStats(s, { happiness: 10, stress: 6 }); return { title: `${D.st.abroad}へ移籍`, desc: `${D.st.abroad}のチームと契約しました（年俸${yen(sp.salary)}）。`, tone: 'good' }; } addStats(s, { happiness: -4 }); return { desc: '移籍交渉はまとまりませんでした。', tone: 'bad' }; }, { risk: '言葉や文化の違いで出場機会を失うこともある' }),
-    opt('残留して大型契約を結ぶ', '年俸 +40%（3年）', '国内で長く活躍', (s) => { sp.salary = Math.round(sp.salary * 1.4); sp.contractYears = 3; sp.bigContract = { mul: 1.4, until: s.time.year + 3 }; addStats(s, { happiness: 5 }); return { title: '大型契約', desc: `3年の大型契約を結びました（年俸${yen(sp.salary)}）。`, tone: 'good' }; }),
+    opt(`${D.st.abroad}に挑戦する`, `成功率 ${chanceText(s, p)}`, `活躍すれば年俸 ${yenJ(D.abroadMin)}以上`, (s) => { if (c.roll < p) { sportGoPro(s, 'abroad'); sp.fame = clamp(sp.fame + 15, 0, 100); addStats(s, { happiness: 10, stress: 6 }); return { title: `${D.st.abroad}へ移籍`, desc: `${D.st.abroad}のチームと契約しました（年俸${yenJ(sp.salary)}）。`, tone: 'good' }; } addStats(s, { happiness: -4 }); return { desc: '移籍交渉はまとまりませんでした。', tone: 'bad' }; }, { risk: '言葉や文化の違いで出場機会を失うこともある' }),
+    opt('残留して大型契約を結ぶ', '年俸 +40%（3年）', '国内で長く活躍', (s) => { sp.salary = Math.round(sp.salary * 1.4); sp.contractYears = 3; sp.bigContract = { mul: 1.4, until: s.time.year + 3 }; addStats(s, { happiness: 5 }); return { title: '大型契約', desc: `3年の大型契約を結びました（年俸${yenJ(sp.salary)}）。`, tone: 'good' }; }),
     opt('もう1年実績を積んでから考える', '変化なし', '', () => ({ desc: '海外挑戦はもう1年先に考えることにしました。', tone: 'neutral' }))] }; } };
 EV.sport_contract = { title: '契約更改', cat: 'money', random: true, minAge: 17, maxAge: 45, cooldown: 1, cond: (s) => isPro(s) && !(s.sport.bigContract && s.sport.bigContract.until > s.time.year), weight: () => 1.5,
   prepare: (s) => ({ roll: rnd(s) }),
-  build: (s, c) => { const sp = s.sport, offer = proSalary(s, (sp.perf + (sp.perfHist.slice(-2)[0] || sp.perf)) / 2); return { text: `球団・クラブから来季の年俸として${yen(offer)}を提示されました（今季の成績 ${Math.round(sp.perf)}）。`, choices: [
-    opt('提示額でサインする', `年俸 ${yen(offer)}`, '', () => ({ desc: `年俸${yen(offer)}で契約を更改しました。`, tone: 'neutral' })),
-    opt('粘り強く交渉する', `成功すれば +15%`, '失敗すると関係が悪化', (s) => { if (c.roll < 0.45 + (s.flags.agent ? 0.15 : 0)) { sp.salary = Math.round(offer * 1.15); return { title: '年俸アップ', desc: `交渉の末、年俸${yen(sp.salary)}で更改しました。`, tone: 'good' }; } addStats(s, { relations: -4, stress: 3 }); return { desc: '交渉は平行線に終わり、提示額でサインしました。', tone: 'neutral' }; }),
-    opt('複数年契約で安定を取る', '年俸 −10%（3年保証）', '成績が落ちても3年は年俸が守られる', (s) => { sp.salary = Math.round(offer * 0.9); sp.bigContract = { mul: 1, until: s.time.year + 3, fixed: sp.salary }; return { title: '複数年契約', desc: `3年契約（年俸${yen(sp.salary)}）を結びました。`, tone: 'good' }; })] }; } };
+  build: (s, c) => { const sp = s.sport, offer = proSalary(s, (sp.perf + (sp.perfHist.slice(-2)[0] || sp.perf)) / 2); return { text: `球団・クラブから来季の年俸として${yenJ(offer)}を提示されました（今季の成績 ${Math.round(sp.perf)}）。`, choices: [
+    opt('提示額でサインする', `年俸 ${yenJ(offer)}`, '', () => ({ desc: `年俸${yenJ(offer)}で契約を更改しました。`, tone: 'neutral' })),
+    opt('粘り強く交渉する', `成功すれば +15%`, '失敗すると関係が悪化', (s) => { if (c.roll < 0.45 + (s.flags.agent ? 0.15 : 0)) { sp.salary = Math.round(offer * 1.15); return { title: '年俸アップ', desc: `交渉の末、年俸${yenJ(sp.salary)}で更改しました。`, tone: 'good' }; } addStats(s, { relations: -4, stress: 3 }); return { desc: '交渉は平行線に終わり、提示額でサインしました。', tone: 'neutral' }; }),
+    opt('複数年契約で安定を取る', '年俸 −10%（3年保証）', '成績が落ちても3年は年俸が守られる', (s) => { sp.salary = Math.round(offer * 0.9); sp.bigContract = { mul: 1, until: s.time.year + 3, fixed: sp.salary }; return { title: '複数年契約', desc: `3年契約（年俸${yenJ(sp.salary)}）を結びました。`, tone: 'good' }; })] }; } };
 EV.sport_sponsor = { title: 'スポンサー契約の話', cat: 'money', random: true, minAge: 16, maxAge: 45, cooldown: 3, cond: (s) => sportOn(s) && s.sport.fame >= 30, weight: () => 1,
   prepare: () => ({}),
   build: (s) => { const sp = s.sport, base = Math.round(Math.pow(sp.fame, 2) * 3000 * priceIdx(s) / 1e4) * 1e4; return { text: `活躍が注目され、企業からスポンサー契約の話が来ています（目安 年${yen(base)}）。`, choices: [
@@ -4557,20 +4567,20 @@ EV.sport_release = { title: '戦力外・契約終了', cat: 'work', blocking: t
   skipIf: (s) => !isPro(s),
   prepare: () => ({}),
   build: (s) => { const sp = s.sport, D = SD(s); return { text: `${playerAge(s)}歳。成績が振るわず、${D.st[sp.stage]}のチームから来季の契約を結ばないと告げられました。`, choices: [
-    opt(`${D.st.indy}で現役を続ける`, `年俸 約${yen(D.indyPay)}`, 'もう一度プロに戻れる可能性は低い', (s) => { sp.stage = 'indy'; sp.lowYears = 0; sp.bigContract = null; sp.salary = proSalary(s, sp.perf); return { desc: `${D.st.indy}で現役を続けることにしました。`, tone: 'neutral' }; }),
-    opt('引退して指導者になる', `コーチの年収 約${yen(occBaseSalary(s, 'sport_coach'))}`, '経験を次の世代に伝える', (s) => { sportRetire(s, '戦力外'); startJob(s, makeOffer(s, 'sport_coach')); return null; }),
+    opt(`${D.st.indy}で現役を続ける`, `年俸 約${yenJ(D.indyPay)}`, 'もう一度プロに戻れる可能性は低い', (s) => { sp.stage = 'indy'; sp.lowYears = 0; sp.bigContract = null; sp.salary = proSalary(s, sp.perf); return { desc: `${D.st.indy}で現役を続けることにしました。`, tone: 'neutral' }; }),
+    opt('引退して指導者になる', `コーチの年収 約${yenJ(occBaseSalary(s, 'sport_coach'))}`, '経験を次の世代に伝える', (s) => { sportRetire(s, '戦力外'); startJob(s, makeOffer(s, 'sport_coach')); return null; }),
     sp.fame >= 35 ? opt('引退して解説者・タレントになる', '知名度しだいの収入', '人気が続くかは分からない', (s) => { sportRetire(s, '戦力外'); startJob(s, makeOffer(s, 'sport_comment', 1 + sp.fame / 60)); return null; }) : opt('引退して一般企業に就職する', '会社員として再出発', '', (s) => { sportRetire(s, '戦力外'); queueEvent(s, 'job_hunt', {}); return null; })] }; } };
 EV.sport_retire_think = { title: '引退を考える', cat: 'work', blocking: true, important: true, random: false,
   skipIf: (s) => !isPro(s),
   prepare: () => ({}),
   build: (s) => { const sp = s.sport, D = SD(s); return { text: `${playerAge(s)}歳。体の衰えを感じ始めました。今季の成績は${Math.round(sp.perf)}です。`, choices: [
     opt('まだ現役を続ける', '年俸は成績しだい', '成績が落ちると戦力外もある', (s) => { addStats(s, { stress: 2 }); return { desc: '現役を続けることにしました。', tone: 'neutral' }; }),
-    opt('今季限りで引退して指導者になる', `コーチの年収 約${yen(occBaseSalary(s, 'sport_coach'))}`, '', (s) => { sportRetire(s, '自らの決断'); startJob(s, makeOffer(s, 'sport_coach', 1 + sp.fame / 100)); return null; }),
+    opt('今季限りで引退して指導者になる', `コーチの年収 約${yenJ(occBaseSalary(s, 'sport_coach'))}`, '', (s) => { sportRetire(s, '自らの決断'); startJob(s, makeOffer(s, 'sport_coach', 1 + sp.fame / 100)); return null; }),
     opt(`引退して${D.label}スクールを開く`, `開業資金 ${yen(money(s, 5e6))}`, '知名度があれば生徒が集まる', (s) => { sportRetire(s, '自らの決断'); const r = foundCompany(s, { name: `${s.surname.replace(/・.*/, '')}${D.label}スクール`, industry: 'school', capital: money(s, 5e6), quitJob: true }); if (r.ok) { r.biz.demand *= 1 + sp.fame / 40; } return null; }, { disabled: s.finance.cash < money(s, 5e6), reason: '開業資金が足りません' })] }; } };
 EV.sport_second = { title: '引退後の進路', cat: 'work', blocking: true, important: true, random: false,
   prepare: () => ({}),
   build: (s) => { const sp = s.sport, D = sp ? SPORTS[sp.id] : null; return { text: `${D ? D.label + 'の' : ''}現役生活を終えて1年。次の道を決めましょう。`, choices: [
-    opt('指導者（コーチ）になる', `年収 約${yen(occBaseSalary(s, 'sport_coach'))}`, '', (s) => { startJob(s, makeOffer(s, 'sport_coach')); return { title: '指導者に', desc: `${D ? D.label : 'スポーツ'}の指導者になりました。`, tone: 'good' }; }),
+    opt('指導者（コーチ）になる', `年収 約${yenJ(occBaseSalary(s, 'sport_coach'))}`, '', (s) => { startJob(s, makeOffer(s, 'sport_coach')); return { title: '指導者に', desc: `${D ? D.label : 'スポーツ'}の指導者になりました。`, tone: 'good' }; }),
     opt('解説者・タレントになる', '知名度しだいの収入', '', (s) => { startJob(s, makeOffer(s, 'sport_comment', 1 + (sp ? sp.fame : 0) / 60)); return { title: '解説者に', desc: 'スポーツ解説者として活動を始めました。', tone: 'good' }; }, { disabled: !sp || sp.fame < 30, reason: '知名度30以上が必要' }),
     opt('一般企業に就職する', '会社員として再出発', '', (s) => { queueEvent(s, 'job_hunt', {}); return { desc: '一般企業への就職活動を始めました。', tone: 'neutral' }; })] }; } };
 
@@ -4780,16 +4790,16 @@ EV.overseas_expand = { title: '海外進出', cat: 'biz', random: true, minAge: 
     return v; });
   EV.job_hunt.build = (s, c) => {
     const offers = (c.offers || []).filter((o) => o && OCC[o.type] ? true : JOB_TYPES[o.type]);
-    const choices = offers.map((o) => { const d = OCC[o.type]; return opt(`${o.company}（${(d || JOB_TYPES[o.type]).label}）`, `年収 ${yen(o.salary)}・${o.title}`, d ? `安定性 ${Math.round(d.stab * 100)}・将来性 ${'★'.repeat(d.outlook)}${'☆'.repeat(5 - d.outlook)}` : `安定性 ${Math.round(o.stability * 100)}`, (s) => { startJob(s, o); s.flags.firstJobDone = true; addStats(s, { happiness: 4, stress: 3 }); return { title: '就職', desc: `${o.company}に${(d || JOB_TYPES[o.type]).label}（${o.title}）として入社しました。初年度の年収は${yen(o.salary)}です。`, tone: 'good' }; }, { risk: d ? d.risk : '' }); });
+    const choices = offers.map((o) => { const d = OCC[o.type]; return opt(`${o.company}（${(d || JOB_TYPES[o.type]).label}）`, `年収 ${yenJ(o.salary)}・${o.title}`, d ? `安定性 ${Math.round(d.stab * 100)}・将来性 ${'★'.repeat(d.outlook)}${'☆'.repeat(5 - d.outlook)}` : `安定性 ${Math.round(o.stability * 100)}`, (s) => { startJob(s, o); s.flags.firstJobDone = true; addStats(s, { happiness: 4, stress: 3 }); return { title: '就職', desc: `${o.company}に${(d || JOB_TYPES[o.type]).label}（${o.title}）として入社しました。初年度の年収は${yenJ(o.salary)}です。`, tone: 'good' }; }, { risk: d ? d.risk : '' }); });
     if (s.education.degree === 'bachelor' && playerAge(s) <= 27) choices.push(opt('大学院に進学する', `学費 年${yen(money(s, 6e5))}`, '研究者・大学教員・専門職への道が開ける', (s) => { s.education = Object.assign({}, s.education, { stage: 'university', school: '大学院', target: 'grad', gradYear: s.time.year + 2 }); s.career.status = 'student'; addDebt(s, { type: 'student', label: '大学院の奨学金', principal: money(s, 1.2e6), rate: 0.005, months: 120, startYear: s.time.year + 2 }); addStats(s, { knowledge: 5 }); return { desc: '大学院に進学しました。', tone: 'good' }; }));
     choices.push(opt('今回は見送る', '収入なし', '仕事画面の「求人」からいつでも応募できる', (s) => { if (s.career.status !== 'student') s.career.status = 'unemployed'; s.education.stage = 'done'; return { desc: '就職を見送りました。', tone: 'neutral' }; }));
     if (choices.length < 3) choices.splice(choices.length - 1, 0, opt('フリーランスとして働き始める', '収入は実力しだい', '', (s) => { startFreelance(s, 'freelance'); return null; }, { disabled: s.stats.workSkill < 20, reason: '仕事の能力20以上が必要' }));
     return { text: c.reason === 'move' ? `${country(s).name}での仕事探しです。届いた内定から選びましょう。` : offers.length > 1 ? `就職活動の結果、${offers.length}社から内定をもらいました。` : '就職活動の結果です。', choices };
   };
   EV.job_offer.prepare = (s) => { const cur = s.career.job; const offers = jobHuntOffers(s, 4).filter((o) => o.type !== (cur && cur.type) && o.salary > (cur ? cur.salary * 1.05 : 0)); const o = offers[0] || Object.assign(makeOffer(s, cur && OCC[cur.type] ? cur.type : 'sales'), {}); if (!offers[0]) o.salary = Math.round((cur ? cur.salary : o.salary) * rfloat(s, 1.08, 1.2) / 1e4) * 1e4; o.company = companyNameFor(s, o.type); return { o, roll: rnd(s) }; };
-  wrap('job_offer', (s, c, v) => { v.text = `${c.o.company}から${(OCC[c.o.type] || JOB_TYPES[c.o.type]).label}（${c.o.title}）として来てほしいと連絡がありました。`; v.choices.push(opt('今の会社に条件の改善を求める', `成功率 ${chanceText(s, 0.35 + s.stats.workSkill / 250)}`, '成功すれば年収 +6%', (s) => { if (c.roll < 0.35 + s.stats.workSkill / 250) { s.career.job.salary = Math.round(s.career.job.salary * 1.06); return { title: '給与の増加', desc: `他社の誘いを伝えて交渉し、年収が${yen(s.career.job.salary)}になりました。`, tone: 'good' }; } addStats(s, { relations: -2 }); return { desc: '条件は変わらず、今の会社に残りました。', tone: 'neutral' }; })); return v; });
+  wrap('job_offer', (s, c, v) => { v.text = `${c.o.company}から${(OCC[c.o.type] || JOB_TYPES[c.o.type]).label}（${c.o.title}）として来てほしいと連絡がありました。`; v.choices.push(opt('今の会社に条件の改善を求める', `成功率 ${chanceText(s, 0.35 + s.stats.workSkill / 250)}`, '成功すれば年収 +6%', (s) => { if (c.roll < 0.35 + s.stats.workSkill / 250) { s.career.job.salary = Math.round(s.career.job.salary * 1.06); return { title: '給与の増加', desc: `他社の誘いを伝えて交渉し、年収が${yenJ(s.career.job.salary)}になりました。`, tone: 'good' }; } addStats(s, { relations: -2 }); return { desc: '条件は変わらず、今の会社に残りました。', tone: 'neutral' }; })); return v; });
   wrap('layoff', (s, c, v) => { v.choices.push(opt('独立してフリーランスになる', '収入は実力しだい', '', (s) => { loseJob(s); startFreelance(s, 'freelance'); return null; }, { disabled: s.stats.workSkill < 35, reason: '仕事の能力35以上が必要' })); return v; });
-  wrap('promotion', (s, c, v) => { const j = s.career.job; const lad = ladderOf(j); v.text = `上司から${lad[j.level + 1]}への昇進を打診されました。責任は重くなります。`; const r0 = v.choices[0].run; v.choices[0].run = (s) => { const r = r0(s); j.title = lad[j.level]; r.title = `${j.title}に昇進`; r.desc = `${j.title}に昇進しました。年収は${yen(j.salary)}になりました。`; return r; }; return v; });
+  wrap('promotion', (s, c, v) => { const j = s.career.job; const lad = ladderOf(j); v.text = `上司から${lad[j.level + 1]}への昇進を打診されました。責任は重くなります。`; const r0 = v.choices[0].run; v.choices[0].run = (s) => { const r = r0(s); j.title = lad[j.level]; r.title = `${j.title}に昇進`; r.desc = `${j.title}に昇進しました。年収は${yenJ(j.salary)}になりました。`; return r; }; return v; });
   const cb = EV.childbirth.cond; EV.childbirth.cond = (s) => cb(s) && !s.flags.noKids;
   const mc = EV.marriage.cond; EV.marriage.cond = (s) => mc(s) && !spouse(s);
   const mw = EV.marriage.weight; EV.marriage.weight = (s) => mw(s) * (s.flags.partner ? 2 : 0.6) * (s.flags.marryReady ? 2 : 1);
@@ -4924,7 +4934,7 @@ EV.family_feud = { title: '家族の資産をめぐる対立', cat: 'family', ra
   ] }) };
 // ---------- athletes: big pay, short careers
 EV.athlete_lifestyle = { title: '高額年俸の使い道', cat: 'money', random: true, minAge: 19, maxAge: 38, cooldown: 4, cond: (s) => isPro(s) && s.sport.salary > money(s, 1.5e7), weight: () => 1.6,
-  build: (s) => ({ text: `年俸は${yen(s.sport.salary)}。周りの選手は高級車やタワーマンションを買っています。`, choices: [
+  build: (s) => ({ text: `年俸は${yenJ(s.sport.salary)}。周りの選手は高級車やタワーマンションを買っています。`, choices: [
     opt('スター選手らしい暮らしをする', '生活費が大きく増える（毎年）', '引退後も生活水準を下げにくい', (s) => { s.flags.lux = { mul: 4, base: 1.2, since: s.time.year }; addStats(s, { happiness: 7, selfControl: -3 }); return { desc: '高級マンションに住み、派手な暮らしを始めました。', tone: 'neutral' }; }, { risk: '引退後に困窮することがある' }),
     opt('年俸の半分を毎年投資に回す', '積立を設定', '引退後の生活が安定する', (s) => { setRecurring(s, 'world', Math.round(s.sport.salary * 0.5 / 12 / 1e4) * 1e4, 'taxable'); addStats(s, { finLit: 4 }); return { desc: '年俸の半分を世界株の積立に回すことにしました。', tone: 'good' }; }),
     opt('セカンドキャリアに備えて資格や事業の準備をする', '知識 +3・仕事の能力 +3', '引退後の選択肢が増える', (s) => { addStats(s, { knowledge: 3, workSkill: 3 }); s.flags.secondCareer = true; return { desc: 'オフシーズンに勉強を始め、引退後の準備を進めました。', tone: 'good' }; }, { abil: { business: 3, academic: 2 } }),
@@ -5254,7 +5264,7 @@ const LIFE_EVENTS = [
       { label: 'クラウドファンディングで集める', now: '共感が集まれば資金になる', future: '宣伝にもなる', p: (s) => clamp(0.3 + ab(s, 'comm') / 200 + ab(s, 'creativity') / 300, 0.2, 0.7), ok: { fn: (s) => { const b = myBiz(s); b.cash += money(s, 4e6); b.demand *= 1.05; }, desc: '多くの支援が集まり、資金と知名度を得ました。', tone: 'good' }, ng: { desc: '目標額に届かず、資金は集まりませんでした。' } }] },
   { id: 'l_key_hire', title: '幹部を採用する？', cat: 'biz', age: [20, 75], cooldown: 6, when: (s) => { const b = myBiz(s); return b && b.employees >= 5; }, text: (s) => `${myBiz(s).name}が大きくなり、経営を任せられる人材が必要になりました。`,
     choices: [
-      { label: '高給で実績のある人を迎える', now: (s) => `年俸 約${yen(money(s, 1.5e7))}（会社負担）`, future: '会社の品質と成長が上がる', do: { fn: (s) => { const b = myBiz(s); b.cash -= money(s, 1.5e7); b.quality = clamp(b.quality + 8, 0, 100); b.demand *= 1.06; }, desc: '経験豊富な幹部が加わり、経営が安定しました。', tone: 'good' } },
+      { label: '高給で実績のある人を迎える', now: (s) => `年俸 約${yenJ(money(s, 1.5e7))}（会社負担）`, future: '会社の品質と成長が上がる', do: { fn: (s) => { const b = myBiz(s); b.cash -= money(s, 1.5e7); b.quality = clamp(b.quality + 8, 0, 100); b.demand *= 1.06; }, desc: '経験豊富な幹部が加わり、経営が安定しました。', tone: 'good' } },
       { label: '社内の若手を育てる', now: '時間がかかる', future: '社員のやる気が上がる', abil: { comm: 2 }, do: { fn: (s) => { const b = myBiz(s); b.quality = clamp(b.quality + 3, 0, 100); }, stats: { relations: 3 }, desc: '社内の若手を抜てきし、育てることにしました。' } },
       { label: '自分で全部見る', now: 'ストレス +6', future: '', do: { stats: { stress: 6, workSkill: 2 }, desc: '自分で現場も経営も見続けることにしました。' } }] },
   { id: 'l_price_war', title: '価格競争', cat: 'biz', age: [20, 80], cooldown: 5, when: (s) => !!myBiz(s), text: (s) => `大手企業が${myBiz(s).name}の分野に安い価格で参入してきました。`,
@@ -6530,7 +6540,7 @@ function roomModel(s) {
 // ===== public API =====
 const LC = {
   recencyFactor, noteSeen, taxPolicyMul, OWN_DEFS, marketAssets, ownAssetOf, founderShares, marketSharesHeld, controlRatio, ipoPrepare, ipoPrepCost, ipoChance, ipoPlan, ipoList, ownCapitalIncrease, ownBuyback, ownTakeover, ownDelist, bizFundamental, bizValuation, bizIPOInstant, costLiving, costHouse, costEdu, costMed, calcPension, migrateListed, registerOwnAssets, CONFIG, COUNTRIES, REGIONS, ASSETS, HOMES, CARS, PETS, LIFESTYLES, JOB_TYPES, INDUSTRIES, FOCUS, STAT_LABELS, CAT, WEALTH, ACHIEVEMENTS, STAGE_LABEL, TITLES, EV,
-  yen, signedYen, pct, round, clamp, secondsPerYear, hash01,
+  yen, yenJ, jpyText, signedYen, pct, round, clamp, secondsPerYear, hash01,
   newGame, tick, nextYear, togglePlay, isHeld, RESUME_DELAY, setSpeed, setBaseSeconds, chooseEvent, activeView, autoResolve, processMonth, advanceYear,
   P, playerAge, ageOfChar, country, priceIdx, household, spouse, childrenOf, isIndependent, atParents, statusLabel, stageOf, relLabel, availableFocus, setFocus, setLifestyle, focusShare,
   budget, balanceSheet, totalDebt, incomeTaxes, annuityPayment, holdingsList, portfolioByKind, buyAsset, sellAsset, setRecurring, assetDef, assetPriceJPY, fxOf, annualDividendEstimate, fmtQty, cycleLabel, capGainsRate,
@@ -7842,6 +7852,7 @@ const Scene = (function () {
   const esc = (v) => String(v == null ? '' : v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const Y = LC.yen;
   const YP = (n) => LC.moneyExact(n);
+  const YJ = (n) => LC.yenJ(n); // salary with the yen equivalent for lives outside Japan
   // money typed into forms is in the player's base currency; the engine works in its internal unit
   const IN = (v) => LC.fromBase(v), OUT = (n) => Math.round(LC.toBase(n));
   const niceBase = (internal) => { const v = LC.toBase(internal); const p = Math.pow(10, Math.max(0, Math.floor(Math.log10(Math.max(1, v))) - 1)); return Math.max(1, Math.round(v / p) * p); };
@@ -8303,7 +8314,7 @@ const Scene = (function () {
   const STARS = (n) => '★★★★★'.slice(0, Math.max(1, Math.min(5, Math.round(n)))) + '☆☆☆☆☆'.slice(0, 5 - Math.max(1, Math.min(5, Math.round(n))));
   function occCard(id) {
     const d = LC.OCC[id], el = LC.occEligibility(S, id), age = LC.playerAge(S);
-    const pay = d.mode === 'job' ? `年収 約${Y(LC.occBaseSalary(S, id))}〜` : d.mode === 'creator' ? '収入は人気しだい（ゼロから莫大な額まで）' : d.mode === 'freelance' ? `年収 約${Y(LC.freelanceIncome(Object.assign({}, S, { career: Object.assign({}, S.career, { freelance: { occ: id, rate: 1 } }) })))}（いまの能力で）` : d.mode === 'investor' ? '運用益と配当で生活' : '会社の利益しだい';
+    const pay = d.mode === 'job' ? `年収 約${YJ(LC.occBaseSalary(S, id))}〜` : d.mode === 'creator' ? '収入は人気しだい（ゼロから莫大な額まで）' : d.mode === 'freelance' ? `年収 約${YJ(LC.freelanceIncome(Object.assign({}, S, { career: Object.assign({}, S.career, { freelance: { occ: id, rate: 1 } }) })))}（いまの能力で）` : d.mode === 'investor' ? '運用益と配当で生活' : '会社の利益しだい';
     const chance = d.mode === 'job' ? `採用 ${LC.chanceText(S, LC.hireChance(S, id))}` : d.mode === 'biz' ? '会社設立へ' : '挑戦はいつでも';
     const applied = S.flags.applied && S.flags.applied[id] === S.time.year;
     const label = d.mode === 'job' ? (S.career.status === 'employed' ? '転職に応募' : '応募する') : d.mode === 'creator' ? '活動を始める' : d.mode === 'biz' ? '起業する' : '独立する';
@@ -8327,8 +8338,8 @@ const Scene = (function () {
   function sheetCareer() {
     const c = S.career, age = LC.playerAge(S), sp = S.sport, cr = S.creator;
     let html = `<div class="box"><h4>いまの立場<span class="tag">${esc(LC.statusLabel(S))}</span></h4>${kv([
-      c.job && ['職業', esc((LC.OCC[c.job.type] || {}).label || (LC.JOB_TYPES[c.job.type] || {}).label || '会社員')], c.job && ['勤務先', esc(c.job.company || '—')], c.job && ['役職', esc(c.job.title || '—')], c.job && ['年収', Y(c.job.salary)], c.job && ['勤続', (c.yearsInJob || 0) + '年'],
-      c.freelance && ['独立', esc(LC.OCC[c.freelance.occ].label)], c.freelance && ['年間の売上見込み', Y(LC.freelanceIncome(S))],
+      c.job && ['職業', esc((LC.OCC[c.job.type] || {}).label || (LC.JOB_TYPES[c.job.type] || {}).label || '会社員')], c.job && ['勤務先', esc(c.job.company || '—')], c.job && ['役職', esc(c.job.title || '—')], c.job && ['年収', YJ(c.job.salary)], c.job && ['勤続', (c.yearsInJob || 0) + '年'],
+      c.freelance && ['独立', esc(LC.OCC[c.freelance.occ].label)], c.freelance && ['年間の売上見込み', YJ(LC.freelanceIncome(S))],
       ['学歴', esc(LC.DEG_LABEL[S.education.degree] || S.education.degree || '—') + (S.education.major ? `（${LC.MAJORS[S.education.major]}）` : '')],
       ['資格', Object.keys(S.licenses || {}).map((k) => esc(LC.LICENSES[k].label)).join('、') || 'なし']])}</div>`;
     if (sp) {
@@ -8803,7 +8814,7 @@ const Scene = (function () {
   }
   function moneyDetailHTML() {
     const bs = LC.balanceSheet(S), b = LC.budget(S), indep = LC.isIndependent(S);
-    const cell = (l, v, cls) => `<div><span class="lbl">${l}</span><span class="v num ${cls || ''} ${typeof v === 'number' && v < 0 ? 'neg' : ''}">${typeof v === 'number' ? Y(v) : v}</span></div>`;
+    const cell = (l, v, cls) => `<div><span class="lbl">${l}</span><span class="v num ${cls || ''} ${typeof v === 'number' && v < 0 ? 'neg' : ''}">${typeof v === 'number' ? Y(v) : v}</span>${typeof v === 'number' && LC.jpyText(v) ? `<span class="jpy">${LC.jpyText(v)}</span>` : ''}</div>`;
     const invest = bs.investable, re = bs.realEstate, save = b.indep ? b.net : null;
     if (!indep) {
       const F = S.family, fb = LC.familyBudget(S), famNet = F.settled ? 0 : LC.familyNet(S);
@@ -9246,10 +9257,10 @@ const Scene = (function () {
   function countryCard() {
     const C = LC.country(S), cur = LC.CURRENCIES[C.cur], e = LC.ecoOf(S), lvl = (v) => (v >= 1.6 ? 'とても高い' : v >= 1.15 ? '高い' : v >= 0.85 ? '日本並み' : v >= 0.5 ? '低い' : 'とても低い');
     const tax = C.tax ? `実効 約${Math.round((C.tax.base + C.tax.prog * 0.4) * 100)}%＋社会保険 約${Math.round(C.tax.social * 100)}%（平均的な収入で）` : '累進課税＋住民税10%＋社会保険 約15%';
-    return `<div class="card"><h3>${esc(C.name)}の暮らしとお金</h3><p class="hint">すべての金額は${esc(cur.name)}（${esc(C.cur)}）で表示されます。数値はゲーム用の仮定値です。</p>
-      ${kv([['通貨', `${esc(cur.name)}（${esc(C.cur)}）`], ['賃金の水準', lvl(C.wage)], ['物価の水準', lvl(C.cost)], ['住宅価格', lvl(C.cost * (C.house || 1))], ['教育費', lvl(C.cost * (C.edu || 1))], ['医療費の自己負担', lvl(C.cost * (C.med || 1))],
+    return `<div class="card"><h3>${esc(C.name)}の暮らしとお金</h3><p class="hint">すべての金額は${esc(cur.name)}（${esc(C.cur)}）で表示されます。${C.cur !== 'JPY' ? '仕事の年収やお金の画面には、日本円での目安（いまの為替）も並べて表示します。' : ''}数値はゲーム用の仮定値です。</p>
+      ${kv([['通貨', `${esc(cur.name)}（${esc(C.cur)}）`]].concat(C.cur !== 'JPY' ? [['日本円にすると', `1 ${esc(cur.name)} ≈ ${(() => { const v = LC.fxOf(S, C.cur) / LC.fxOf(S, 'JPY'); return v >= 10 ? Math.round(v).toLocaleString('ja-JP') : v >= 0.1 ? v.toFixed(2) : v.toFixed(4); })()}円（いまの為替）`], ['会社員の年収の目安', YJ(LC.occBaseSalary(S, 'office'))]] : []).concat([['賃金の水準', lvl(C.wage)], ['物価の水準', lvl(C.cost)], ['住宅価格', lvl(C.cost * (C.house || 1))], ['教育費', lvl(C.cost * (C.edu || 1))], ['医療費の自己負担', lvl(C.cost * (C.med || 1))],
         ['消費税・付加価値税', `${(C.vat * 100).toFixed(C.vat * 100 % 1 ? 1 : 0)}%`], ['所得税・社会保険', tax], ['投資の利益への税', `約${Math.round(LC.capGainsRate(S) * 100)}%`],
-        ['経済成長率', `${e.gdp.toFixed(1)}%`], ['インフレ率', `${e.infl.toFixed(1)}%`], ['政策金利', `${e.rate.toFixed(2)}%`], ['失業率', `${e.unemp.toFixed(1)}%`], ['年金の受給開始', `${C.pensionAge}歳`]])}
+        ['経済成長率', `${e.gdp.toFixed(1)}%`], ['インフレ率', `${e.infl.toFixed(1)}%`], ['政策金利', `${e.rate.toFixed(2)}%`], ['失業率', `${e.unemp.toFixed(1)}%`], ['年金の受給開始', `${C.pensionAge}歳`]]))}
       <p class="hint" style="margin-top:6px">株式市場：${esc(C.market || '')}<br>不動産：${esc(C.estate || '')}</p></div>`;
   }
 
