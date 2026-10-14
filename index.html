@@ -1,3 +1,10 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e121a">
+<meta name="format-detection" content="telephone=no">
 <title>LIFE CAPITAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +38,17 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { background: var(--ink); color: var(--text); }
+html, body { background: var(--ink); color: var(--text); margin: 0; height: 100%; }
+/* Scroll containers that are also grids must size their rows to the content: otherwise, once the content is taller than the
+   container, rows of children with overflow:hidden (the scene card, tables) shrink to 0 and get covered by the next card. */
+#scroller, .sheet-body, .pre-in, .ev-card { grid-auto-rows: max-content; }
+/* App shell. The document itself never scrolls: #app fills the viewport (position: fixed; inset: 0 tracks the visible area on iOS without
+   relying on 100vh), the header and the dock are ordinary flex rows, and only the middle .stage area scrolls. Because the page never
+   scrolls, Safari's address bar does not collapse/expand under the player's finger, so nothing jumps. */
+html, body { overflow: hidden; overscroll-behavior: none; }
+#app { position: fixed; inset: 0; display: flex; flex-direction: column; min-height: 0; padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+#scroller { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 body { font-family: var(--f-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
@@ -39,7 +56,7 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 .num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
 
 /* ---------- A: clock */
-.clock { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--ink) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.clock { position: relative; flex: none; padding-top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--ink) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .clock-in { max-width: 600px; margin: 0 auto; padding: 10px var(--gut) 10px; display: grid; gap: 8px; }
 .clock-row { display: flex; align-items: flex-end; gap: 12px; min-width: 0; }
 .age { font-family: var(--f-display); line-height: 0.9; display: flex; align-items: baseline; gap: 2px; flex: none; }
@@ -65,7 +82,7 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 @media (max-width: 380px) { .btn-next { padding: 0 7px; } .speeds button { font-size: 11px; } #ageNum { font-size: 38px; } }
 
 /* ---------- layout */
-.wrap { max-width: 600px; margin: 0 auto; padding-inline: var(--gut); padding-block: 14px calc(96px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; }
+.wrap { padding-inline: max(var(--gut), calc((100% - 600px) / 2)); padding-block: 14px 24px; display: grid; gap: 12px; align-content: start; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
 .card h3 { margin: 0; font-size: 17px; font-weight: 700; text-wrap: balance; }
 .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -74,7 +91,11 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 
 /* ---------- B: scene */
 .scene-card { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); }
-#scene { display: block; width: 100%; aspect-ratio: 208 / 76; image-rendering: pixelated; image-rendering: crisp-edges; background: #0b1230; }
+#scene { display: block; margin: 0 auto; image-rendering: pixelated; image-rendering: crisp-edges; background: #1a1a22; touch-action: manipulation; }
+.scene-stage { position: relative; background: #14161c; padding: 0; line-height: 0; }
+.scene-toggle { position: absolute; top: 8px; right: 8px; line-height: 1.3; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.35); background: rgba(14,18,26,0.78); color: #f2ece0; }
+.scene-tip { position: absolute; transform: translate(-50%, -100%); line-height: 1.3; font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #fdf8ec; color: #2a2220; border: 2px solid #2a2220; white-space: nowrap; pointer-events: none; font-family: var(--f-display); }
+.intro-scene canvas { margin: 0 auto; }
 .scene-cap { padding: 12px 16px 14px; display: grid; gap: 2px; }
 .cap-main { margin: 0; font-size: 16px; font-weight: 500; text-wrap: balance; }
 .cap-sub { margin: 0; color: var(--muted); font-size: 13px; }
@@ -141,9 +162,10 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 .log-tools { display: flex; gap: 6px; }
 
 /* ---------- dock */
-.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: color-mix(in srgb, var(--panel) 96%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); padding: 6px max(var(--gut), calc((100% - 600px) / 2)) calc(6px + env(safe-area-inset-bottom, 0px)); }
+.dock { position: relative; flex: none; z-index: 25; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); background: color-mix(in srgb, var(--panel) 96%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); padding: 6px max(var(--gut), calc((100% - 600px) / 2)) calc(6px + env(safe-area-inset-bottom, 0px)); }
 .dock button { border: 0; background: transparent; display: grid; justify-items: center; gap: 2px; padding: 6px 2px; color: var(--muted); font-size: 12px; border-radius: 8px; min-width: 0; }
 .dock button:hover { color: var(--text); background: var(--panel-2); }
+.dock button[aria-current="true"] { color: var(--text); background: var(--panel-2); box-shadow: inset 0 -2px 0 var(--pink); }
 .ic { width: 20px; height: 20px; display: block; background: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
 .ic-home { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1 1 7v1h2v7h4v-4h2v4h4V8h2V7z'/%3E%3C/svg%3E"); }
 .ic-chart { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1 14h14v1H1zM2 10h2v3H2zm4-3h2v6H6zm4 2h2v4h-2zm4-6h1v10h-1z'/%3E%3C/svg%3E"); }
@@ -153,17 +175,20 @@ input, select { font: inherit; color: var(--text); background: var(--ink); borde
 
 /* ---------- sheet */
 /* The overlay is sized to the visible viewport (dvh) so iOS toolbars never cover its bottom. */
-.sheet { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100dvh; z-index: 40; display: grid; align-items: end; justify-items: center; }
+.sheet { position: absolute; inset: 0; z-index: 40; display: grid; align-items: end; justify-items: center; }
 .sheet-back { position: absolute; inset: 0; background: rgba(5, 7, 12, 0.6); touch-action: none; }
-.sheet-panel { position: relative; width: 100%; max-width: 640px; max-height: calc(100% - 56px - env(safe-area-inset-top, 0px)); min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-2); border-bottom: 0; border-radius: 16px 16px 0 0; animation: rise .22s ease-out; }
+.sheet-panel { position: relative; width: 100%; max-width: 640px; max-height: calc(100% - 8px); min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-2); border-bottom: 0; border-radius: 16px 16px 0 0; animation: rise .22s ease-out; }
 @keyframes rise { from { transform: translateY(24px); opacity: 0.4; } to { transform: none; opacity: 1; } }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 14px var(--gut) 6px; gap: 10px; }
 .sheet-head h2 { margin: 0; font-family: var(--f-display); font-size: 20px; font-weight: 400; }
 .btn-close { border: 1px solid var(--line-2); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
 .sheet-tabs { display: flex; gap: 6px; padding: 4px var(--gut) 10px; overflow-x: auto; flex: none; }
 .sheet-tabs:empty { display: none; }
+.sheet-tabs .chip-btn { white-space: nowrap; flex: 0 0 auto; }
+.sheet-tabs { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.sheet-tabs::-webkit-scrollbar { display: none; }
 /* flex child: min-height 0 lets it shrink to the panel and scroll instead of growing past the screen */
-.sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--gut) calc(32px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; align-content: start; overscroll-behavior: contain; }
+.sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--gut) 24px; display: grid; gap: 12px; align-content: start; overscroll-behavior: contain; }
 .box { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; min-width: 0; }
 .box h4 { margin: 0 0 6px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
 .box p { margin: 0; color: var(--muted); font-size: 13.5px; }
@@ -209,9 +234,9 @@ table.eco td { font-family: var(--f-num); }
 .goal.done .g-name { color: var(--gold); }
 
 /* ---------- event card */
-.event { position: fixed; top: 0; left: 0; right: 0; height: 100vh; height: 100dvh; z-index: 35; display: grid; align-items: end; justify-items: center; pointer-events: none; }
+.event { position: absolute; inset: 0; z-index: 45; display: grid; align-items: end; justify-items: center; pointer-events: none; }
 .event.block { pointer-events: auto; background: rgba(5, 7, 12, 0.55); }
-.ev-card { pointer-events: auto; width: calc(100% - 2 * var(--gut)); max-width: 600px; margin-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 1px solid var(--line-2); border-radius: 14px; padding: 16px; display: grid; gap: 10px; max-height: calc(100% - 96px - 76px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); animation: rise .25s ease-out; }
+.ev-card { pointer-events: auto; width: calc(100% - 2 * var(--gut)); max-width: 600px; margin-bottom: 10px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 14px; padding: 16px; display: grid; gap: 10px; max-height: calc(100% - 20px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); animation: rise .25s ease-out; }
 .ev-card.important { border-color: var(--pink-deep); }
 .ev-top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .ev-top h3 { margin: 0; font-size: 18px; }
@@ -228,14 +253,16 @@ table.eco td { font-family: var(--f-num); }
 .choice .c-why { color: var(--bad); font-size: 12px; }
 .end-card h3 { font-family: var(--f-display); font-weight: 400; font-size: 24px; }
 
-.toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; background: var(--text); color: var(--ink); padding: 8px 14px; border-radius: 10px; font-size: 13.5px; max-width: calc(100% - 32px); width: max-content; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+.toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 50; background: var(--text); color: var(--ink); padding: 8px 14px; border-radius: 10px; font-size: 13.5px; max-width: calc(100% - 32px); width: max-content; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
 .toast.bad { background: var(--bad); }
 @media (prefers-reduced-motion: reduce) { .sheet-panel, .ev-card { animation: none; } .meter i { transition: none; } }
 
 /* ---------- character creation & birth intro */
-body.pre .clock, body.pre main.wrap, body.pre .dock { display: none; }
-.pre-screen { min-height: 100%; }
-.pre-in { max-width: 600px; margin: 0 auto; padding-inline: var(--gut); padding-block: 24px calc(110px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 14px; }
+body.pre .clock, body.pre .stage, body.pre .dock { display: none; }
+/* character creation / intro: same shell idea — the form scrolls, the action bar is a fixed row under it */
+.pre-screen { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.pre-screen[hidden] { display: none; }
+.pre-in { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; width: 100%; box-sizing: border-box; padding-inline: max(var(--gut), calc((100% - 600px) / 2)); padding-block: 24px 24px; display: grid; gap: 14px; align-content: start; }
 .brand { padding-block: 12px 4px; }
 .brand-t { margin: 0; font-family: var(--f-display); font-size: 34px; letter-spacing: 0.04em; color: var(--text); }
 .brand-s { margin: 4px 0 0; color: var(--muted); font-size: 14px; max-width: 34ch; }
@@ -257,7 +284,7 @@ body.pre .clock, body.pre main.wrap, body.pre .dock { display: none; }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .sw { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--panel); box-shadow: 0 0 0 1px var(--line-2); padding: 0; }
 .sw.on { box-shadow: 0 0 0 2px var(--pink); }
-.pre-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px max(var(--gut), calc((100% - 600px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--ink) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.pre-bar { position: relative; flex: none; z-index: 30; padding: 12px max(var(--gut), calc((100% - 600px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--ink) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--line); display: grid; gap: 10px; }
 .pre-bar.two-btn { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 .btn.big { padding: 14px 16px; font-size: 16px; }
 .eyebrow { margin: 6px 0 0; font-family: var(--f-display); font-size: 22px; color: var(--pink); }
@@ -272,8 +299,8 @@ body.pre .clock, body.pre main.wrap, body.pre .dock { display: none; }
 .facts dt { color: var(--muted); font-size: 12.5px; }
 .facts dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 
-/* while a sheet is open the page behind it does not scroll */
-html.lock, html.lock body { overflow: hidden; }
+/* while a sheet is open the main column behind it does not scroll */
+html.lock #scroller { overflow: hidden; }
 
 /* ===== market: candlestick chart (日本式: 上昇=赤 / 下落=青) ===== */
 .mkt .up { color: #ff7b86; } .mkt .down { color: #6aa2ff; }
@@ -313,6 +340,8 @@ table.trades { min-width: 460px; }
 .choice .c-fx.risk b { color: var(--bad); }
 .choice .c-fx.risk span { color: #e6b0a6; }
 </style>
+</head>
+<body>
 <div id="app">
   <section id="setup" class="pre-screen" hidden></section>
   <section id="intro" class="pre-screen" hidden></section>
@@ -331,10 +360,12 @@ table.trades { min-width: 460px; }
       </div>
     </div>
   </header>
-  <main class="wrap">
+  <div class="stage" id="stage">
+  <main class="wrap" id="scroller">
     <section class="scene-card" id="mainScene">
-      <canvas id="scene" aria-label="人生のシーン"></canvas>
-      <div class="scene-cap"><p id="sceneCap" class="cap-main"></p><p id="sceneSub" class="cap-sub"></p></div>
+      <div class="scene-stage" id="sceneStage"><canvas id="scene" aria-label="人生の生活シーン（タップで人物の名前）"></canvas>
+        <button id="viewToggle" class="scene-toggle" data-act="viewToggle" hidden></button><div id="sceneTip" class="scene-tip" hidden></div></div>
+      <div class="scene-cap"><p id="sceneCap" class="cap-main"></p><p id="sceneSub" class="cap-sub"></p><p id="sceneStore" class="cap-sub"></p></div>
     </section>
     <section class="card" id="secLife"></section>
     <section class="card" id="secStats"></section>
@@ -342,13 +373,6 @@ table.trades { min-width: 460px; }
     <section class="card" id="secLog"></section>
     <p class="foot-note">金額・税・年金・相続などはゲーム用の近似モデルです。実際の制度や投資判断の参考にはしないでください。</p>
   </main>
-  <nav class="dock" aria-label="操作">
-    <button data-act="sheet" data-v="life"><i class="ic ic-home"></i><span>暮らし</span></button>
-    <button data-act="sheet" data-v="market"><i class="ic ic-chart"></i><span>投資</span></button>
-    <button data-act="sheet" data-v="biz"><i class="ic ic-biz"></i><span>仕事</span></button>
-    <button data-act="sheet" data-v="goals"><i class="ic ic-goal"></i><span>目標</span></button>
-    <button data-act="sheet" data-v="money"><i class="ic ic-yen"></i><span>お金</span></button>
-  </nav>
   <div id="sheet" class="sheet" hidden>
     <div class="sheet-back" data-act="close"></div>
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
@@ -359,6 +383,14 @@ table.trades { min-width: 460px; }
   </div>
   <div id="eventLayer" class="event" hidden></div>
   <div id="toast" class="toast" role="status" hidden></div>
+  </div>
+  <nav class="dock" aria-label="操作">
+    <button data-act="sheet" data-v="life"><i class="ic ic-home"></i><span>暮らし</span></button>
+    <button data-act="sheet" data-v="market"><i class="ic ic-chart"></i><span>投資</span></button>
+    <button data-act="sheet" data-v="biz"><i class="ic ic-biz"></i><span>仕事</span></button>
+    <button data-act="sheet" data-v="goals"><i class="ic ic-goal"></i><span>目標</span></button>
+    <button data-act="sheet" data-v="money"><i class="ic ic-yen"></i><span>お金</span></button>
+  </nav>
 </div>
 <script>(function(root){
 'use strict';
@@ -952,7 +984,7 @@ function newGame(seed, opts) {
   opts = opts || {};
   seed = (seed >>> 0) || ((Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0) || 1;
   const s = {
-    version: 3, seed, rng: seed, rev: 0, nextId: 1, over: false, playerId: null, mode: opts.tier != null || opts.pref ? 'choose' : opts.seedMode ? 'seed' : 'normal',
+    version: 4, seed, rng: seed, rev: 0, nextId: 1, over: false, playerId: null, mode: opts.tier != null || opts.pref ? 'choose' : opts.seedMode ? 'seed' : 'normal',
     time: { year: CONFIG.START_YEAR, progress: 0, monthsDone: 0, speed: 1, playing: false, baseSeconds: CONFIG.BASE_SECONDS_PER_YEAR },
     characters: {}, order: [], pets: [], vehicles: [], businesses: [], history: [],
     flags: { once: {}, cd: {}, firstProfit: {}, bizIpoAsked: {} },
@@ -972,6 +1004,7 @@ function newGame(seed, opts) {
   s.education = { stage: 'none', school: null, degree: 'none', major: null };
   s.career = { status: 'child', job: null, yearsInJob: 0, contribYears: 0, salarySum: 0, sideIncome: 0, sideBase: 0, benefitMonths: 0, benefit: 0, pension: 0, retired: false, lastSalary: 0, reemploy: false };
   s.finance = { cash: 0, debts: [], nisa: { annualUsed: 0, lifetimeUsed: 0 }, ytd: blankYtd(), lastYear: null, frugalYear: false, bankrupt: false, peakNet: 0, support: 0 };
+  s.furniture = [];
   s.portfolio = { holdings: {}, realized: 0, dividends: 0, fees: 0, recurring: [], firstBuy: false, firstDiv: false };
   s.birth = { narrative: familyNarrative(s), tier: F.birthTier, region: Object.assign({}, s.region), year: s.time.year, month: s.birthMonth };
   record(s, { cat: 'life', title: '誕生', desc: `${s.time.year}年${s.birthMonth}月、${s.birth.narrative}`, tone: 'good', important: true });
@@ -1747,6 +1780,7 @@ function buyHome(s, type, downPct, years, rateType) {
   let loanId = null;
   if (q.loan > 0) loanId = addDebt(s, { type: 'mortgage', label: '住宅ローン', principal: q.loan, rate: q.rate, months: q.months, rateType }).id;
   const H = HOMES[type];
+  if (atParents(s)) giveStarterKit(s);
   s.residence = { type, label: (s.country !== s.birthCountryId && s.birthCountryId ? '海外の' : '') + H.label, sprite: H.sprite, own: true, value: q.price, rent: 0, loanId, country: s.country, style: s.region.style, purchasePrice: q.price, purchaseYear: s.time.year };
   record(s, { cat: 'home', title: '住宅を購入', desc: `${H.label}を${yen(q.price)}で購入しました。頭金${yen(q.down)}、住宅ローン${yen(q.loan)}（${(q.rate * 100).toFixed(2)}%・${years}年、毎月${yen(q.payment)}）。${prev != null ? `前の家の売却で${yen(prev)}を受け取りました。` : ''}`,
     money: s.finance.cash - cashBefore, tone: 'good', important: true, stats: addStats(s, { happiness: 6, stress: 3 }) });
@@ -1762,6 +1796,7 @@ function rentHome(s, type) {
   const prev = s.residence.own ? sellHomeInternal(s) : null;
   const wasParents = atParents(s);
   s.finance.cash -= deposit;
+  if (wasParents) giveStarterKit(s);
   s.residence = { type, label: H.label, sprite: H.sprite, own: false, value: 0, rent, loanId: null, country: s.country, style: s.region.style };
   record(s, { cat: 'home', title: wasParents ? '一人暮らしを始めた' : '引っ越し', desc: `${H.label}（家賃 月${yen(rent)}）に引っ越しました。${prev != null ? `持ち家は${yen(prev)}で売却しました。` : ''}`, money: s.finance.cash - cashBefore, tone: 'good', important: wasParents, stats: addStats(s, wasParents ? { happiness: 3, stress: 2 } : { happiness: 1 }) });
   bump(s);
@@ -1789,6 +1824,7 @@ function moveCountry(s, cid) {
   const reg = pick(s, COUNTRIES[cid].regions);
   s.region = regionFromStyle(reg.n, reg.st, reg.cl);
   const rent = homeRent(s, 'rent_mansion');
+  if (atParents(s)) giveStarterKit(s);
   s.residence = { type: 'rent_mansion', label: '海外の賃貸マンション', sprite: 'mansion', own: false, value: 0, rent, loanId: null, country: cid, style: reg.st };
   for (const p of s.pets) if (p.owner === 'family') p.owner = 'left';
   let jobNote = '';
@@ -2544,6 +2580,108 @@ function careerYear(s) {
   if (s.career.job && OCC[s.career.job.type] && OCC[s.career.job.type].fameLinked && s.sport) s.sport.fame = clamp(s.sport.fame * 0.95, 0, 100);
 }
 
+// ---- 06_home.js
+// ===== furniture & household goods: real owned items that the room animation draws =====
+// place: wall = against the back wall / side wall, center = middle of the floor, small = 1 tile anywhere, deco = floor decoration (walkable)
+// use: what people can do with it (sleep / sit / eat / work / pc / read / tv / play / cook / music / exercise)
+const FURNITURE = {
+  futon: { label: '布団', cat: 'bed', price: 20000, slots: 1, place: 'wall', use: 'sleep', beds: 1, tier: 0 },
+  bed_single: { label: 'シングルベッド', cat: 'bed', price: 45000, slots: 2, place: 'wall', use: 'sleep', beds: 1, tier: 1 },
+  bed_double: { label: 'ダブルベッド', cat: 'bed', price: 120000, slots: 3, place: 'wall', use: 'sleep', beds: 2, tier: 2 },
+  bed_luxury: { label: '高級ベッド（キング）', cat: 'bed', price: 650000, slots: 3, place: 'wall', use: 'sleep', beds: 2, tier: 3 },
+  lowtable: { label: 'ちゃぶ台', cat: 'table', price: 8000, slots: 1, place: 'center', use: 'eat', seats: 2, tier: 0 },
+  dining: { label: 'ダイニングテーブル（4人）', cat: 'table', price: 90000, slots: 3, place: 'center', use: 'eat', seats: 4, tier: 1 },
+  dining_lux: { label: '大理石のダイニングテーブル', cat: 'table', price: 550000, slots: 3, place: 'center', use: 'eat', seats: 6, tier: 3 },
+  sofa: { label: 'ソファ', cat: 'sofa', price: 70000, slots: 2, place: 'center', use: 'sit', seats: 2, tier: 1 },
+  sofa_lux: { label: '本革ソファ', cat: 'sofa', price: 480000, slots: 3, place: 'center', use: 'sit', seats: 3, tier: 3 },
+  tv_small: { label: '小型テレビ', cat: 'tv', price: 35000, slots: 1, place: 'wall', use: 'tv', tier: 0 },
+  tv_big: { label: '大型テレビ', cat: 'tv', price: 220000, slots: 2, place: 'wall', use: 'tv', tier: 2 },
+  desk: { label: '机と椅子', cat: 'desk', price: 30000, slots: 1, place: 'wall', use: 'work', tier: 0 },
+  desk_work: { label: '仕事用デスク＋チェア', cat: 'desk', price: 95000, slots: 2, place: 'wall', use: 'work', tier: 2 },
+  pc: { label: 'ノートパソコン', cat: 'pc', price: 120000, slots: 0, place: 'desk', use: 'pc', tier: 1 },
+  pc_hi: { label: '高性能デスクトップPC', cat: 'pc', price: 380000, slots: 0, place: 'desk', use: 'pc', tier: 3 },
+  bookshelf: { label: '本棚', cat: 'shelf', price: 25000, slots: 1, place: 'wall', use: 'read', tier: 0 },
+  fridge: { label: '冷蔵庫', cat: 'kitchen', price: 60000, slots: 1, place: 'wall', use: 'cook', tier: 0 },
+  kitchen: { label: 'キッチンカウンター', cat: 'kitchen', price: 180000, slots: 2, place: 'wall', use: 'cook', tier: 2 },
+  washer: { label: '洗濯機', cat: 'appliance', price: 60000, slots: 1, place: 'wall', use: 'chore', tier: 0 },
+  plant: { label: '観葉植物', cat: 'deco', price: 8000, slots: 0, place: 'small', tier: 0 },
+  lamp: { label: 'フロアランプ', cat: 'deco', price: 15000, slots: 0, place: 'small', tier: 1 },
+  rug: { label: 'ラグ', cat: 'deco', price: 18000, slots: 0, place: 'deco', tier: 1 },
+  painting: { label: '絵画', cat: 'deco', price: 300000, slots: 0, place: 'hang', tier: 3 },
+  clock: { label: '柱時計', cat: 'deco', price: 90000, slots: 1, place: 'wall', tier: 2 },
+  aquarium: { label: '熱帯魚の水槽', cat: 'hobby', price: 60000, slots: 1, place: 'wall', use: 'watch', tier: 1 },
+  piano: { label: 'ピアノ', cat: 'hobby', price: 650000, slots: 2, place: 'wall', use: 'music', tier: 3 },
+  guitar: { label: 'ギター', cat: 'hobby', price: 60000, slots: 0, place: 'small', use: 'music', tier: 1 },
+  game: { label: 'ゲーム機', cat: 'hobby', price: 50000, slots: 0, place: 'tv', use: 'game', tier: 1 },
+  treadmill: { label: 'ルームランナー', cat: 'hobby', price: 160000, slots: 2, place: 'wall', use: 'exercise', tier: 2 },
+  massage: { label: 'マッサージチェア', cat: 'sofa', price: 320000, slots: 1, place: 'wall', use: 'relax', seats: 1, tier: 3 },
+};
+const FURNITURE_GROUPS = [['bed', '寝具'], ['table', 'テーブル'], ['sofa', 'ソファ・椅子'], ['tv', 'テレビ'], ['desk', '机'], ['pc', 'パソコン'], ['shelf', '収納'], ['kitchen', 'キッチン'], ['appliance', '家電'], ['hobby', '趣味'], ['deco', 'インテリア']];
+// how much fits: furniture "slots" per home (small items are free)
+const HOME_CAPACITY = { parents: 4, rent_apart: 7, rent_mansion: 10, used_house: 13, new_house: 15, luxury: 20, estate: 28 };
+// items a teenager or adult may keep in their own corner while still living with the family
+const PERSONAL_OK = ['desk', 'desk_work', 'pc', 'pc_hi', 'bookshelf', 'plant', 'lamp', 'guitar', 'game', 'treadmill', 'aquarium'];
+
+function furnitureList(s) { return s.furniture || (s.furniture = []); }
+function homeCapacity(s) { return HOME_CAPACITY[s.residence.type] || 8; }
+function furnitureSlotsUsed(s) { return furnitureList(s).reduce((a, f) => a + (FURNITURE[f.key] ? FURNITURE[f.key].slots : 0), 0); }
+function furniturePrice(s, key) { return Math.round(FURNITURE[key].price * country(s).cost * priceIdx(s) / 1000) * 1000; }
+// the items that are actually in the room right now (the rest wait in storage until there is space)
+function placedFurniture(s) {
+  const cap = homeCapacity(s), out = []; let used = 0;
+  for (const f of furnitureList(s)) {
+    const D = FURNITURE[f.key]; if (!D) continue;
+    if (atParents(s) && !PERSONAL_OK.includes(f.key)) continue;
+    if (used + D.slots > cap) continue;
+    used += D.slots; out.push(f);
+  }
+  return out;
+}
+function canBuyFurniture(s, key) {
+  const D = FURNITURE[key]; if (!D) return { ok: false, msg: '商品が見つかりません。' };
+  const age = playerAge(s);
+  if (atParents(s)) {
+    if (!PERSONAL_OK.includes(key)) return { ok: false, msg: '実家暮らしの間は、自分の部屋に置ける物だけ買えます。' };
+    if (age < 13) return { ok: false, msg: '13歳から自分のお金で買えます。' };
+  } else if (age < 18) return { ok: false, msg: '18歳から買えます。' };
+  const price = furniturePrice(s, key);
+  const own = (cat) => furnitureList(s).some((f) => FURNITURE[f.key] && FURNITURE[f.key].cat === cat);
+  if (key === 'game' && !atParents(s) && !own('tv')) return { ok: false, msg: 'テレビがないと置けません。' };
+  if (D.place === 'desk' && !atParents(s) && !own('desk') && !own('table')) return { ok: false, msg: '机かテーブルが必要です。' };
+  if (D.place === 'desk' && atParents(s) && !own('desk') && placedFurniture(s).every((f) => FURNITURE[f.key].cat !== 'desk')) return { ok: false, msg: '先に机を買いましょう。' };
+  if (price > s.finance.cash) return { ok: false, msg: `現金が足りません（${yen(price)}）。` };
+  if (D.place === 'desk' && !furnitureList(s).some((f) => FURNITURE[f.key] && FURNITURE[f.key].cat === 'desk') && !atParents(s)) return { ok: true, price, note: '机がないので、テーブルの上で使います。' };
+  const cap = atParents(s) ? HOME_CAPACITY.parents : homeCapacity(s);
+  const usedHere = atParents(s) ? placedFurniture(s).reduce((a, f) => a + FURNITURE[f.key].slots, 0) : furnitureSlotsUsed(s);
+  if (usedHere + D.slots > cap) return { ok: false, msg: `置き場所がいっぱいです（${usedHere}/${cap}）` };
+  return { ok: true, price };
+}
+function buyFurniture(s, key) {
+  const c = canBuyFurniture(s, key); if (!c.ok) return c;
+  const D = FURNITURE[key];
+  s.finance.cash -= c.price;
+  const first = !furnitureList(s).some((f) => f.src === 'buy');
+  furnitureList(s).push({ uid: newId(s, 'f'), key, src: 'buy', price: c.price, year: s.time.year });
+  const firstPay = first && s.career.status === 'employed' && (s.career.yearsInJob || 0) <= 1;
+  record(s, { cat: 'home', title: firstPay ? '初任給で家具を買った' : first ? '初めての家具' : '家具・家電を購入', desc: `${D.label}を${yen(c.price)}で買いました。${c.note || ''}`, money: -c.price, tone: 'good', important: first, stats: addStats(s, { happiness: first ? 3 : 1 }) });
+  bump(s);
+  return { ok: true, msg: `${D.label}を買いました。部屋に置きました。` };
+}
+function sellFurniture(s, uid) {
+  const L = furnitureList(s), i = L.findIndex((f) => f.uid === uid); if (i < 0) return { ok: false, msg: '見つかりません。' };
+  const f = L[i], D = FURNITURE[f.key], got = Math.round((f.price || 0) * 0.25 / 1000) * 1000;
+  L.splice(i, 1); s.finance.cash += got;
+  record(s, { cat: 'home', title: got ? '家具を売った' : '家具を処分した', desc: `${D.label}を${got ? yen(got) + 'で売りました' : '処分しました'}。`, money: got || null, tone: 'neutral' });
+  bump(s);
+  return { ok: true, msg: `${D.label}を${got ? yen(got) + 'で売りました' : '処分しました'}。` };
+}
+// moving out of the family home: a futon and a small table come along (no cost, no resale value)
+function giveStarterKit(s) {
+  const L = furnitureList(s);
+  if (!L.some((f) => FURNITURE[f.key] && FURNITURE[f.key].cat === 'bed')) L.push({ uid: newId(s, 'f'), key: 'futon', src: 'starter', price: 0, year: s.time.year });
+  if (!L.some((f) => FURNITURE[f.key] && FURNITURE[f.key].cat === 'table')) L.push({ uid: newId(s, 'f'), key: 'lowtable', src: 'starter', price: 0, year: s.time.year });
+}
+
 // ---- 06_life.js
 // ===== careers, family life, achievements =====
 function jobOffers(s, n, opts) {
@@ -2640,6 +2778,7 @@ function marry(s, cand, ceremonyCost) {
   s.finance.cash -= ceremonyCost;
   if (atParents(s)) {
     const rent = homeRent(s, 'rent_apart');
+    giveStarterKit(s);
     s.residence = { type: 'rent_apart', label: HOMES.rent_apart.label, sprite: 'apart', own: false, value: 0, rent, loanId: null, country: s.country, style: s.region.style };
   }
   return c;
@@ -3675,7 +3814,8 @@ function activateNext(s) {
   try { if (d.skipIf && d.skipIf(s, q.ctx || {})) return activateNext(s); } catch (e) { return activateNext(s); }
   let ctx = q.ctx && Object.keys(q.ctx).length ? Object.assign({}, q.ctx) : {};
   try { Object.assign(ctx, d.prepare ? d.prepare(s, ctx) : {}); } catch (e) { return activateNext(s); }
-  s.events.active = { defId: q.defId, ctx, blocking: !!q.blocking };
+  s.events.seq = (s.events.seq || 0) + 1;
+  s.events.active = { defId: q.defId, ctx, blocking: !!q.blocking, n: s.events.seq };
   if (d.once) s.flags.once[q.defId] = true;
   if (d.cooldown) s.flags.cd[q.defId] = s.time.year;
   bump(s);
@@ -3692,10 +3832,12 @@ function activeView(s) {
   const a = s.events.active; if (!a) return null;
   const d = EV[a.defId];
   const v = buildEvent(s, d, a.ctx);
-  return { id: a.defId, title: d.title, cat: d.cat, blocking: !!a.blocking, important: !!d.important || !!a.blocking, text: v.text, choices: v.choices.map((c) => ({ label: c.label, now: c.now, future: c.future, risk: c.risk || '', disabled: !!c.disabled, reason: c.reason || '' })) };
+  return { id: a.defId, n: a.n, title: d.title, cat: d.cat, blocking: !!a.blocking, important: !!d.important || !!a.blocking, text: v.text, choices: v.choices.map((c) => ({ label: c.label, now: c.now, future: c.future, risk: c.risk || '', disabled: !!c.disabled, reason: c.reason || '' })) };
 }
-function chooseEvent(s, idx, auto) {
-  const a = s.events.active; if (!a) return { ok: false, msg: 'イベントはありません。' };
+// n = the number of the event the player was looking at; a second tap that lands on the next event is ignored
+function chooseEvent(s, idx, auto, n) {
+  const a = s.events.active; if (!a) return { ok: false, stale: true, msg: 'イベントはありません。' };
+  if (n != null && a.n != null && +n !== a.n) return { ok: false, stale: true, msg: '' };
   const d = EV[a.defId];
   const v = buildEvent(s, d, a.ctx);
   const c = v.choices[idx];
@@ -3710,9 +3852,11 @@ function chooseEvent(s, idx, auto) {
     const dm = s.finance.cash - cashBefore;
     record(s, { cat: res.cat || d.cat, title: res.title || d.title, desc: res.desc + (auto ? '（自動で決まりました）' : ''), stats: Object.keys(sd).length ? sd : null, money: Math.abs(dm) >= 1 ? dm : null, tone: res.tone, important: !!(d.important || d.blocking) });
   }
-  // the clock stays paused after a choice; only the play button restarts it
+  // a choice that is already due comes next, before any time passes; otherwise the clock continues (if the player had it running)
+  if (!s.events.active && s.events.queue.length && s.events.queue[0].at <= s.time.progress + 1e-9) activateNext(s);
+  s.time.resumeIn = !s.events.active && s.time.playing ? RESUME_DELAY : 0;
   bump(s);
-  return { ok: true };
+  return { ok: true, next: !!s.events.active, resumes: !s.events.active && s.time.playing };
 }
 function autoResolve(s) {
   const v = activeView(s); if (!v) return;
@@ -3725,11 +3869,19 @@ function autoResolve(s) {
 // ---- main clock. dt = real seconds elapsed.
 // Single source of truth: s.time.playing (auto-advance on/off), s.events.active (the choice on screen),
 // s.events.queue (pending choices). Nothing that depends on in-game time runs while a choice is on screen.
-function pauseForChoice(s) { s.time.playing = false; bump(s); }
+// Time model
+//   T.playing   = the player's wish (the ▶/⏸ button). Only the player changes it.
+//   events.active = the choice on screen. While it exists, time is *held* (nothing advances), but T.playing is kept.
+//   T.resumeIn  = a short beat (real seconds) after the last choice so its result can be read before time moves on.
+// So a choice never overwrites a manual pause, and once no choice is left the clock continues by itself if the player wanted it to.
+const RESUME_DELAY = 0.9;
+function isHeld(s) { return !!s.events.active; }
+function holdForChoice(s) { s.time.resumeIn = 0; bump(s); }
 function tick(s, dt) {
   const T = s.time;
   if (s.over || !T.playing || !(dt > 0)) return;
-  if (s.events.active) { pauseForChoice(s); return; }
+  if (s.events.active) return; // held by a choice
+  if (T.resumeIn > 0) { const use = Math.min(T.resumeIn, dt); T.resumeIn -= use; dt -= use; if (!(dt > 0)) return; }
   let remaining = dt / secondsPerYear(T.baseSeconds, T.speed);
   for (let guard = 0; guard < 400 && remaining > 1e-12; guard++) {
     const nextMonth = T.monthsDone < 12 ? (T.monthsDone + 1) / 12 : Infinity;
@@ -3739,7 +3891,7 @@ function tick(s, dt) {
     if (need > remaining) { T.progress += remaining; remaining = 0; break; }
     T.progress = boundary; remaining -= need;
     if (nextEv <= boundary && nextEv <= nextMonth) {
-      if (activateNext(s)) { pauseForChoice(s); return; } // stop the instant a choice appears
+      if (activateNext(s)) { holdForChoice(s); return; } // stop the instant a choice appears
       continue;
     }
     if (T.monthsDone < 12 && boundary >= nextMonth) { processMonth(s); continue; }
@@ -3753,13 +3905,13 @@ function tick(s, dt) {
 // "次へ": advance to the next choice, or to the next birthday if none is pending. Never skips a choice.
 function nextYear(s) {
   if (s.over) return { ok: false };
-  if (s.events.active) { pauseForChoice(s); return { ok: false, blocked: true }; }
+  if (s.events.active) return { ok: false, blocked: true };
   for (let guard = 0; guard < 100; guard++) {
     if (s.events.queue.length) {
       const target = Math.min(1, Math.max(s.time.progress, s.events.queue[0].at));
       while (s.time.monthsDone < 12 && (s.time.monthsDone + 1) / 12 <= target) processMonth(s);
       s.time.progress = Math.max(s.time.progress, target);
-      if (activateNext(s)) { pauseForChoice(s); return { ok: false, blocked: true, event: true }; }
+      if (activateNext(s)) { holdForChoice(s); return { ok: false, blocked: true, event: true }; }
       continue;
     }
     if (s.time.monthsDone < 12) { processMonth(s); s.time.progress = Math.max(s.time.progress, s.time.monthsDone / 12); continue; }
@@ -3770,9 +3922,8 @@ function nextYear(s) {
 }
 function togglePlay(s) {
   if (s.over) return { ok: false };
-  if (!s.time.playing && s.events.active) return { ok: false, msg: '先に選択肢を選んでください。' };
-  s.time.playing = !s.time.playing; bump(s);
-  return { ok: true };
+  s.time.playing = !s.time.playing; s.time.resumeIn = 0; bump(s);
+  return { ok: true, playing: s.time.playing, held: isHeld(s) };
 }
 function setSpeed(s, sp) { if (CONFIG.SPEEDS.includes(sp)) { s.time.speed = sp; bump(s); } }
 function setBaseSeconds(s, sec) { s.time.baseSeconds = clamp(Math.round(sec), 5, 300); bump(s); }
@@ -3967,16 +4118,21 @@ function playerDies(s) {
 function serialize(s) { return JSON.stringify(s, packWorld); }
 function deserialize(json) {
   const s = typeof json === 'string' ? JSON.parse(json) : json;
-  if (!s || !s.characters || !s.time || !(s.version >= 1 && s.version <= 3)) throw new Error('セーブデータの形式が正しくありません。');
+  if (!s || !s.characters || !s.time || !(s.version >= 1 && s.version <= 4)) throw new Error('セーブデータの形式が正しくありません。');
   if (s.world && s.world.assets) unpackWorld(s);
   if (s.version === 1) migrateV1(s);
   if (s.version === 2) migrateV2(s);
-  s.time.playing = false; delete s.time.pausedByEvent; delete s.time.autoPause;
+  if (s.version === 3) migrateV3(s);
+  s.time.playing = false; s.time.resumeIn = 0; delete s.time.pausedByEvent; delete s.time.autoPause;
   // guard against duplicated ids in order
   s.order = Array.from(new Set(s.order)).filter((id) => s.characters[id]);
   return s;
 }
 
+function migrateV3(s) { // furniture ownership for the room animation
+  s.version = 4;
+  if (!s.furniture) { s.furniture = []; if (!atParents(s)) giveStarterKit(s); }
+}
 function migrateV2(s) { // careers, licenses, candlestick market data, trade history
   s.version = 3;
   ensureMarket(s);
@@ -4077,17 +4233,126 @@ function sceneModel(s) {
   };
 }
 
+// ===== room model: everything the pixel room shows, derived only from saved game state (pure; no randomness, no writes) =====
+const FAMILY_SET = [ // what the family home contains, by the birth household's economic tier
+  ['futon', 'futon', 'lowtable', 'tv_small', 'fridge'],
+  ['futon', 'futon', 'lowtable', 'tv_small', 'fridge', 'bookshelf', 'washer'],
+  ['bed_double', 'bed_single', 'dining', 'sofa', 'tv_small', 'fridge', 'bookshelf', 'washer', 'plant'],
+  ['bed_double', 'bed_single', 'dining', 'sofa', 'tv_big', 'kitchen', 'fridge', 'bookshelf', 'washer', 'plant', 'lamp', 'rug'],
+  ['bed_luxury', 'bed_single', 'dining_lux', 'sofa_lux', 'tv_big', 'kitchen', 'fridge', 'piano', 'clock', 'painting', 'plant', 'plant', 'lamp', 'rug'],
+];
+const ROOM_SIZE = { // floor size in 8px tiles
+  tiny: { w: 11, h: 7 }, small: { w: 13, h: 8 }, medium: { w: 16, h: 9 }, large: { w: 18, h: 10 }, luxury: { w: 20, h: 10 }, estate: { w: 22, h: 11 },
+};
+const SPRITE_SIZE = { apart: 'small', small: 'small', house: 'medium', mansion: 'medium', newhouse: 'large', big: 'large', luxury: 'luxury', estate: 'estate', used: 'medium' };
+const RES_SIZE = { rent_apart: 'small', rent_mansion: 'medium', used_house: 'medium', new_house: 'large', luxury: 'luxury', estate: 'estate' };
+const HOUSE_SPRITES = ['small', 'house', 'newhouse', 'big', 'luxury', 'estate', 'used'];
+function outfitFor(s, c) {
+  const a = ageOfChar(s, c);
+  if (c.relation === 'self') {
+    const sp = s.sport, st = s.career.status;
+    if (sp && !sp.retired && ['hs', 'college', 'corp', 'indy', 'pro', 'abroad'].includes(sp.stage)) return 'sport:' + sp.id;
+    if (st === 'student' && ['middle', 'high'].includes(s.education.stage)) return 'school';
+    if (st === 'founder') return s.businesses.some((b) => b.listed) ? 'exec' : 'suit';
+    if (st === 'employed' && s.career.job) {
+      const t = s.career.job.type;
+      if (['police', 'fire', 'sdf'].includes(t)) return 'uniform';
+      if (['doctor', 'nurse', 'pharm', 'researcher'].includes(t)) return 'coat';
+      if (['factory', 'construct'].includes(t)) return 'work';
+      if (t === 'retail') return 'apron';
+      if (t === 'sport_coach') return sp ? 'sport:' + sp.id : 'track';
+      if (t === 'part') return 'casual';
+      if (t === 'executive' || t === 'manager') return 'exec';
+      return 'suit';
+    }
+    return 'casual';
+  }
+  if (['father', 'mother', 'spouse'].includes(c.relation) && a < 65 && a >= 20 && (c.income || 0) > 0 && ['company', 'gov', 'exec', 'pro'].includes(c.jobKey)) return 'suit';
+  if (['child', 'sibling', 'grandchild'].includes(c.relation) && a >= 12 && a < 18) return 'school';
+  return 'casual';
+}
+function roomModel(s) {
+  const base = sceneModel(s);
+  const parents = atParents(s), F = s.family;
+  const tier = F ? F.wealth : 2;
+  let size, floor, wall, view;
+  const urban = s.region.style === 'urban', rural = s.region.style === 'rural', jp = s.country === 'jp';
+  if (parents) {
+    size = tier === 0 ? 'tiny' : SPRITE_SIZE[s.residence.sprite] || 'medium';
+    floor = ['tatami_old', 'tatami', 'wood', 'wood_light', 'carpet'][tier];
+    wall = ['worn', 'plain', 'paper', 'stripe', 'luxe'][tier];
+  } else {
+    size = RES_SIZE[s.residence.type] || 'medium';
+    floor = { rent_apart: jp ? 'tatami' : 'wood_dark', rent_mansion: 'wood', used_house: 'wood_dark', new_house: 'wood_light', luxury: 'carpet', estate: 'marble' }[s.residence.type] || 'wood';
+    wall = { rent_apart: 'plain', rent_mansion: 'paper', used_house: 'paper', new_house: 'stripe', luxury: 'luxe', estate: 'luxe' }[s.residence.type] || 'plain';
+  }
+  const sprite = parents ? s.residence.sprite : HOMES[s.residence.type] ? HOMES[s.residence.type].sprite : 'apart';
+  const isHouse = HOUSE_SPRITES.includes(sprite) || ['used_house', 'new_house', 'luxury', 'estate'].includes(s.residence.type);
+  view = urban ? (['luxury', 'estate'].includes(size) ? 'skyline' : 'city') : rural ? 'field' : 'town';
+  // ---- things in the room. Every entry says where it comes from (src) so it can be checked against the save
+  const items = [];
+  const add = (key, src, extra) => items.push(Object.assign({ key, src, id: src + ':' + key + ':' + items.length }, extra || {}));
+  if (parents) (FAMILY_SET[tier] || FAMILY_SET[2]).forEach((k) => add(k, 'family'));
+  for (const f of placedFurniture(s)) items.push({ key: f.key, src: 'owned', id: f.uid, uid: f.uid });
+  const hh = household(s), me = P(s), myAge = playerAge(s);
+  // children's things (also the player as a child at the family home)
+  const kids = hh.filter((c) => c.relation === 'child' || (parents && (c.relation === 'self' || c.relation === 'sibling')));
+  if (kids.some((c) => ageOfChar(s, c) < 2)) add('crib', 'child');
+  if (kids.some((c) => { const a = ageOfChar(s, c); return a >= 1 && a < 9; })) add('toys', 'child');
+  const pupils = kids.filter((c) => { const a = ageOfChar(s, c); return a >= 6 && a < 18; });
+  if (pupils.length && !items.some((i) => i.key === 'desk' || i.key === 'desk_work')) add('desk_kid', 'child');
+  if (pupils.some((c) => ageOfChar(s, c) < 12)) add('randoseru', 'child');
+  // the player's own life: lessons, sport, creator work, studies, job, business
+  if (parents && F && F.edu && F.edu.lessons && F.edu.lessons.includes('ピアノ') && myAge >= F.edu.lessonsStartAge && myAge < 18 && !items.some((i) => i.key === 'piano')) add('keyboard', 'lesson');
+  const sp = s.sport;
+  if (sp && !sp.retired) add('gear_' + (['baseball', 'soccer', 'basketball', 'tennis', 'golf', 'boxing', 'esports'].includes(sp.id) ? sp.id : 'sport'), 'sport');
+  else if (sp && sp.retired && sp.proYears > 0) add('trophy', 'sport');
+  const cr = s.creator;
+  if (cr && !cr.quit) { const occ = cr.occ; add(['youtuber', 'streamer', 'videomaker'].includes(occ) ? 'stream_set' : ['musician', 'singer', 'producer'].includes(occ) ? 'music_set' : ['writer', 'mangaka', 'illustrator'].includes(occ) ? 'draw_set' : 'mirror', 'creator'); }
+  if (s.career.studying) add('books', 'study');
+  const st = s.career.status;
+  if (st === 'employed' && s.career.job) add('briefcase', 'job');
+  const myBiz = s.businesses.filter((b) => !b.parentId);
+  const staff = myBiz.reduce((a, b) => a + b.employees, 0);
+  if (myBiz.length && staff < 3 && !myBiz.some((b) => b.listed)) add('biz_desk', 'biz');
+  if (st === 'freelance' && !items.some((i) => FURNITURE[i.key] && FURNITURE[i.key].cat === 'desk')) add('work_tools', 'job');
+  if (spouse(s) && spouse(s).residing !== false && !parents) add('dresser', 'spouse');
+  // pets: beds, bowls and cages for the pets that actually live here
+  for (const p of base.pets) {
+    if (p.kind === 'dog' || p.kind === 'cat') { add('petbed_' + p.kind, 'pet', { pet: p.id }); add('bowl', 'pet', { pet: p.id }); }
+    else add('cage_' + p.kind, 'pet', { pet: p.id });
+  }
+  const fire = !!((s.achievements.fireInvest || s.achievements.fireBiz) && st !== 'employed' && st !== 'founder');
+  const people = base.people.map((p) => {
+    const c = s.characters[p.id];
+    const a = p.age, st2 = p.stage;
+    const self = p.relation === 'self';
+    let routine = st2 === 'baby' ? 'baby' : st2 === 'toddler' ? 'toddler' : a < 13 ? 'child' : a < 18 ? 'teen' : a >= 70 ? 'elder' : 'adult';
+    const worksOut = self ? (st === 'employed' && !(s.career.job && s.career.job.type === 'part' && a > 60)) || (st === 'athlete') : (['father', 'mother', 'spouse'].includes(p.relation) && a < 65 && (c.income || 0) > 0);
+    const wfh = self && (['founder', 'freelance', 'investor'].includes(st) || (st === 'creator') || (cr && cr.fullTime));
+    const student = (self && st === 'student') || (!self && a >= 6 && a < 22 && ['child', 'sibling', 'grandchild'].includes(p.relation));
+    return Object.assign({}, p, { routine, outfit: outfitFor(s, c), worksOut: !!worksOut && !p.visiting, wfh: !!wfh, student, retired: self ? st === 'retired' : a >= 65, fire: self && fire, sport: self && sp && !sp.retired ? sp.id : null, creator: self && cr && !cr.quit ? cr.occ : null, beard: !!(c.look && c.look.beard), label: (self ? 'わたし' : relLabel(s, c)) + ` ${a}歳` });
+  });
+  const office = myBiz.length && (staff >= 3 || myBiz.some((b) => b.listed)) ? (() => { const b = myBiz.slice().sort((x, y) => y.valuation - x.valuation)[0]; return { name: b.name, industry: b.industry, employees: staff, shown: Math.min(staff, 10), listed: myBiz.some((x) => x.listed), size: staff >= 40 || myBiz.some((x) => x.listed) ? 'large' : staff >= 10 ? 'medium' : 'small', seed: b.id }; })() : null;
+  return {
+    kind: parents ? 'parents' : 'home', size, dims: ROOM_SIZE[size], floor, wall, view, outside: isHouse ? (['luxury', 'estate'].includes(size) ? 'garden' : 'driveway') : 'parking',
+    tier, label: s.residence.label, items, stored: parents ? 0 : furnitureList(s).length - placedFurniture(s).length,
+    people, pets: base.pets, cars: base.cars.slice(0, 3), office, fire, weather: base.weather, month: base.month, climate: base.climate, country: s.country, over: s.over,
+  };
+}
+
 // ---- 99_export.js
 // ===== public API =====
 const LC = {
   CONFIG, COUNTRIES, REGIONS, ASSETS, HOMES, CARS, PETS, LIFESTYLES, JOB_TYPES, INDUSTRIES, FOCUS, STAT_LABELS, CAT, WEALTH, ACHIEVEMENTS, STAGE_LABEL, TITLES, EV,
   yen, signedYen, pct, round, clamp, secondsPerYear, hash01,
-  newGame, tick, nextYear, togglePlay, setSpeed, setBaseSeconds, chooseEvent, activeView, autoResolve, processMonth, advanceYear,
+  newGame, tick, nextYear, togglePlay, isHeld, RESUME_DELAY, setSpeed, setBaseSeconds, chooseEvent, activeView, autoResolve, processMonth, advanceYear,
   P, playerAge, ageOfChar, country, priceIdx, household, spouse, childrenOf, isIndependent, atParents, statusLabel, stageOf, relLabel, availableFocus, setFocus, setLifestyle, focusShare,
   budget, balanceSheet, totalDebt, incomeTaxes, annuityPayment, holdingsList, portfolioByKind, buyAsset, sellAsset, setRecurring, assetDef, assetPriceJPY, fxOf, annualDividendEstimate, fmtQty, cycleLabel, capGainsRate,
   quoteHome, buyHome, rentHome, sellHome, homePrice, homeRent, moveCountry, carPrice, buyCar, sellCar, adoptPet, careForPet, petAge, visiblePets,
   foundCompany, bizHire, bizSetAds, bizSetPay, bizCapex, bizLoan, bizLoanLimit, bizRaiseEquity, bizEquityOffer, bizIPO, ipoReady, bizSellShares, bizDividend, bizInject, bizSellCompany, bizAcquire, bizById, subsidiaries, bizCapacity, bizNetAssets, controlledCompanies,
   OCC, CAREER_CATS, DEG_LABEL, MAJORS, LICENSES, SPORTS, occEligibility, hireChance, chanceText, chanceRange, occBaseSalary, applyJob, setStudyTarget, examPassChance, licenseEligible, hasLicense, startSport, sportRating, draftChance, proSalary, sportRetire, startCreator, freelanceIncome, ladderOf, jobHuntOffers, makeOffer, sportFee, careerYear,
+  roomModel, FURNITURE, FURNITURE_GROUPS, ROOM_SIZE, buyFurniture, sellFurniture, canBuyFurniture, furniturePrice, placedFurniture, homeCapacity, furnitureSlotsUsed, furnitureList, giveStarterKit,
   TIMEFRAMES, chartBars, assetQuote, dailyBars, monthlyBars, intradayBars, taSMA, taEMA, taRSI, taMACD, taBoll, barsByWeek, barsByMonth, barValid, stepWorld, worldShock, tradingDays, ensureMarket, packBars, unpackBars, raiseCash, sportGoPro, sportYear, startFreelance, startInvestor, changeCareerTo, eligibleJobIds, grantLicense, CORP_LADDER, randomEvents, buildEvent, startSport, sportStageLabel, creatorYear, playerBusinesses,
   NAMES, TIERS, GENDER_LABEL, JP_PREFS, AREA, PJOBS, POLICIES, LESSONS, LOOKS, tierProbabilities, familyBudget, familyNet, familyParents, familyNarrative, calendar, regionFromStyle, giftTax, takeFromFamily, setLook, tierFromIncome, makeBusiness,
   fireStatus, checkAchievements, sceneModel, heightFor, greyness, dayPhase, weatherAt, addChildChar, marry, makeSpouseCandidate, startJob, jobOffers, retire, record, addStats, queueEvent, serialize, deserialize, bump,
@@ -4097,369 +4362,1058 @@ else root.LC = LC;
 
 })(typeof window!=='undefined'?window:globalThis);
 </script>
-<script>// ===== LIFE CAPITAL : pixel-art life scene (reads LC.sceneModel(state) every frame; holds no ownership state of its own) =====
+<script>// ===== LIFE CAPITAL : top-down pixel-art life room =====
+// Reads LC.roomModel(state) (pure, derived from the save) and animates it. It never writes to the game state.
+// Structure: palettes → item catalogue (footprints / use points / sprites) → layout & pathfinding → behaviour → sprites → frame.
 const Scene = (function () {
-  const W = 208, H = 76, GY = 63, HZ = 55; // GY: feet line, HZ: horizon
-  let cv, g, last = 0;
-  const A = { chars: {}, pets: {}, rain: [], snow: [], moods: {}, clouds: [] };
-  const lights = [];
+  'use strict';
+  const TS = 8, W = 176, H = 146, WALL = 22, LIP = 3, OUT = 32;
+  const DAY_LEN = 150; // seconds of real time for one animated day (independent from game time; runs while paused)
+  let cv, g, k = 1, last = 0, acc = 0, viewMode = 'home', pickCb = null;
+  const SIM = { sig: '', L: null, chars: new Map(), pets: new Map(), clock: DAY_LEN * 0.32, bubbles: [], mood: null, fx: [], petals: [] };
+  const rnd = Math.random;
+  const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+  const strId = (id) => { let x = 7; const s = String(id); for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return Math.abs(x); };
   const h01 = (...n) => LC.hash01(...n);
-  const strId = (id) => { let x = 0; for (let i = 0; i < id.length; i++) x = (x * 31 + id.charCodeAt(i)) | 0; return x; };
-
-  function mount(canvas) {
-    cv = canvas; cv.width = W; cv.height = H; g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-    for (let i = 0; i < 70; i++) A.rain.push({ x: Math.random() * W, y: Math.random() * H, v: 90 + Math.random() * 60 });
-    for (let i = 0; i < 60; i++) A.snow.push({ x: Math.random() * W, y: Math.random() * H, v: 8 + Math.random() * 10, p: Math.random() * 6 });
-    for (let i = 0; i < 6; i++) A.clouds.push({ x: Math.random() * W, y: 5 + Math.random() * 20, w: 14 + Math.floor(Math.random() * 18), v: 1.5 + Math.random() * 2.5 });
-  }
-  function mood(tone) {
-    const until = performance.now() + 4200;
-    for (const id in A.chars) A.moods[id] = { tone, until };
-  }
 
   // ---------- colour helpers
   const hex = (c) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
   const toHex = (r, gg, b) => '#' + [r, gg, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
-  function mix(a, b, t) { const x = hex(a), y = hex(b); return toHex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t); }
-  function shade(c, k) { const x = hex(c); return toHex(x[0] * k, x[1] * k, x[2] * k); }
-  const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
-  const light = (x, y, w, h, c, glow) => lights.push([x, y, w, h, c, glow]);
+  const mix = (a, b, t) => { const x = hex(a), y = hex(b); return toHex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t); };
+  const sh = (c, f) => { const x = hex(c); return toHex(x[0] * f, x[1] * f, x[2] * f); };
+  const R = (x, y, w, h, c) => { if (w <= 0 || h <= 0) return; g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  const P1 = (x, y, c) => R(x, y, 1, 1, c);
+  const OL = '#2a1e1a'; // outline
 
-  // ---------- sky
-  const SKY = [[0, '#0b1230', '#1b2750'], [0.2, '#0b1230', '#1b2750'], [0.255, '#2e2f60', '#c27a68'], [0.31, '#5d9bd6', '#b9dcef'], [0.69, '#5d9bd6', '#b9dcef'], [0.745, '#3f3768', '#de8758'], [0.8, '#0b1230', '#1b2750'], [1, '#0b1230', '#1b2750']];
-  function skyAt(ph) {
-    for (let i = 0; i < SKY.length - 1; i++) { const a = SKY[i], b = SKY[i + 1]; if (ph >= a[0] && ph <= b[0]) { const t = (ph - a[0]) / (b[0] - a[0] || 1); return [mix(a[1], b[1], t), mix(a[2], b[2], t)]; } }
-    return [SKY[0][1], SKY[0][2]];
+  // ---------- palettes
+  const FLOOR = {
+    tatami_old: { a: '#b6a467', b: '#a39158', line: '#7f6f42', edge: '#4c4a30' },
+    tatami: { a: '#cdbd7c', b: '#c2b170', line: '#a49456', edge: '#3f5a3a' },
+    wood: { a: '#b07b4a', b: '#a4703f', line: '#7d5230' },
+    wood_dark: { a: '#7e5536', b: '#734c30', line: '#563823' },
+    wood_light: { a: '#d6ab72', b: '#cc9f66', line: '#ad8150' },
+    carpet: { a: '#8c4b55', b: '#844650', line: '#6d3842' },
+    marble: { a: '#e9e5dc', b: '#dfdad0', line: '#c6c0b4' },
+  };
+  const WALLS = {
+    worn: { a: '#a99c82', b: '#9d9077', base: '#6b583e', trim: '#86745a' },
+    plain: { a: '#e7dfcc', b: '#ddd4bf', base: '#9b7a57', trim: '#c9bda2' },
+    paper: { a: '#ebe2c9', b: '#ded3b6', base: '#8e6c4a', trim: '#cbbf9f' },
+    stripe: { a: '#eee6d2', b: '#dccfb4', base: '#7d5b3d', trim: '#c4b392' },
+    luxe: { a: '#3f5d4c', b: '#37533f', base: '#5e3f28', trim: '#d6b45c' },
+    office: { a: '#e4e8ec', b: '#d6dce2', base: '#6a7280', trim: '#b8c0ca' },
+  };
+  const OUTSIDE = { driveway: { a: '#6e9a52', b: '#628c48', path: '#b8ab8e' }, garden: { a: '#5f9a4c', b: '#548a42', path: '#d6cdb4' }, parking: { a: '#7d828b', b: '#747982', path: '#9a9fa8' } };
+
+  // ---------- item catalogue: footprint (tiles), whether it blocks, use points, how it is drawn
+  // use point: [dx, dy, action, facing, on] — on=true means the person sits/lies on the item itself
+  const IT = {
+    futon: { w: 2, h: 3, place: 'wall', use: [[0, 0, 'sleep', 'down', 1]], approach: 'below' },
+    bed_single: { w: 2, h: 3, place: 'wall', use: [[0, 0, 'sleep', 'down', 1]], tall: 1 },
+    bed_double: { w: 3, h: 3, place: 'wall', use: [[0, 0, 'sleep', 'down', 1], [1, 0, 'sleep', 'down', 1]], tall: 1 },
+    bed_luxury: { w: 4, h: 3, place: 'wall', use: [[0, 0, 'sleep', 'down', 1], [2, 0, 'sleep', 'down', 1]], tall: 1 },
+    crib: { w: 2, h: 2, place: 'wall', use: [[0, 0, 'crib', 'down', 1]] },
+    lowtable: { w: 2, h: 1, place: 'center', use: [[0, -1, 'eat', 'down'], [1, 1, 'eat', 'up']] },
+    dining: { w: 3, h: 2, place: 'center', use: [[0, -1, 'eat', 'down'], [2, -1, 'eat', 'down'], [0, 2, 'eat', 'up'], [2, 2, 'eat', 'up']] },
+    dining_lux: { w: 4, h: 2, place: 'center', use: [[0, -1, 'eat', 'down'], [1, -1, 'eat', 'down'], [3, -1, 'eat', 'down'], [0, 2, 'eat', 'up'], [2, 2, 'eat', 'up'], [3, 2, 'eat', 'up']] },
+    sofa: { w: 3, h: 1, place: 'center', use: [[0, 0, 'sofa', 'up', 1], [2, 0, 'sofa', 'up', 1]] },
+    sofa_lux: { w: 4, h: 1, place: 'center', use: [[0, 0, 'sofa', 'up', 1], [1, 0, 'sofa', 'up', 1], [3, 0, 'sofa', 'up', 1]] },
+    massage: { w: 1, h: 1, place: 'wall', use: [[0, 0, 'relax', 'down', 1]], tall: 1 },
+    tv_small: { w: 2, h: 1, place: 'wall', use: [[0, 3, 'tv', 'up']] },
+    tv_big: { w: 3, h: 1, place: 'wall', use: [[1, 3, 'tv', 'up']] },
+    desk: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'desk', 'up']] },
+    desk_kid: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'homework', 'up']] },
+    desk_work: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'desk', 'up']] },
+    biz_desk: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'desk', 'up']] },
+    stream_set: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'stream', 'up']] },
+    music_set: { w: 2, h: 1, place: 'wall', use: [[1, 1, 'music', 'up']] },
+    draw_set: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'draw', 'up']] },
+    mirror: { w: 1, h: 1, place: 'wall', use: [[0, 1, 'mirror', 'up']], tall: 1 },
+    bookshelf: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'read', 'up']], tall: 1 },
+    fridge: { w: 1, h: 1, place: 'wall', use: [[0, 1, 'cook', 'up']], tall: 1 },
+    kitchen: { w: 3, h: 1, place: 'wall', use: [[1, 1, 'cook', 'up']], tall: 1 },
+    washer: { w: 1, h: 1, place: 'wall', use: [[0, 1, 'chore', 'up']] },
+    clock: { w: 1, h: 1, place: 'wall', tall: 1 },
+    aquarium: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'watch', 'up']] },
+    piano: { w: 3, h: 1, place: 'wall', use: [[1, 1, 'music', 'up']], tall: 1 },
+    keyboard: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'music', 'up']] },
+    treadmill: { w: 2, h: 2, place: 'wall', use: [[0, 1, 'run', 'up', 1]] },
+    dresser: { w: 2, h: 1, place: 'wall', use: [[0, 1, 'mirror', 'up']], tall: 1 },
+    whiteboard: { w: 3, h: 1, place: 'wall', use: [[1, 1, 'present', 'up']], tall: 1 },
+    coffee: { w: 1, h: 1, place: 'wall', use: [[0, 1, 'cook', 'up']], tall: 1 },
+    reception: { w: 3, h: 1, place: 'wall', tall: 1 },
+    plant: { w: 1, h: 1, place: 'small' }, lamp: { w: 1, h: 1, place: 'small' }, guitar: { w: 1, h: 1, place: 'small' },
+    trophy: { w: 1, h: 1, place: 'small' }, work_tools: { w: 1, h: 1, place: 'small' }, books: { w: 1, h: 1, place: 'small' },
+    briefcase: { w: 1, h: 1, place: 'small', walk: 1 }, randoseru: { w: 1, h: 1, place: 'small', walk: 1 },
+    gear_baseball: { w: 1, h: 1, place: 'small' }, gear_soccer: { w: 1, h: 1, place: 'small', walk: 1 }, gear_basketball: { w: 1, h: 1, place: 'small', walk: 1 },
+    gear_tennis: { w: 1, h: 1, place: 'small' }, gear_golf: { w: 1, h: 1, place: 'small' }, gear_boxing: { w: 1, h: 1, place: 'small' }, gear_esports: { w: 1, h: 1, place: 'small' }, gear_sport: { w: 1, h: 1, place: 'small' },
+    cage_bird: { w: 1, h: 1, place: 'small' }, cage_hamster: { w: 1, h: 1, place: 'small' },
+    rug: { w: 5, h: 3, place: 'deco', walk: 1 }, toys: { w: 2, h: 2, place: 'deco', walk: 1, use: [[0, 0, 'play', 'down', 1], [1, 1, 'play', 'left', 1]] },
+    petbed_dog: { w: 1, h: 1, place: 'deco', walk: 1 }, petbed_cat: { w: 1, h: 1, place: 'deco', walk: 1 }, bowl: { w: 1, h: 1, place: 'deco', walk: 1 },
+    painting: { w: 0, h: 0, place: 'hang' }, game: { w: 0, h: 0, place: 'ontv' }, pc: { w: 0, h: 0, place: 'ondesk' }, pc_hi: { w: 0, h: 0, place: 'ondesk' },
+  };
+  const ORDER = ['bed_luxury', 'bed_double', 'bed_single', 'futon', 'crib', 'kitchen', 'fridge', 'tv_big', 'tv_small', 'biz_desk', 'desk_work', 'desk', 'desk_kid', 'stream_set', 'music_set', 'draw_set', 'whiteboard', 'reception', 'piano', 'keyboard', 'bookshelf', 'dresser', 'treadmill', 'aquarium', 'washer', 'coffee', 'clock', 'massage', 'mirror',
+    'sofa_lux', 'sofa', 'dining_lux', 'dining', 'lowtable', 'rug', 'toys', 'petbed_dog', 'petbed_cat', 'bowl', 'plant', 'lamp', 'guitar', 'cage_bird', 'cage_hamster', 'trophy', 'books', 'work_tools', 'briefcase', 'randoseru',
+    'gear_baseball', 'gear_soccer', 'gear_basketball', 'gear_tennis', 'gear_golf', 'gear_boxing', 'gear_esports', 'gear_sport', 'painting', 'game', 'pc_hi', 'pc'];
+
+  // ---------- office model (the player's company once it has staff)
+  function officeModel(m) {
+    const o = m.office, dims = o.size === 'large' ? { w: 22, h: 11 } : o.size === 'medium' ? { w: 19, h: 10 } : { w: 16, h: 9 };
+    const items = [{ key: 'desk_work', src: 'ceo', id: 'ceo' }, { key: 'pc_hi', src: 'ceo', id: 'ceo-pc' }, { key: 'whiteboard', id: 'wb' }, { key: 'coffee', id: 'cf' }, { key: 'plant', id: 'p1' }, { key: 'plant', id: 'p2' }];
+    if (o.size !== 'small') items.push({ key: 'dining', id: 'meet' }, { key: 'bookshelf', id: 'bs' });
+    if (o.size === 'large') items.push({ key: 'sofa', id: 'lobby' }, { key: 'reception', id: 'rc' }, { key: 'plant', id: 'p3' });
+    const staff = [];
+    const looks = LC.LOOKS;
+    for (let i = 0; i < o.shown; i++) {
+      const sd = strId(o.seed + ':' + i), f = sd % 2 === 0;
+      items.push({ key: 'desk_work', id: 'sd' + i, staffDesk: i }, { key: 'pc', id: 'spc' + i });
+      staff.push({ id: 'staff' + i, relation: 'staff', gender: f ? 'f' : 'm', age: 24 + (sd % 30), stage: 'young', routine: 'staff', grey: (sd % 30) > 24 ? 0.4 : 0, height: 18,
+        look: { skin: looks.skin.east[sd % 4], hair: looks.hair.east[(sd >> 2) % 3], hairStyle: (f ? looks.hairF : looks.hairM)[(sd >> 3) % 4], shirt: looks.shirt[(sd >> 4) % 10], pants: looks.pants[(sd >> 5) % 5] },
+        outfit: ['it', 'ai', 'web', 'ec'].includes(o.industry) ? 'casual' : 'suit', label: `社員 ${24 + (sd % 30)}歳`, desk: i });
+    }
+    const me = m.people.find((p) => p.relation === 'self');
+    const people = (me ? [Object.assign({}, me, { routine: 'ceo', worksOut: false })] : []).concat(staff);
+    return { kind: 'office', size: o.size, dims, floor: 'carpet_office', wall: 'office', view: 'skyline', outside: 'parking', items, people, pets: [], cars: m.cars, office: o, weather: m.weather, month: m.month, tier: 3, listed: o.listed };
   }
-  function daylight(ph) { const v = Math.sin((ph - 0.25) * Math.PI * 2); return Math.max(0, Math.min(1, v * 1.8 + 0.35)); }
+  FLOOR.carpet_office = { a: '#5f6f86', b: '#58677d', line: '#4c5a6e' };
+
+  // ---------- layout: place furniture on a tile grid, keep a walkable path from the door to everything
+  function buildLayout(m) {
+    const { w, h } = m.dims;
+    const ox = Math.floor((W - w * TS) / 2), floorY = H - OUT - LIP - h * TS, wallY = floorY - WALL;
+    const blocked = Array.from({ length: h }, () => new Array(w).fill(0));
+    const doorX = Math.floor(w / 2);
+    const keep = (x, y) => (x === doorX || x === doorX - 1) && y >= h - 2; // entrance stays clear
+    const placed = [];
+    const items = m.items.slice().sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+    const free = (x, y, fw, fh) => { if (x < 0 || y < 0 || x + fw > w || y + fh > h) return false; for (let yy = y; yy < y + fh; yy++) for (let xx = x; xx < x + fw; xx++) if (blocked[yy][xx] || keep(xx, yy)) return false; return true; };
+    const mark = (x, y, fw, fh, v) => { for (let yy = y; yy < y + fh; yy++) for (let xx = x; xx < x + fw; xx++) blocked[yy][xx] = v; };
+    const usePointsOk = (D, x, y) => (D.use || []).every((u) => { if (u[4]) return true; const ux = x + u[0], uy = y + u[1]; return ux >= 0 && uy >= 0 && ux < w && uy < h && !blocked[uy][ux]; });
+    const reserveUse = (D, x, y) => { for (const u of D.use || []) if (!u[4]) blocked[y + u[1]][x + u[0]] = 2; };
+    const deskSpots = [], tvSpots = [];
+    // office: staff desks in tidy rows (desk row, chair row, aisle)
+    const staffItems = items.filter((it) => it.staffDesk != null);
+    if (staffItems.length) {
+      const perRow = Math.max(1, Math.floor((w - 4) / 3)); let i = 0;
+      for (const it of staffItems) {
+        const col = i % perRow, row = Math.floor(i / perRow);
+        const x = 2 + col * 3 + (row % 2), y = 3 + row * 3;
+        if (y + 1 < h - 1 && free(x, y, 2, 1) && free(x, y + 1, 1, 1)) { const D = IT.desk_work; mark(x, y, 2, 1, 1); blocked[y + 1][x] = 2; const p = { it, D, x, y }; placed.push(p); deskSpots.push(p); }
+        i++;
+      }
+    }
+    for (const it of items) {
+      if (it.staffDesk != null) continue;
+      const D0 = IT[it.key]; if (!D0) continue;
+      const D = it.staffDesk != null ? Object.assign({}, D0, { place: 'center' }) : D0;
+      if (D.place === 'hang' || D.place === 'ontv' || D.place === 'ondesk') { placed.push({ it, D, x: -1, y: -1 }); continue; }
+      let pos = null;
+      if (D.place === 'wall') {
+        // back wall left→right, then right→left, then the side walls
+        const cands = [];
+        for (let x = 0; x <= w - D.w; x++) cands.push([x, 0]);
+        for (let y = 1; y <= h - D.h - 1; y++) { cands.push([0, y]); cands.push([w - D.w, y]); }
+        const big = D.h >= 3 || it.key === 'crib';
+        if (big) cands.sort((a, b) => (a[1] - b[1]) || (Math.min(a[0], w - a[0] - D.w) - Math.min(b[0], w - b[0] - D.w)));
+        for (const [x, y] of cands) if (free(x, y, D.w, D.h) && usePointsOk(D, x, y) && !(y > 0 && D.tall && !free(x, y - 1, D.w, 1)) && !(y > 0 && D.use && D.use.some((u) => !u[4] && (x + u[0] < 0 || x + u[0] >= w)))) { pos = [x, y]; break; }
+      } else if (D.place === 'center') {
+        const cx = Math.floor((w - D.w) / 2), cy = Math.floor((h - D.h) / 2);
+        const tv = placed.find((p) => p.it.key.startsWith('tv_') && p.x >= 0);
+        const cands = [];
+        if (it.key.startsWith('sofa') && tv) for (let dy = 3; dy <= 4; dy++) cands.push([Math.max(0, Math.min(w - D.w, tv.x + Math.floor((tv.D.w - D.w) / 2))), tv.y + dy]);
+        for (let r = 0; r < Math.max(w, h); r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r) cands.push([cx + dx, cy + dy]);
+        const ringFree = (x, y) => { // keep one walkable tile around tables and sofas (chairs count as part of the table)
+          const ext = (D.use || []).some((u) => u[1] < 0) ? 1 : 0, exb = (D.use || []).some((u) => u[1] >= D.h) ? 1 : 0;
+          for (let yy = y - 1 - ext; yy <= y + D.h + exb; yy++) for (let xx = x - 1; xx <= x + D.w; xx++) { if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue; if (yy >= y && yy < y + D.h && xx >= x && xx < x + D.w) continue; if (blocked[yy][xx] === 1 || blocked[yy][xx] === 2) return false; }
+          return true;
+        };
+        for (const pass of [0, 1]) { for (const [x, y] of cands) if (free(x, y, D.w, D.h) && usePointsOk(D, x, y) && (pass || ringFree(x, y))) { pos = [x, y]; break; } if (pos) break; }
+      } else if (D.place === 'deco') {
+        if (it.key === 'rug') { const c = placed.find((p) => ['dining', 'dining_lux', 'lowtable', 'sofa', 'sofa_lux'].includes(p.it.key) && p.x >= 0); pos = c ? [Math.max(0, Math.min(w - D.w, c.x - 1)), Math.max(1, Math.min(h - D.h, c.y - 1))] : [Math.floor((w - D.w) / 2), Math.floor((h - D.h) / 2)]; placed.push({ it, D, x: pos[0], y: pos[1], under: 1 }); continue; }
+        const cands = [];
+        for (let y = h - 2; y >= 1; y--) for (const x of [0, w - 1, 1, w - 2, 2, w - 3]) cands.push([x, y]);
+        for (const [x, y] of cands) if (x >= 0 && x + D.w <= w && y + D.h <= h && !keep(x, y) && [...Array(D.h).keys()].every((yy) => [...Array(D.w).keys()].every((xx) => !blocked[y + yy][x + xx]))) { pos = [x, y]; break; }
+        if (pos) { mark(pos[0], pos[1], D.w, D.h, 3); placed.push({ it, D, x: pos[0], y: pos[1], under: 1 }); }
+        continue;
+      } else { // small: along walls and corners
+        const cands = [];
+        for (let x = 0; x < w; x++) cands.push([x, 0]);
+        for (let y = 1; y < h - 1; y++) { cands.push([0, y]); cands.push([w - 1, y]); }
+        cands.sort((a, b) => (a[0] === 0 || a[0] === w - 1 ? 0 : 1) - (b[0] === 0 || b[0] === w - 1 ? 0 : 1));
+        for (const [x, y] of cands) if (free(x, y, 1, 1)) { pos = [x, y]; break; }
+      }
+      if (!pos) continue;
+      mark(pos[0], pos[1], D.w, D.h, D.walk ? 3 : 1);
+      reserveUse(D, pos[0], pos[1]);
+      const p = { it, D, x: pos[0], y: pos[1] };
+      placed.push(p);
+      if (/desk|_set$/.test(it.key)) deskSpots.push(p);
+      if (it.key.startsWith('tv_')) tvSpots.push(p);
+    }
+    // walkability: walls (1) block, use reservations (2) and floor decoration (3) are walkable
+    const walk = blocked.map((row) => row.map((v) => v !== 1));
+    // reachability from the door
+    const reach = bfsAll(walk, w, h, doorX, h - 1);
+    const spots = [];
+    for (const p of placed) {
+      if (p.x < 0) continue;
+      p.spots = [];
+      for (const u of p.D.use || []) {
+        const tx = p.x + u[0], ty = p.y + u[1];
+        let ax = tx, ay = ty;
+        if (u[4]) { // on the furniture: approach from a neighbouring walkable tile
+          const nb = [[tx, ty + p.D.h - u[1]], [tx - 1, ty], [tx + p.D.w - u[0], ty], [tx, ty - 1], [tx, ty + 1]].find(([x, y]) => x >= 0 && y >= 0 && x < w && y < h && walk[y][x] && reach[y][x]);
+          if (!nb) continue; ax = nb[0]; ay = nb[1];
+        } else if (!(tx >= 0 && ty >= 0 && tx < w && ty < h && walk[ty][tx] && reach[ty][tx])) continue;
+        const sp = { item: p, x: tx, y: ty, ax, ay, act: u[2], face: u[3], on: !!u[4], idx: p.spots.length, by: null };
+        p.spots.push(sp); spots.push(sp);
+      }
+    }
+    // on-desk / on-tv / hanging items attach to their host
+    for (const p of placed) {
+      if (p.D.place === 'ondesk') { const host = (p.it.staffDesk != null ? placed.find((q) => q.it.staffDesk === p.it.staffDesk) : null) || deskSpots.find((d) => !d.pc && d.x >= 0 && d.it.src !== 'ceo') || deskSpots.find((d) => !d.pc && d.x >= 0) || placed.find((q) => ['dining', 'dining_lux', 'lowtable'].includes(q.it.key) && q.x >= 0 && !q.pc); if (host) { host.pc = p.it.key; p.host = host; for (const s of host.spots || []) if (s.act === 'desk' || s.act === 'eat') s.pc = true; } }
+      if (p.D.place === 'ontv') { const host = tvSpots[0]; if (host) { host.game = true; p.host = host; } }
+    }
+    for (const p of placed) if (p.it.staffDesk != null && !p.pc) { const pcItem = placed.find((q) => q.it.key === 'pc' && !q.host); if (pcItem) { p.pc = 'pc'; pcItem.host = p; } }
+    for (const p of placed) if (p.it.staffDesk != null) for (const s of p.spots || []) s.staff = p.it.staffDesk;
+    if (m.kind === 'office') { const ceo = placed.find((p) => p.it.id === 'ceo'); if (ceo) { ceo.pc = 'pc_hi'; for (const s of ceo.spots || []) s.ceo = true; } }
+    const hang = placed.filter((p) => p.D.place === 'hang');
+    // windows go where tall furniture does not cover the wall
+    const tallCols = new Set(); for (const p of placed) if (p.x >= 0 && p.y === 0 && (p.D.tall || p.D.h >= 3)) for (let x = p.x; x < p.x + p.D.w; x++) tallCols.add(x);
+    const nWin = { tiny: 1, small: 1, medium: 2, large: 2, luxury: 3, estate: 3 }[m.size] || 2;
+    const wins = [];
+    const cand = []; for (let x = 1; x <= w - 3; x++) { const ok = ![x, x + 1, x + 2].some((c) => tallCols.has(c)); cand.push([x, ok]); }
+    const pref = cand.filter((c) => c[1]).map((c) => c[0]);
+    const pool = pref.length ? pref : cand.map((c) => c[0]);
+    for (let i = 0; i < nWin && pool.length; i++) {
+      const target = Math.round(((i + 0.5) / nWin) * (w - 3));
+      let best = null; for (const x of pool) if (!wins.some((wx) => Math.abs(wx - x) < 4) && (best == null || Math.abs(x - target) < Math.abs(best - target))) best = x;
+      if (best != null) wins.push(best);
+    }
+    return { w, h, ox, floorY, wallY, doorX, walk, reach, placed, spots, wins: wins.sort((a, b) => a - b), hang, bays: parkingBays(m, ox + doorX * TS - 4) };
+  }
+  // Parking: fixed bays in the outdoor strip on both sides of the entrance path, in the same pixel grid as the room.
+  // Houses get a concrete driveway pad (2 cars, 3 for luxury homes), flats/offices a lined car park.
+  const BAY_W = 20, BAY_H = OUT - 6;
+  function parkingBays(m, pathX) {
+    const oy = H - OUT + 3, bays = [];
+    const lot = m.outside === 'parking' || m.kind === 'office';
+    const cap = lot ? 8 : Math.max(m.outside === 'garden' ? 3 : 2, Math.min(3, (m.cars || []).length));
+    const left = [], right = [];
+    for (let x = pathX - 4 - BAY_W; x >= 2; x -= BAY_W + (lot ? 1 : 2)) left.push(x);
+    for (let x = pathX + 16 + 4; x + BAY_W <= W - 2; x += BAY_W + (lot ? 1 : 2)) right.push(x);
+    const order = []; for (let i = 0; i < Math.max(left.length, right.length); i++) { if (i < left.length) order.push(left[i]); if (i < right.length) order.push(right[i]); }
+    for (const x of order.slice(0, cap)) bays.push({ x, y: oy, w: BAY_W, h: BAY_H });
+    return bays;
+  }
+  function bfsAll(walk, w, h, sx, sy) {
+    const seen = Array.from({ length: h }, () => new Array(w).fill(false));
+    if (!walk[sy][sx]) return seen;
+    const q = [[sx, sy]]; seen[sy][sx] = true;
+    while (q.length) { const [x, y] = q.shift(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < w && ny < h && !seen[ny][nx] && walk[ny][nx]) { seen[ny][nx] = true; q.push([nx, ny]); } } }
+    return seen;
+  }
+  function path(L, sx, sy, tx, ty) {
+    if (sx === tx && sy === ty) return [];
+    const { w, h, walk } = L; const prev = new Map(); const key = (x, y) => y * w + x;
+    const q = [[sx, sy]]; prev.set(key(sx, sy), null);
+    while (q.length) {
+      const [x, y] = q.shift();
+      if (x === tx && y === ty) break;
+      const dirs = (x + y) % 2 ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      for (const [dx, dy] of dirs) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < w && ny < h && walk[ny][nx] && !prev.has(key(nx, ny))) { prev.set(key(nx, ny), [x, y]); q.push([nx, ny]); } }
+    }
+    if (!prev.has(key(tx, ty))) return null;
+    const out = []; let c = [tx, ty]; while (c && !(c[0] === sx && c[1] === sy)) { out.unshift(c); c = prev.get(key(c[0], c[1])); }
+    return out;
+  }
+  const tileC = (L, tx, ty) => [L.ox + tx * TS + TS / 2, L.floorY + ty * TS + TS - 2];
+
+  // ---------- time of day (animation clock only)
+  function dayT() { return (SIM.clock / DAY_LEN) % 1; }
+  function daylight(t) { // 0 night … 1 noon
+    if (t < 0.2 || t > 0.86) return 0;
+    if (t < 0.3) return (t - 0.2) / 0.1;
+    if (t > 0.74) return Math.max(0, (0.86 - t) / 0.12);
+    return 1;
+  }
+  const isNight = () => { const t = dayT(); return t < 0.21 || t > 0.85; };
+  const mealNow = () => { const t = dayT(); return (t > 0.3 && t < 0.36) ? 'breakfast' : (t > 0.52 && t < 0.58) ? 'lunch' : (t > 0.76 && t < 0.83) ? 'dinner' : null; };
+
+  // ---------- characters & behaviour
+  const SPEED = { baby: 4, toddler: 9, child: 20, teen: 17, adult: 15, elder: 7, staff: 15, ceo: 15 };
+  function syncActors(m, L) {
+    const want = new Set(m.people.map((p) => p.id));
+    for (const id of [...SIM.chars.keys()]) if (!want.has(id)) SIM.chars.delete(id);
+    for (const p of m.people) {
+      let c = SIM.chars.get(p.id);
+      if (!c) {
+        const sd = strId(p.id);
+        const free = []; for (let y = 1; y < L.h; y++) for (let x = 0; x < L.w; x++) if (L.walk[y][x] && L.reach[y][x]) free.push([x, y]);
+        const t = free.length ? free[sd % free.length] : [L.doorX, L.h - 1];
+        const [px, py] = tileC(L, t[0], t[1]);
+        c = { id: p.id, x: px, y: py, tx: t[0], ty: t[1], face: 'down', state: 'idle', until: SIM.clock + 0.5 + (sd % 30) / 10, path: [], spot: null, act: null, walkD: 0, sd, outUntil: 0 };
+        SIM.chars.set(p.id, c);
+      }
+      c.p = p;
+    }
+    const pw = new Set(m.pets.map((p) => p.id));
+    for (const id of [...SIM.pets.keys()]) if (!pw.has(id)) SIM.pets.delete(id);
+    for (const p of m.pets) {
+      let a = SIM.pets.get(p.id);
+      if (!a) {
+        const sd = strId(p.id); const free = []; for (let y = 1; y < L.h; y++) for (let x = 0; x < L.w; x++) if (L.walk[y][x] && L.reach[y][x]) free.push([x, y]);
+        const t = free.length ? free[(sd * 7) % free.length] : [1, 1]; const [px, py] = tileC(L, t[0], t[1]);
+        a = { id: p.id, x: px, y: py, tx: t[0], ty: t[1], face: 'right', state: 'idle', until: SIM.clock + 1 + (sd % 20) / 10, path: [], sd };
+        SIM.pets.set(p.id, a);
+      }
+      a.p = p;
+    }
+  }
+  function resetActorsToLayout(L) { // after a layout change, put everyone back on valid tiles
+    for (const c of SIM.chars.values()) { release(c); const tx = Math.max(0, Math.min(L.w - 1, c.tx)), ty = Math.max(0, Math.min(L.h - 1, c.ty)); let t = [tx, ty]; if (!(L.walk[ty] && L.walk[ty][tx] && L.reach[ty][tx])) t = [L.doorX, L.h - 1]; c.tx = t[0]; c.ty = t[1]; [c.x, c.y] = tileC(L, t[0], t[1]); c.state = 'idle'; c.path = []; c.until = SIM.clock + 0.3 + rnd(); }
+    for (const a of SIM.pets.values()) { const t = L.reach[a.ty] && L.reach[a.ty][a.tx] ? [a.tx, a.ty] : [1, L.h - 2]; a.tx = t[0]; a.ty = t[1]; [a.x, a.y] = tileC(L, t[0], t[1]); a.state = 'idle'; a.path = []; }
+  }
+  function release(c) { if (c.spot) { c.spot.by = null; c.spot = null; } }
+  function freeSpots(L, acts, c) { return L.spots.filter((s) => acts.includes(s.act) && (!s.by || s.by === c.id) && (s.staff == null || s.staff === (c.p.desk)) && (!s.ceo || c.p.routine === 'ceo')); }
+  function goTo(c, L, tx, ty) {
+    const pth = path(L, c.tx, c.ty, tx, ty);
+    if (pth == null) return false;
+    c.path = pth; c.state = 'walk'; return true;
+  }
+  function useSpot(c, L, s, dur) {
+    release(c); s.by = c.id; c.spot = s; c.next = { act: s.act, dur };
+    if (!goTo(c, L, s.ax, s.ay)) { release(c); return false; }
+    return true;
+  }
+  function wander(c, L, radius) {
+    for (let i = 0; i < 8; i++) {
+      const x = c.tx + ri(-radius, radius), y = c.ty + ri(-radius, radius);
+      if (x >= 0 && y >= 0 && x < L.w && y < L.h && L.walk[y][x] && L.reach[y][x] && (x !== c.tx || y !== c.ty)) { if (goTo(c, L, x, y)) { c.next = { act: 'idle', dur: 1 + rnd() * 3 }; return true; } }
+    }
+    return false;
+  }
+  function pickWeighted(list) { let t = 0; for (const [, w] of list) t += w; let r = rnd() * t; for (const [v, w] of list) { r -= w; if (r <= 0) return v; } return list.length ? list[list.length - 1][0] : null; }
+  function think(c, L, m) {
+    const p = c.p, r = p.routine, night = isNight(), meal = mealNow(), t = dayT();
+    // sleeping hours
+    if (night && r !== 'staff' && r !== 'ceo') {
+      if (r === 'baby') { const cr = freeSpots(L, ['crib'], c)[0]; if (cr && useSpot(c, L, cr, 30)) return; }
+      const bed = freeSpots(L, ['sleep'], c)[0];
+      if (bed) { if (useSpot(c, L, bed, 25 + rnd() * 20)) return; }
+      // no bed for everyone: lay out a futon on the floor
+      if (L.reach[c.ty] && L.reach[c.ty][c.tx]) { c.state = 'act'; c.act = 'floorsleep'; c.face = 'down'; c.until = SIM.clock + 20 + rnd() * 10; return; }
+    }
+    if (r === 'staff' || r === 'ceo') return thinkWork(c, L);
+    if (r === 'baby') { const cr = freeSpots(L, ['crib'], c); if (cr.length && rnd() < 0.6 && useSpot(c, L, cr[0], 8 + rnd() * 8)) return; c.state = 'act'; c.act = 'crawl'; c.until = SIM.clock + 3 + rnd() * 4; return; }
+    // going out to work / school (and coming back later)
+    if (!night && t > 0.32 && t < 0.62 && !c.wentOut && ((p.worksOut && rnd() < 0.55) || (p.student && r !== 'baby' && p.age >= 6 && rnd() < 0.45))) {
+      c.wentOut = SIM.clock; if (goTo(c, L, L.doorX, L.h - 1)) { c.next = { act: 'leave', dur: 0 }; return; }
+    }
+    if (t < 0.25) c.wentOut = 0;
+    if (meal && rnd() < 0.6) { const s = freeSpots(L, ['eat'], c); if (s.length && useSpot(c, L, s[ri(0, s.length - 1)], 5 + rnd() * 4)) return; }
+    const opts = [];
+    const has = (a) => freeSpots(L, [a], c).length > 0;
+    const petsHere = m.pets.length > 0;
+    if (r === 'baby') { if (has('crib') && rnd() < 0.6) { useSpot(c, L, freeSpots(L, ['crib'], c)[0], 8 + rnd() * 8); return; } c.state = 'act'; c.act = 'crawl'; c.until = SIM.clock + 3 + rnd() * 4; return; }
+    if (r === 'toddler') opts.push(['wander', 4], ['play', has('play') ? 5 : 0], ['pet', petsHere ? 2 : 0], ['tv', has('tv') ? 1 : 0]);
+    else if (r === 'child') opts.push(['run', 4], ['play', has('play') ? 3 : 0], ['homework', p.student && has('homework') ? 3 : 0], ['pet', petsHere ? 3 : 0], ['tv', has('tv') ? 2 : 0], ['game', has('tv') && L.placed.some((q) => q.game) ? 2 : 0], ['talk', 1.5], ['read', has('read') ? 1 : 0]);
+    else if (r === 'teen') opts.push(['wander', 2], ['homework', p.student && (has('homework') || has('desk')) ? 4 : 0], ['phone', 3], ['tv', has('tv') ? 2 : 0], ['game', L.placed.some((q) => q.game) ? 2 : 0], ['read', has('read') ? 1.5 : 0], ['talk', 1.5], ['pet', petsHere ? 1.5 : 0], ['sport', p.sport ? 3 : 0], ['create', p.creator ? 3 : 0], ['music', has('music') ? 1 : 0]);
+    else {
+      const elder = r === 'elder' || p.retired;
+      const work = p.wfh && !p.fire ? 6 : 0;
+      opts.push(['wander', elder ? 1 : 2], ['desk', (work || (p.age >= 18 && has('desk') ? 1 : 0)) && (has('desk') || has('stream') || has('draw') || has('music')) ? Math.max(work, 1) : 0], ['create', p.creator ? 5 : 0], ['sport', p.sport ? 4 : 0],
+        ['sofa', has('sofa') ? (elder || p.fire ? 4 : 2) : 0], ['relax', has('relax') ? 3 : 0], ['tv', has('tv') ? 2 : 0], ['read', has('read') ? (elder || p.fire ? 3 : 1.5) : 0], ['phone', elder ? 0.5 : 2], ['cook', has('cook') ? 2 : 0], ['chore', 1.5], ['talk', 2],
+        ['pet', petsHere ? (p.fire ? 3 : 1.5) : 0], ['music', has('music') ? (p.fire ? 2.5 : 1) : 0], ['exercise', has('run') ? (p.fire ? 2 : 1) : 0], ['watch', has('watch') ? 1.5 : 0], ['mirror', has('mirror') ? 0.6 : 0], ['plants', L.placed.some((q) => q.it.key === 'plant') && (elder || p.fire) ? 1.5 : 0]);
+    }
+    const choice = pickWeighted(opts.filter((o) => o[1] > 0));
+    doChoice(c, L, m, choice);
+  }
+  function doChoice(c, L, m, choice) {
+    const p = c.p;
+    const spotFor = (acts, dur) => { const s = freeSpots(L, acts, c); return s.length && useSpot(c, L, s[ri(0, s.length - 1)], dur); };
+    switch (choice) {
+      case 'run': if (wander(c, L, 5)) { c.speedMul = 1.5; return; } break;
+      case 'wander': if (wander(c, L, 3)) return; break;
+      case 'play': if (spotFor(['play'], 6 + rnd() * 6)) return; break;
+      case 'homework': if (spotFor(['homework', 'desk'], 8 + rnd() * 8)) return; break;
+      case 'desk': if (spotFor(p.creator && rnd() < 0.5 ? ['stream', 'draw', 'music'] : ['desk', 'stream', 'draw'], 10 + rnd() * 10)) return; break;
+      case 'create': if (spotFor(['stream', 'draw', 'music', 'mirror', 'desk'], 10 + rnd() * 8)) return; break;
+      case 'tv': if (spotFor(['sofa'], 8 + rnd() * 6) || spotFor(['tv'], 6 + rnd() * 5)) { c.tvMode = true; return; } break;
+      case 'game': if (spotFor(['tv'], 6 + rnd() * 6)) { c.gameMode = true; return; } break;
+      case 'sofa': if (spotFor(['sofa'], 8 + rnd() * 8)) return; break;
+      case 'relax': if (spotFor(['relax'], 8 + rnd() * 6)) return; break;
+      case 'read': if (spotFor(['read'], 2.5)) { c.after = 'readsit'; return; } break;
+      case 'cook': if (spotFor(['cook'], 5 + rnd() * 4)) return; break;
+      case 'music': if (spotFor(['music'], 7 + rnd() * 6)) return; break;
+      case 'exercise': if (spotFor(['run'], 6 + rnd() * 5)) return; break;
+      case 'watch': if (spotFor(['watch'], 5 + rnd() * 4)) return; break;
+      case 'mirror': if (spotFor(['mirror'], 3 + rnd() * 2)) return; break;
+      case 'chore': if (rnd() < 0.5 && spotFor(['chore'], 4 + rnd() * 3)) return; c.state = 'act'; c.act = 'sweep'; c.until = SIM.clock + 4 + rnd() * 4; c.sweepDir = rnd() < 0.5 ? -1 : 1; return;
+      case 'phone': c.state = 'act'; c.act = 'phone'; c.until = SIM.clock + 4 + rnd() * 5; return;
+      case 'sport': if (L.spots.some((s) => s.act === 'run' && !s.by) && rnd() < 0.5 && spotFor(['run'], 6 + rnd() * 5)) return; c.state = 'act'; c.act = 'practice'; c.until = SIM.clock + 5 + rnd() * 4; return;
+      case 'plants': { const pl = L.placed.find((q) => q.it.key === 'plant' && q.x >= 0); if (pl) { const nb = [[pl.x, pl.y + 1], [pl.x + 1, pl.y], [pl.x - 1, pl.y]].find(([x, y]) => x >= 0 && y >= 0 && x < L.w && y < L.h && L.walk[y][x] && L.reach[y][x]); if (nb && goTo(c, L, nb[0], nb[1])) { c.next = { act: 'water', dur: 3, faceTo: [pl.x, pl.y] }; return; } } break; }
+      case 'pet': { const pets = [...SIM.pets.values()].filter((a) => a.p.kind === 'dog' || a.p.kind === 'cat'); const a = pets[ri(0, Math.max(0, pets.length - 1))]; if (a) { const nb = [[a.tx - 1, a.ty], [a.tx + 1, a.ty], [a.tx, a.ty + 1]].find(([x, y]) => x >= 0 && y >= 0 && x < L.w && y < L.h && L.walk[y][x] && L.reach[y][x]); if (nb && goTo(c, L, nb[0], nb[1])) { c.next = { act: 'petplay', dur: 4 + rnd() * 3, pet: a.id }; a.state = 'idle'; a.path = []; a.until = SIM.clock + 8; a.attention = c.id; return; } } else { const cg = L.placed.find((q) => q.it.key.startsWith('cage_') && q.x >= 0); if (cg) { const nb = [[cg.x, cg.y + 1], [cg.x + 1, cg.y], [cg.x - 1, cg.y]].find(([x, y]) => x >= 0 && y >= 0 && x < L.w && y < L.h && L.walk[y][x] && L.reach[y][x]); if (nb && goTo(c, L, nb[0], nb[1])) { c.next = { act: 'watchpet', dur: 4, faceTo: [cg.x, cg.y] }; return; } } } break; }
+      case 'talk': { const others = [...SIM.chars.values()].filter((o) => o !== c && o.state === 'idle' && Math.abs(o.tx - c.tx) + Math.abs(o.ty - c.ty) <= 5 && o.p.routine !== 'baby'); const o = others[0]; if (o) { const nb = [[o.tx - 1, o.ty], [o.tx + 1, o.ty]].find(([x, y]) => x >= 0 && x < L.w && L.walk[y][x] && L.reach[y][x]); if (nb && goTo(c, L, nb[0], nb[1])) { c.next = { act: 'talk', dur: 4 + rnd() * 2, with: o.id }; o.state = 'act'; o.act = 'talk'; o.until = SIM.clock + 8; o.face = nb[0] < o.tx ? 'left' : 'right'; o.talkWith = c.id; return; } } break; }
+    }
+    if (!wander(c, L, 2)) { c.state = 'idle'; c.until = SIM.clock + 1 + rnd() * 2; }
+  }
+  function thinkWork(c, L) {
+    const p = c.p;
+    const own = p.routine === 'ceo' ? L.spots.find((s) => s.ceo) : L.spots.find((s) => s.staff === p.desk);
+    const r = rnd();
+    if (own && (r < 0.68 || !c.atDeskOnce)) { c.atDeskOnce = true; if (useSpot(c, L, own, 8 + rnd() * 10)) return; }
+    if (r < 0.8) { const s = freeSpots(L, ['cook'], c)[0]; if (s && useSpot(c, L, s, 3 + rnd() * 2)) return; }
+    if (r < 0.9) { const s = freeSpots(L, ['present', 'eat'], c); if (s.length && useSpot(c, L, s[ri(0, s.length - 1)], 5 + rnd() * 4)) return; }
+    doChoice(c, L, null, rnd() < 0.5 ? 'talk' : 'wander');
+  }
+  function stepChar(c, L, m, dt) {
+    const p = c.p;
+    // bedtime: wrap up whatever is going on (staggered so the family doesn't move in lockstep)
+    const sleeper = p.routine !== 'staff' && p.routine !== 'ceo';
+    if (sleeper && isNight()) {
+      if (!c.bedtime) { c.bedtime = true; const lag = 0.5 + ((c.sd % 37) / 37) * 5; if (c.state === 'out') c.outUntil = Math.min(c.outUntil, SIM.clock + lag); else if (!['sleep', 'floorsleep', 'crib'].includes(c.act)) c.until = Math.min(c.until, SIM.clock + lag); }
+    } else if (c.bedtime) { c.bedtime = false; if (['sleep', 'floorsleep', 'crib'].includes(c.act)) c.until = Math.min(c.until, SIM.clock + ((c.sd % 29) / 29) * 4); }
+    if (c.state === 'out') {
+      if (SIM.clock >= c.outUntil) { c.state = 'walk'; c.tx = L.doorX; c.ty = L.h - 1; const [x] = tileC(L, c.tx, c.ty); c.x = x; c.y = H - 4; c.path = []; c.entering = true; c.next = { act: 'idle', dur: 1 }; c.face = 'up'; }
+      return;
+    }
+    if (c.state === 'walk') {
+      if (c.entering) { const [, ty] = tileC(L, c.tx, c.ty); c.y -= 14 * dt; c.walkD += 14 * dt; c.face = 'up'; if (c.y <= ty) { c.y = ty; c.entering = false; arrive(c, L); } return; }
+      if (c.leaving) { c.y += 14 * dt; c.walkD += 14 * dt; c.face = 'down'; if (c.y > H - 3) { c.leaving = false; c.state = 'out'; c.outUntil = SIM.clock + 18 + rnd() * 22; release(c); } return; }
+      const nx = c.path[0];
+      if (!nx) { arrive(c, L); return; }
+      const [gx, gy] = tileC(L, nx[0], nx[1]);
+      const sp = (SPEED[p.routine] || 15) * (c.speedMul || 1) * (p.retired && p.routine !== 'child' ? 0.7 : 1);
+      const dx = gx - c.x, dy = gy - c.y, d = Math.hypot(dx, dy);
+      if (Math.abs(dx) > Math.abs(dy)) c.face = dx > 0 ? 'right' : 'left'; else if (d > 0.01) c.face = dy > 0 ? 'down' : 'up';
+      const stp = sp * dt;
+      if (d <= stp) { c.x = gx; c.y = gy; c.tx = nx[0]; c.ty = nx[1]; c.path.shift(); c.walkD += d; } else { c.x += dx / d * stp; c.y += dy / d * stp; c.walkD += stp; }
+      return;
+    }
+    if (SIM.clock < c.until) return;
+    if (c.state === 'act' && c.after === 'readsit') { c.after = null; release(c); const s = freeSpots(L, ['sofa', 'eat', 'relax'], c); if (s.length && useSpot(c, L, s[ri(0, s.length - 1)], 8 + rnd() * 6)) { c.reading = true; return; } }
+    if (c.state === 'act' && c.talkWith) c.talkWith = null;
+    release(c); c.state = 'idle'; c.act = null; c.tvMode = false; c.gameMode = false; c.reading = false; c.speedMul = 1;
+    if (c.idleOnce) { c.idleOnce = false; think(c, L, m); } else { c.idleOnce = true; c.until = SIM.clock + 0.4 + rnd() * 1.6; }
+  }
+  function arrive(c, L) {
+    const n = c.next || { act: 'idle', dur: 1 }; c.next = null; c.speedMul = 1;
+    if (n.act === 'leave') { c.leaving = true; c.state = 'walk'; return; }
+    if (c.spot && n.act === c.spot.act) {
+      const s = c.spot;
+      if (s.on) { const [x, y] = tileC(L, s.x, s.y); c.x = x; c.y = y; c.tx = s.ax; c.ty = s.ay; }
+      c.state = 'act'; c.act = s.act; c.face = s.face; c.until = SIM.clock + n.dur; return;
+    }
+    if (n.faceTo) { const [fx, fy] = n.faceTo; c.face = fx < c.tx ? 'left' : fx > c.tx ? 'right' : fy < c.ty ? 'up' : 'down'; }
+    if (n.act === 'petplay') { const a = SIM.pets.get(n.pet); if (a) c.face = a.x < c.x ? 'left' : 'right'; bubble(c, 'heart', 3); }
+    if (n.act === 'talk') { const o = SIM.chars.get(n.with); if (o) { c.face = o.x < c.x ? 'left' : 'right'; o.face = c.x < o.x ? 'left' : 'right'; c.talkWith = o.id; bubble(rnd() < 0.5 ? c : o, rnd() < 0.3 ? 'note' : 'dots', 3); } }
+    c.state = n.act === 'idle' ? 'idle' : 'act'; c.act = n.act === 'idle' ? null : n.act; c.until = SIM.clock + n.dur;
+  }
+  function stepPet(a, L, dt) {
+    const k2 = a.p.kind;
+    if (k2 === 'bird' || k2 === 'hamster') return; // they live in their cage
+    if (a.state === 'walk') {
+      const nx = a.path[0]; if (!nx) { a.state = a.nextState || 'idle'; a.until = SIM.clock + (a.nextDur || 2); return; }
+      const [gx, gy] = tileC(L, nx[0], nx[1]); const dx = gx - a.x, dy = gy - a.y, d = Math.hypot(dx, dy); const sp = (k2 === 'dog' ? 22 : 16) * (a.p.age > 10 ? 0.6 : 1) * (a.p.sick ? 0.5 : 1);
+      if (Math.abs(dx) > 0.1) a.face = dx > 0 ? 'right' : 'left';
+      if (d <= sp * dt) { a.x = gx; a.y = gy; a.tx = nx[0]; a.ty = nx[1]; a.path.shift(); } else { a.x += dx / d * sp * dt; a.y += dy / d * sp * dt; }
+      a.walkD = (a.walkD || 0) + sp * dt; return;
+    }
+    if (SIM.clock < a.until) return;
+    a.attention = null;
+    const bedKey = 'petbed_' + k2;
+    const r = rnd();
+    const goto = (key, st, dur) => { const q = L.placed.find((x) => x.it.key === key && x.x >= 0 && (!x.it.pet || x.it.pet === a.id)); if (!q) return false; const pth = path(L, a.tx, a.ty, q.x, q.y); if (!pth) return false; a.path = pth; a.state = 'walk'; a.nextState = st; a.nextDur = dur; return true; };
+    if ((isNight() || a.p.sick || r < 0.22) && goto(bedKey, 'sleep', 10 + rnd() * 10)) return;
+    if (r < 0.35 && goto('bowl', 'eat', 3 + rnd() * 2)) return;
+    if (r < 0.5) { const kids = [...SIM.chars.values()].filter((c) => c.state !== 'out' && c.p.routine !== 'baby' && c.p.routine !== 'staff'); const c = kids[ri(0, Math.max(0, kids.length - 1))]; if (c) { const pth = path(L, a.tx, a.ty, Math.max(0, Math.min(L.w - 1, c.tx + (rnd() < 0.5 ? -1 : 1))), c.ty); if (pth) { a.path = pth; a.state = 'walk'; a.nextState = 'happy'; a.nextDur = 2.5; return; } } }
+    for (let i = 0; i < 6; i++) { const x = a.tx + ri(-4, 4), y = a.ty + ri(-3, 3); if (x >= 0 && y >= 0 && x < L.w && y < L.h && L.walk[y][x] && L.reach[y][x]) { const pth = path(L, a.tx, a.ty, x, y); if (pth && pth.length) { a.path = pth; a.state = 'walk'; a.nextState = rnd() < 0.3 ? 'sit' : 'idle'; a.nextDur = 1.5 + rnd() * 3; return; } } }
+    a.state = 'idle'; a.until = SIM.clock + 2;
+  }
+  function bubble(c, kind, dur) { SIM.bubbles.push({ id: c.id, kind, until: SIM.clock + dur }); }
+
+  // ---------- environment drawing
+  function drawSurroundings(m, L, dl) {
+    const o = OUTSIDE[m.outside] || OUTSIDE.driveway;
+    const k2 = 0.45 + 0.55 * dl;
+    // area around the room (garden for houses, corridor for apartments)
+    const base = m.kind === 'office' ? '#5a606b' : m.outside === 'parking' ? '#6e737c' : o.a;
+    R(0, 0, W, H, sh(base, k2));
+    for (let y = 0; y < H - OUT; y += 4) for (let x = (y / 4) % 2 ? 2 : 0; x < W; x += 6) P1(x, y, sh(m.outside === 'parking' || m.kind === 'office' ? '#646972' : o.b, k2));
+    if (m.outside !== 'parking' && m.kind !== 'office') { for (let i = 0; i < 26; i++) { const x = Math.floor(h01(i, 3) * W), y = Math.floor(h01(i, 5) * (L.wallY - 2)); if (y > 2) { R(x, y, 3, 2, sh('#3f6a36', k2)); if (m.outside === 'garden' && i % 3 === 0) P1(x + 1, y - 1, sh(['#e8a0b4', '#f0e08a', '#ffffff'][i % 3], k2)); } } }
+    else { for (let x = 0; x < W; x += 16) R(x, 0, 1, L.wallY, sh('#5d6169', k2)); }
+    // outside strip at the bottom (entrance side)
+    const oy = H - OUT;
+    R(0, oy, W, OUT, sh(m.outside === 'parking' || m.kind === 'office' ? '#585c63' : '#8d8572', k2));
+    if (m.outside === 'parking' || m.kind === 'office') { R(0, oy, W, 2, sh('#4a4e55', k2)); /* bay lines are drawn with the bays below */ }
+    else { for (let x = 0; x < W; x += 3) P1(x, oy + (x * 7) % 5 + 2, sh('#7a735f', k2)); R(0, oy, W, 2, sh('#4c7a3e', k2)); for (let x = 0; x < W; x += 5) R(x, oy + 1, 3, 2, sh('#5b8c48', k2)); }
+    // path from the door
+    const dx = L.ox + L.doorX * TS - 4;
+    R(dx, oy, 16, OUT, sh(o.path, k2));
+    for (let y = oy + 3; y < H; y += 5) R(dx + 2, y, 12, 1, sh(sh(o.path, 0.85), k2));
+    // parking bays (part of the ground layer, always drawn — an empty bay is just an empty bay)
+    const lot = m.outside === 'parking' || m.kind === 'office';
+    for (const b of L.bays) {
+      if (lot) { R(b.x - 1, b.y, 1, b.h, sh('#d8d8d0', k2)); R(b.x + b.w, b.y, 1, b.h, sh('#d8d8d0', k2)); R(b.x + 3, b.y + b.h - 3, b.w - 6, 2, sh('#6a6e76', k2)); }
+      else { R(b.x - 1, b.y - 1, b.w + 2, b.h + 2, sh('#9a9488', k2)); R(b.x, b.y, b.w, b.h, sh('#b4ae9f', k2)); for (let y = b.y + 6; y < b.y + b.h; y += 7) R(b.x, y, b.w, 1, sh('#a39d8f', k2)); }
+    }
+  }
+  function skyCol(t) {
+    const stops = [[0, '#0e1430'], [0.2, '#141c40'], [0.27, '#d48a6c'], [0.33, '#8ec3e8'], [0.72, '#9fd0ee'], [0.8, '#e3925e'], [0.87, '#1a1f45'], [1, '#0e1430']];
+    for (let i = 0; i < stops.length - 1; i++) { const a = stops[i], b = stops[i + 1]; if (t >= a[0] && t <= b[0]) return mix(a[1], b[1], (t - a[0]) / (b[0] - a[0] || 1)); }
+    return '#0e1430';
+  }
+  function drawWindow(m, x, y, w, h, dl, t, now) {
+    const wet = m.weather === 'rain' || m.weather === 'snow';
+    let sky = skyCol(t); if (m.weather !== 'clear') sky = mix(sky, sh('#8c94a2', 0.3 + 0.7 * dl), wet ? 0.6 : 0.35);
+    R(x - 1, y - 1, w + 2, h + 2, '#5a4632');
+    R(x, y, w, h, sky);
+    const hz = y + h - 4;
+    // view
+    if (m.view === 'city' || m.view === 'skyline') {
+      for (let i = 0; i < w; i += 3) { const bh = 3 + Math.floor(h01(i, x, 9) * (m.view === 'skyline' ? h - 2 : h - 5)); R(x + i, y + h - bh, 3, bh, sh('#3c4458', 0.5 + 0.5 * dl)); if (dl < 0.5 && h01(i, x, 4) > 0.4) P1(x + i + 1, y + h - bh + 2, '#ffd98a'); }
+    } else if (m.view === 'field') { R(x, hz, w, 4, sh('#7aa05a', 0.4 + 0.6 * dl)); R(x, hz + 2, w, 2, sh('#9ab868', 0.4 + 0.6 * dl)); for (let i = 1; i < w; i += 5) R(x + i, hz - 2, 2, 2, sh('#4f7a3a', 0.4 + 0.6 * dl)); }
+    else { R(x, hz, w, 4, sh('#6a8a52', 0.4 + 0.6 * dl)); for (let i = 0; i < w; i += 4) R(x + i, hz - 2 - (i % 3), 3, 3 + (i % 3), sh('#4b6e3c', 0.4 + 0.6 * dl)); if (m.view === 'town') R(x + Math.floor(w / 2), hz - 4, 4, 4, sh('#b07060', 0.4 + 0.6 * dl)); }
+    // sun / moon
+    if (dl > 0.2 && !wet) P1(x + 2 + Math.floor((t - 0.25) * 2 * (w - 4)) % (w - 2), y + 2, '#fff2b0');
+    if (dl < 0.3 && !wet) { R(x + w - 4, y + 1, 2, 2, '#f2ecc8'); if (h01(x, 1) > 0.3) P1(x + 2, y + 2, '#cfd8ff'); }
+    if (m.weather === 'rain') for (let i = 0; i < 5; i++) { const rx = x + ((i * 5 + Math.floor(now * 30)) % w), ry = y + ((i * 7 + Math.floor(now * 40)) % h); R(rx, ry, 1, 2, '#c8d8f0'); }
+    if (m.weather === 'snow') for (let i = 0; i < 5; i++) { const rx = x + ((i * 5 + Math.floor(now * 4 + Math.sin(now + i) * 2)) % w), ry = y + ((i * 7 + Math.floor(now * 9)) % h); P1(rx, ry, '#ffffff'); }
+    // frame & curtains
+    R(x + Math.floor(w / 2), y, 1, h, '#5a4632'); R(x, y + Math.floor(h / 2), w, 1, sh('#5a4632', 1.1));
+    const cur = m.tier >= 3 ? '#8a3a4a' : m.tier >= 2 ? '#c8a35a' : '#a8b4c0';
+    R(x - 2, y - 2, 3, h + 3, sh(cur, 0.6 + 0.4 * dl)); R(x + w - 1, y - 2, 3, h + 3, sh(cur, 0.6 + 0.4 * dl));
+    R(x - 3, y - 3, w + 6, 2, '#6b5236');
+    // night glow from inside lights onto the sill
+    R(x - 1, y + h + 1, w + 2, 1, '#e8dcc0');
+  }
+  function drawRoomShell(m, L, dl, now) {
+    const F = FLOOR[m.floor] || FLOOR.wood, Wp = WALLS[m.wall] || WALLS.plain;
+    const x0 = L.ox, fw = L.w * TS, fy = L.floorY, fh = L.h * TS, wy = L.wallY;
+    // side walls (thin, 3/4 view) and outline
+    R(x0 - 4, wy - 2, fw + 8, WALL + fh + LIP + 2, '#3a2c24');
+    // back wall
+    R(x0, wy, fw, WALL, Wp.a);
+    if (m.wall === 'stripe') for (let x = x0; x < x0 + fw; x += 4) R(x, wy, 2, WALL - 4, Wp.b);
+    else if (m.wall === 'paper') for (let y = wy + 2; y < wy + WALL - 4; y += 4) for (let x = x0 + ((y / 4) % 2 ? 2 : 0); x < x0 + fw; x += 4) P1(x, y, Wp.b);
+    else if (m.wall === 'worn') { for (let i = 0; i < 10; i++) R(x0 + Math.floor(h01(i, 11) * fw), wy + 3 + Math.floor(h01(i, 12) * 12), 3, 2, Wp.b); }
+    else if (m.wall === 'luxe') { R(x0, wy + 11, fw, WALL - 11, '#6a4a30'); for (let x = x0 + 2; x < x0 + fw; x += 8) R(x, wy + 13, 6, 5, '#7a5a3a'); R(x0, wy + 10, fw, 1, Wp.trim); }
+    else if (m.wall === 'office') { R(x0, wy + 14, fw, WALL - 14, '#c4ccd6'); }
+    R(x0, wy, fw, 1, Wp.trim);
+    R(x0, wy + WALL - 3, fw, 3, Wp.base); R(x0, wy + WALL - 3, fw, 1, sh(Wp.base, 1.25));
+    // floor
+    R(x0, fy, fw, fh, F.a);
+    if (m.floor.startsWith('tatami')) {
+      for (let ty = 0; ty < L.h; ty += 2) for (let tx = 0; tx < L.w; tx += 4) { const ox2 = (ty / 2) % 2 ? 2 : 0; const mx = x0 + ((tx + ox2) % L.w) * TS; R(mx, fy + ty * TS, Math.min(4 * TS, x0 + fw - mx), 1, F.edge); R(mx, fy + ty * TS, 1, Math.min(2 * TS, fy + fh - (fy + ty * TS)), F.edge); }
+      for (let y = fy + 2; y < fy + fh; y += 2) R(x0, y, fw, 1, F.b);
+      if (m.floor === 'tatami_old') for (let i = 0; i < 12; i++) R(x0 + Math.floor(h01(i, 21) * fw), fy + Math.floor(h01(i, 22) * fh), 3, 2, F.line);
+    } else if (m.floor.startsWith('wood')) {
+      for (let y = fy; y < fy + fh; y += 4) { R(x0, y, fw, 1, F.line); const off = ((y - fy) / 4) % 3; for (let x = x0 + off * 9; x < x0 + fw; x += 27) R(x, y, 1, 4, F.line); }
+      for (let y = fy + 2; y < fy + fh; y += 4) R(x0, y, fw, 1, F.b);
+    } else if (m.floor === 'marble') {
+      for (let y = fy; y < fy + fh; y += 16) R(x0, y, fw, 1, F.line); for (let x = x0; x < x0 + fw; x += 16) R(x, fy, 1, fh, F.line);
+      for (let i = 0; i < 18; i++) { const vx = x0 + Math.floor(h01(i, 31) * fw), vy = fy + Math.floor(h01(i, 32) * fh); R(vx, vy, 4, 1, F.b); P1(vx + 4, vy + 1, F.b); }
+    } else { for (let y = fy; y < fy + fh; y += 3) for (let x = x0 + ((y - fy) / 3 % 2 ? 1 : 0); x < x0 + fw; x += 4) P1(x, y, F.b); }
+    // windows & wall decor
+    for (const wx of L.wins) drawWindow(m, x0 + wx * TS + 2, wy + 4, 20, 12, dl, dayT(), now);
+    if (m.kind !== 'office') { // calendar (everyone has one)
+      const cx = x0 + fw - 12; if (!L.wins.some((wx) => Math.abs(x0 + wx * TS - cx) < 24)) { R(cx, wy + 5, 7, 8, '#f4f0e6'); R(cx, wy + 5, 7, 2, '#c84a4a'); for (let i = 0; i < 3; i++) R(cx + 1, wy + 8 + i * 2, 5, 1, '#b0aaa0'); }
+    }
+    for (const hp of L.hang) { const hx = x0 + Math.floor(L.w / 2) * TS - 8; R(hx - 1, wy + 3, 18, 12, '#b08a3a'); R(hx, wy + 4, 16, 10, '#3a5a7a'); R(hx + 2, wy + 9, 12, 5, '#6a8a4a'); R(hx + 9, wy + 6, 3, 3, '#e8d8a0'); }
+    if (m.kind === 'office') { const lx = x0 + 4; R(lx, wy + 4, 22, 9, m.listed ? '#1f2d4a' : '#2f3e5a'); R(lx + 2, wy + 6, 4, 5, '#e7c26a'); R(lx + 8, wy + 7, 12, 1, '#d8dde6'); R(lx + 8, wy + 9, 9, 1, '#d8dde6'); if (m.listed) { R(lx + 24, wy + 4, 1, 9, '#e7c26a'); } }
+    // front wall lip with door
+    const ly = fy + fh;
+    R(x0 - 4, ly, fw + 8, LIP, '#4d3a2c'); R(x0 - 4, ly, fw + 8, 1, '#6a5240');
+    const dX = x0 + L.doorX * TS - 6;
+    R(dX, ly, 12, LIP, sh(F.a, 0.8));
+    R(dX - 1, ly, 1, LIP, '#2a1e18'); R(dX + 12, ly, 1, LIP, '#2a1e18');
+  }
+
+  // ---------- furniture sprites (3/4 top-down). x,y = top-left of footprint in px
+  function box(x, y, w, h, top, front, d) { R(x, y, w, h, OL); R(x + 1, y + 1, w - 2, h - d - 1, top); R(x + 1, y + h - d, w - 2, d - 1, front); R(x + 1, y + 1, w - 2, 1, sh(top, 1.12)); }
+  function drawItem(p, dl, now, L) {
+    const key = p.it.key, x = L.ox + p.x * TS, y = L.floorY + p.y * TS, w = p.D.w * TS, h = p.D.h * TS;
+    const t = now;
+    switch (key) {
+      case 'futon': { R(x + 1, y + 2, w - 2, h - 3, OL); R(x + 2, y + 3, w - 4, h - 5, '#e8e4dc'); R(x + 2, y + 9, w - 4, h - 11, '#c46a6a'); for (let yy = y + 11; yy < y + h - 3; yy += 3) R(x + 3, yy, w - 6, 1, '#d88484'); R(x + 4, y + 4, w - 8, 4, '#f6f2ea'); break; }
+      case 'bed_single': case 'bed_double': case 'bed_luxury': {
+        const frame = key === 'bed_luxury' ? '#4a2e22' : key === 'bed_double' ? '#8a5e3c' : '#a07a52', blanket = key === 'bed_luxury' ? '#7a3a5a' : key === 'bed_double' ? '#4f7aa8' : '#6a9a7a';
+        R(x, y - 6, w, 8, OL); R(x + 1, y - 5, w - 2, 6, frame); R(x + 1, y - 5, w - 2, 1, sh(frame, 1.25));
+        box(x, y + 1, w, h - 1, '#f0ece4', sh(frame, 0.9), 3);
+        const pw = key === 'bed_single' ? 1 : 2; for (let i = 0; i < pw; i++) { const px = x + 2 + i * Math.floor((w - 4) / pw); R(px + 1, y + 3, Math.floor((w - 4) / pw) - 2, 4, '#ffffff'); R(px + 1, y + 6, Math.floor((w - 4) / pw) - 2, 1, '#d8d4cc'); }
+        R(x + 1, y + 9, w - 2, h - 13, blanket); R(x + 1, y + 9, w - 2, 1, sh(blanket, 1.25)); for (let xx = x + 3; xx < x + w - 2; xx += 4) R(xx, y + 11, 1, h - 16, sh(blanket, 0.88));
+        if (key === 'bed_luxury') { R(x + 1, y + h - 6, w - 2, 1, '#e7c26a'); R(x - 1, y - 7, 2, 9, '#e7c26a'); R(x + w - 1, y - 7, 2, 9, '#e7c26a'); }
+        break;
+      }
+      case 'crib': { box(x + 1, y + 2, w - 2, h - 2, '#f6efe0', '#d6c0a0', 3); for (let xx = x + 2; xx < x + w - 2; xx += 2) R(xx, y + 2, 1, h - 4, '#c8ad86'); R(x + 1, y + 1, w - 2, 1, '#b8956a'); R(x + 4, y + 6, 8, 5, '#f5c6d4'); break; }
+      case 'lowtable': { R(x + 1, y + 1, w - 2, h + 1, OL); R(x + 2, y + 2, w - 4, h - 3, '#9a6a42'); R(x + 2, y + h - 1, w - 4, 2, '#6a4628'); R(x + 3, y + 2, w - 6, 1, '#b07e52'); if (p.pc) drawLaptop(x + 3, y - 1, p.pc); else { R(x + 5, y + 3, 3, 2, '#e8e4dc'); R(x + 9, y + 3, 2, 2, '#4a7a9a'); } for (const sp of p.spots || []) R(L.ox + sp.x * TS + 1, L.floorY + sp.y * TS + 2, 6, 4, '#b84a4a'); break; }
+      case 'dining': case 'dining_lux': {
+        const top = key === 'dining_lux' ? '#e8e2d6' : '#b88454', fr = key === 'dining_lux' ? '#9a9286' : '#7a5232';
+        for (const sp of p.spots || []) { const cx = L.ox + sp.x * TS, cy = L.floorY + sp.y * TS; if (sp.face === 'down') { R(cx + 1, cy - 2, 6, 8, OL); R(cx + 2, cy - 1, 4, 4, fr); R(cx + 2, cy + 3, 4, 2, sh(fr, 1.2)); } else { R(cx + 1, cy + 1, 6, 7, OL); R(cx + 2, cy + 2, 4, 2, sh(fr, 1.2)); R(cx + 2, cy + 4, 4, 3, fr); } }
+        box(x, y, w, h, top, fr, 4);
+        if (key === 'dining_lux') for (let i = 0; i < 10; i++) P1(x + 2 + Math.floor(h01(i, 41) * (w - 4)), y + 2 + Math.floor(h01(i, 42) * (h - 7)), '#cfc8ba');
+        if (mealNow()) { for (let i = 0; i < Math.floor(w / 9); i++) { R(x + 3 + i * 9, y + 3, 5, 3, '#f4f0e8'); R(x + 4 + i * 9, y + 3, 3, 1, ['#d88a4a', '#7ab060', '#e8d070'][i % 3]); } }
+        else R(x + Math.floor(w / 2) - 2, y + 3, 4, 3, key === 'dining_lux' ? '#c89a3a' : '#7aa86a');
+        if (p.pc) drawLaptop(x + 2, y + 1, p.pc);
+        break;
+      }
+      case 'sofa': case 'sofa_lux': { // seen from behind: the backrest faces the viewer, the seat faces the TV
+        const c = key === 'sofa_lux' ? '#5a3424' : '#6a7fa8';
+        R(x, y, w, h + 2, OL); R(x + 1, y + 1, w - 2, 3, sh(c, 1.18)); R(x + 1, y + 4, w - 2, h - 3, c); R(x + 1, y + 4, w - 2, 1, sh(c, 1.3)); R(x + 1, y + h, w - 2, 1, sh(c, 0.7));
+        R(x, y - 1, 3, h + 3, OL); R(x + w - 3, y - 1, 3, h + 3, OL); R(x + 1, y, 1, h + 1, sh(c, 0.85)); R(x + w - 2, y, 1, h + 1, sh(c, 0.85));
+        if (key === 'sofa_lux') for (let xx = x + 4; xx < x + w - 4; xx += 4) P1(xx, y + 6, '#d6b45c');
+        break;
+      }
+      case 'massage': { box(x, y - 6, w, h + 6, '#3a3a40', '#2a2a30', 3); R(x + 2, y - 4, w - 4, 6, '#5a5a62'); break; }
+      case 'tv_small': case 'tv_big': {
+        const tw = key === 'tv_big' ? w - 2 : w - 4, th = key === 'tv_big' ? 13 : 10;
+        box(x, y + 1, w, h - 1, '#7a5a3e', '#5a3e28', 3);
+        const sx = x + Math.floor((w - tw) / 2), sy = y - th + 2;
+        R(sx - 1, sy - 1, tw + 2, th + 2, '#1a1a20');
+        const on = [...SIM.chars.values()].some((c) => c.state === 'act' && (c.tvMode || c.gameMode || c.act === 'tv'));
+        R(sx, sy, tw, th, on ? ['#5a8ac8', '#7ab0d8', '#6a9a6a', '#c8a05a'][Math.floor(t * 1.5) % 4] : '#22283a');
+        if (on) { R(sx + 2, sy + 2, tw - 4, 2, '#e8f0f8'); R(sx + 3, sy + th - 4, 3, 2, '#f0d0a0'); }
+        if (p.game) { R(x + 2, y + 3, 5, 2, '#e8e8ec'); R(x + 3, y + 3, 1, 1, '#4a4a6a'); }
+        break;
+      }
+      case 'desk': case 'desk_kid': case 'desk_work': case 'biz_desk': case 'stream_set': case 'music_set': case 'draw_set': {
+        const top = key === 'desk_work' || key === 'biz_desk' ? '#5a4a3e' : key === 'desk_kid' ? '#c8a070' : '#a07a52', fr = sh(top, 0.7);
+        R(x, y - 4, w, h + 4, OL); R(x + 1, y - 3, w - 2, h - 1, top); R(x + 1, y - 3, w - 2, 1, sh(top, 1.25)); R(x + 1, y + h - 4, w - 2, 3, fr);
+        if (key === 'desk_kid') { R(x + 2, y - 8, w - 4, 5, '#c8a070'); R(x + 3, y - 7, 4, 3, '#e05a5a'); R(x + 8, y - 7, 5, 3, '#5a8ae0'); }
+        if (p.pc || key === 'biz_desk') drawLaptop(x + 3, y - 4, p.pc || 'pc_hi');
+        else if (key === 'desk' || key === 'desk_kid') { R(x + 4, y - 2, 6, 3, '#f4f0e6'); R(x + 5, y - 1, 4, 1, '#9aa0b0'); }
+        if (key === 'biz_desk') { R(x + w - 6, y - 3, 4, 3, '#e8e4dc'); R(x + w - 6, y - 4, 4, 1, '#d8d4cc'); }
+        if (key === 'stream_set') { drawLaptop(x + 2, y - 4, 'pc_hi'); R(x + w - 4, y - 8, 1, 6, '#2a2a30'); R(x + w - 5, y - 9, 3, 3, '#3a3a40'); const ring = Math.sin(t * 3) > 0; R(x - 1, y - 10, 3, 3, ring ? '#fff4d0' : '#d8d0b0'); }
+        if (key === 'music_set') { R(x + 2, y - 4, w - 4, 3, '#2a2a30'); for (let i = 0; i < 6; i++) R(x + 3 + i * 2, y - 3, 1, 2, '#f0f0f0'); R(x + w - 3, y - 12, 2, 10, '#8a4a2a'); R(x + w - 4, y - 5, 4, 4, '#a65a30'); }
+        if (key === 'draw_set') { R(x + 3, y - 6, 8, 5, '#f8f6f0'); R(x + 4, y - 5, 5, 1, '#3a3a50'); R(x + 5, y - 3, 3, 1, '#c86a6a'); R(x + 12, y - 4, 2, 3, '#4a6ac8'); }
+        // chair
+        for (const sp of p.spots || []) { const cx = L.ox + sp.x * TS, cy = L.floorY + sp.y * TS; const occ = sp.by && SIM.chars.get(sp.by) && SIM.chars.get(sp.by).state === 'act'; if (!occ) { R(cx + 1, cy - 1, 7, 8, OL); R(cx + 2, cy, 5, 3, '#3a3a44'); R(cx + 2, cy + 3, 5, 3, '#4a4a56'); } }
+        break;
+      }
+      case 'bookshelf': { R(x, y - 14, w, h + 14, OL); R(x + 1, y - 13, w - 2, h + 12, '#8a5e3c'); for (let r2 = 0; r2 < 3; r2++) { const by = y - 12 + r2 * 6; R(x + 2, by + 5, w - 4, 1, '#5a3e28'); for (let i = 0; i < w - 4; i += 2) R(x + 2 + i, by + 1 + (i % 3 === 0 ? 1 : 0), 2, 4 - (i % 3 === 0 ? 1 : 0), ['#c84a4a', '#4a7ac8', '#e0c050', '#5aa070', '#a06ac0'][(i + r2 * 2) % 5]); } break; }
+      case 'fridge': { R(x, y - 14, w, h + 14, OL); R(x + 1, y - 13, w - 2, h + 12, '#e8eef2'); R(x + 1, y - 5, w - 2, 1, '#a8b0b8'); R(x + w - 3, y - 11, 1, 4, '#8a929a'); R(x + w - 3, y - 2, 1, 4, '#8a929a'); P1(x + 2, y - 11, '#e05a5a'); break; }
+      case 'kitchen': { R(x, y - 6, w, h + 6, OL); R(x + 1, y - 5, w - 2, 5, '#d8d4cc'); R(x + 1, y, w - 2, h - 1, '#b89a7a'); for (let xx = x + 3; xx < x + w - 2; xx += 8) R(xx, y + 2, 5, 4, '#a0846a'); R(x + 3, y - 4, 6, 3, '#9aa4ae'); R(x + 13, y - 4, 4, 3, '#3a3a3a'); R(x + 18, y - 4, 4, 3, '#3a3a3a'); const cooking = [...SIM.chars.values()].some((c) => c.state === 'act' && c.act === 'cook' && c.spot && c.spot.item === p); if (cooking) { R(x + 14, y - 6, 2, 2, '#ffffff'); P1(x + 15 + Math.floor(Math.sin(t * 6)), y - 8, '#ffffff'); P1(x + 18, y - 3, '#e8803a'); } break; }
+      case 'coffee': { R(x + 1, y - 8, w - 2, h + 8, OL); R(x + 2, y - 7, w - 4, h + 6, '#3a3a40'); R(x + 3, y - 5, 2, 2, '#c84a3a'); R(x + 2, y + 1, 4, 3, '#e8e4dc'); break; }
+      case 'washer': { R(x, y - 6, w, h + 6, OL); R(x + 1, y - 5, w - 2, h + 4, '#eef2f4'); R(x + 2, y - 2, 4, 4, '#7a9ab8'); R(x + 3, y - 1, 2, 2, Math.floor(t * 4) % 2 ? '#a8c4dc' : '#7a9ab8'); break; }
+      case 'clock': { R(x + 1, y - 16, w - 2, h + 16, OL); R(x + 2, y - 15, w - 4, h + 14, '#6a4228'); R(x + 2, y - 14, 4, 4, '#f0e8d0'); P1(x + 4, y - 12, '#2a2a2a'); const sw = Math.sin(t * 3) > 0 ? 1 : 0; R(x + 3 + sw, y - 7, 2, 5, '#d8b860'); break; }
+      case 'aquarium': { box(x, y + 1, w, h - 1, '#5a4632', '#3e2e20', 3); R(x + 1, y - 8, w - 2, 9, '#2a3a4a'); R(x + 2, y - 7, w - 4, 7, '#4a9ac8'); const fx = x + 3 + Math.floor((Math.sin(t) + 1) * (w - 9) / 2); R(fx, y - 4, 3, 2, '#f08a3a'); P1(fx + 6, y - 6, '#f0e05a'); break; }
+      case 'piano': case 'keyboard': { const body = key === 'piano' ? '#1e1a1c' : '#3a3a42'; R(x, y - (key === 'piano' ? 12 : 4), w, h + (key === 'piano' ? 12 : 4), OL); R(x + 1, y - (key === 'piano' ? 11 : 3), w - 2, h + (key === 'piano' ? 10 : 2), body); R(x + 2, y + 1, w - 4, 3, '#f4f4f0'); for (let xx = x + 3; xx < x + w - 2; xx += 3) R(xx, y + 1, 1, 2, '#1e1a1c'); if (key === 'piano') R(x + 2, y - 10, w - 4, 1, '#4a4246'); break; }
+      case 'treadmill': { R(x + 1, y + 2, w - 2, h - 3, OL); R(x + 2, y + 3, w - 4, h - 5, '#3a3a40'); const sh2 = Math.floor(t * 8) % 3; for (let yy = y + 4 + sh2; yy < y + h - 3; yy += 3) R(x + 3, yy, w - 6, 1, '#5a5a62'); R(x + 1, y - 4, 2, 8, '#6a6a72'); R(x + w - 3, y - 4, 2, 8, '#6a6a72'); R(x + 1, y - 5, w - 2, 2, '#8a8a92'); break; }
+      case 'dresser': case 'mirror': { R(x + (key === 'mirror' ? 1 : 0), y - 14, key === 'mirror' ? w - 2 : w, h + 14, OL); if (key === 'dresser') { R(x + 1, y - 4, w - 2, h + 3, '#c8a07a'); R(x + 1, y + 1, w - 2, 1, '#a07a52'); R(x + 4, y - 13, 8, 9, '#b8d0e0'); R(x + 5, y - 12, 2, 4, '#e8f4fa'); P1(x + 2, y - 5, '#e05a8a'); P1(x + 13, y - 5, '#8a5ae0'); } else { R(x + 2, y - 13, w - 4, h + 11, '#b8d0e0'); R(x + 3, y - 12, 1, 6, '#e8f4fa'); } break; }
+      case 'whiteboard': { R(x, y - 14, w, 12, OL); R(x + 1, y - 13, w - 2, 10, '#f4f6f8'); R(x + 3, y - 11, 8, 1, '#4a6ac8'); R(x + 3, y - 9, 12, 1, '#c84a4a'); for (let i = 0; i < 4; i++) R(x + 14 + i * 2, y - 6 - i * 2, 2, i * 2 + 2, '#5aa070'); R(x + 2, y - 2, 1, h + 1, '#8a929a'); R(x + w - 3, y - 2, 1, h + 1, '#8a929a'); break; }
+      case 'reception': { R(x, y - 6, w, h + 6, OL); R(x + 1, y - 5, w - 2, h + 4, '#e8e4dc'); R(x + 1, y + 1, w - 2, 2, '#c8b07a'); R(x + 4, y - 4, 6, 2, '#2a3a5a'); break; }
+      case 'plant': { R(x + 2, y + 2, 4, 5, OL); R(x + 3, y + 3, 2, 3, '#b0683a'); R(x + 1, y - 5, 6, 7, '#3f7a3a'); R(x, y - 3, 3, 4, '#4f8a42'); R(x + 5, y - 4, 3, 4, '#4f8a42'); P1(x + 3, y - 6, '#6aaa5a'); break; }
+      case 'lamp': { R(x + 3, y - 10, 1, 15, '#3a3a3a'); R(x + 1, y + 4, 5, 2, '#3a3a3a'); R(x + 1, y - 13, 6, 4, '#f0dca0'); if (dl < 0.6) lights.push([x + 4, y - 10, 16, 'rgba(255,214,140,0.30)']); break; }
+      case 'guitar': { R(x + 2, y - 4, 4, 6, '#a65a30'); R(x + 3, y - 2, 2, 2, '#3a2a1a'); R(x + 3, y - 11, 2, 7, '#5a3a22'); break; }
+      case 'rug': { const c = m_.tier >= 3 ? '#8a5a3a' : '#7a8ab0'; R(x + 1, y + 1, w - 2, h - 2, sh(c, 0.85)); R(x + 2, y + 2, w - 4, h - 4, c); R(x + 4, y + 4, w - 8, h - 8, sh(c, 1.15)); for (let xx = x + 1; xx < x + w - 1; xx += 2) { P1(xx, y, sh(c, 0.8)); P1(xx, y + h - 1, sh(c, 0.8)); } break; }
+      case 'toys': { R(x + 2, y + 3, 4, 4, '#e05a5a'); R(x + 3, y + 2, 2, 1, '#e05a5a'); R(x + 9, y + 5, 3, 3, '#5a8ae0'); R(x + 10, y + 4, 1, 1, '#f0d05a'); R(x + 4, y + 10, 6, 3, '#f0d05a'); R(x + 4, y + 13, 2, 1, '#3a3a3a'); R(x + 8, y + 13, 2, 1, '#3a3a3a'); R(x + 12, y + 10, 3, 4, '#6ac07a'); break; }
+      case 'randoseru': { R(x + 1, y - 1, 6, 6, OL); R(x + 2, y, 4, 4, '#c83a3a'); R(x + 2, y + 2, 4, 1, '#a02a2a'); break; }
+      case 'briefcase': { R(x + 1, y + 1, 6, 5, OL); R(x + 2, y + 2, 4, 3, '#4a3a2a'); R(x + 3, y, 2, 1, '#2a2a2a'); break; }
+      case 'books': { R(x + 1, y + 1, 6, 2, '#4a6ac8'); R(x + 2, y - 1, 5, 2, '#c84a4a'); R(x + 1, y - 3, 6, 2, '#e0c050'); break; }
+      case 'work_tools': { R(x + 1, y, 6, 5, OL); R(x + 2, y + 1, 4, 3, '#5a6a7a'); R(x + 3, y - 1, 2, 1, '#8a8a8a'); break; }
+      case 'trophy': { R(x + 2, y - 6, 4, 4, '#e7c26a'); R(x + 3, y - 2, 2, 3, '#c8a050'); R(x + 1, y + 1, 6, 2, '#6a4a2a'); break; }
+      case 'gear_baseball': { R(x + 1, y - 9, 1, 13, '#c8a070'); R(x + 1, y - 10, 2, 3, '#b08a5a'); R(x + 3, y + 1, 4, 3, '#8a5a3a'); P1(x + 5, y - 1, '#ffffff'); break; }
+      case 'gear_soccer': { R(x + 2, y + 1, 4, 4, '#f4f4f4'); P1(x + 3, y + 2, '#2a2a2a'); P1(x + 4, y + 3, '#2a2a2a'); R(x + 1, y + 5, 3, 1, '#2a6ac8'); R(x + 4, y + 5, 3, 1, '#2a6ac8'); break; }
+      case 'gear_basketball': { R(x + 2, y, 5, 5, '#e0782a'); R(x + 4, y, 1, 5, '#6a3a1a'); R(x + 2, y + 2, 5, 1, '#6a3a1a'); break; }
+      case 'gear_tennis': { R(x + 2, y - 6, 4, 6, OL); R(x + 3, y - 5, 2, 4, '#d8e0e0'); R(x + 3, y, 2, 4, '#3a3a3a'); P1(x + 6, y + 3, '#d8e05a'); break; }
+      case 'gear_golf': { R(x + 1, y - 6, 5, 11, '#3a5a8a'); for (let i = 0; i < 3; i++) R(x + 1 + i * 2, y - 9, 1, 3, '#c8c8c8'); break; }
+      case 'gear_boxing': { R(x + 1, y, 3, 3, '#c83a3a'); R(x + 4, y + 1, 3, 3, '#c83a3a'); break; }
+      case 'gear_esports': { R(x + 1, y + 1, 6, 3, '#2a2a30'); P1(x + 2, y + 2, '#5ae0e0'); P1(x + 5, y + 2, '#e05ae0'); break; }
+      case 'gear_sport': { R(x + 1, y - 4, 2, 8, '#6a6a72'); R(x + 5, y - 4, 2, 8, '#6a6a72'); R(x + 1, y, 6, 1, '#8a8a92'); break; }
+      case 'cage_bird': case 'cage_hamster': {
+        R(x, y - 8, w, h + 8, OL); R(x + 1, y - 7, w - 2, h + 6, key === 'cage_bird' ? '#d8e4ec' : '#e8dcc4'); for (let xx = x + 1; xx < x + w - 1; xx += 2) R(xx, y - 7, 1, h + 6, '#a8b0b8');
+        const pet = m_.pets.find((q) => q.id === p.it.pet), col = pet && pet.color ? pet.color : key === 'cage_bird' ? '#f0d040' : '#e8b880';
+        if (key === 'cage_bird') { const hop = Math.floor(t * 2 + strId(p.it.id)) % 3 === 0 ? 1 : 0; R(x + 3, y - 4 - hop, 3, 2, col); P1(x + 5, y - 5 - hop, col); P1(x + 6, y - 4 - hop, '#e08a3a'); R(x + 1, y - 2, w - 2, 1, '#8a6a4a'); }
+        else { const run = Math.floor(t * 6) % 2; R(x + 2, y - 3, 4, 4, '#c8c8c8'); R(x + 3 + run, y - 2, 2, 2, col); }
+        break;
+      }
+      case 'petbed_dog': case 'petbed_cat': { R(x, y + 1, w, h - 1, OL); R(x + 1, y + 2, w - 2, h - 3, key === 'petbed_dog' ? '#a8584a' : '#8a6aa8'); R(x + 2, y + 3, w - 4, h - 5, '#f0e4d0'); break; }
+      case 'bowl': { R(x + 2, y + 4, 4, 2, '#4a6ac8'); R(x + 3, y + 4, 2, 1, '#c8a060'); break; }
+    }
+  }
+  function drawLaptop(x, y, kind) {
+    if (kind === 'pc_hi') { R(x - 1, y - 7, 11, 8, '#1a1a20'); R(x, y - 6, 9, 6, '#2a4a7a'); R(x + 1, y - 5, 5, 1, '#8ac0f0'); R(x + 1, y - 3, 7, 1, '#5a8ac8'); R(x + 4, y + 1, 2, 1, '#2a2a30'); R(x + 1, y + 1, 7, 1, '#4a4a52'); lights.push([x + 4, y - 3, 10, 'rgba(120,180,255,0.18)']); }
+    else { R(x, y - 4, 8, 5, '#3a3a42'); R(x + 1, y - 3, 6, 3, '#6a9ad0'); R(x - 1, y + 1, 10, 1, '#8a8a92'); lights.push([x + 4, y - 2, 8, 'rgba(120,180,255,0.14)']); }
+  }
+
+  // ---------- people sprites (original pixel design). (x,y) = feet centre
+  const OUTFIT = {
+    suit: { top: '#2f3650', sleeve: '#2f3650', pants: '#262b3c', tie: '#c84a4a', collar: '#f4f4f4' },
+    exec: { top: '#1f2436', sleeve: '#1f2436', pants: '#1a1e2c', tie: '#d8b44a', collar: '#f4f4f4' },
+    uniform: { top: '#2f4470', sleeve: '#2f4470', pants: '#25365a', cap: '#25365a', badge: '#e7c26a' },
+    coat: { top: '#f2f4f6', sleeve: '#f2f4f6', pants: '#7a8a9a', long: 1 },
+    work: { top: '#4a6d8c', sleeve: '#4a6d8c', pants: '#3e5c78' },
+    track: { top: '#2a5a9a', sleeve: '#2a5a9a', pants: '#2a5a9a', stripe: '#f4f4f4' },
+    school: { top: '#1f2a44', sleeve: '#1f2a44', pants: '#1f2a44', collar: '#f4f4f4' },
+  };
+  function outfitColors(p) {
+    const lk = p.look || {};
+    const o = p.outfit || 'casual';
+    if (o.startsWith('sport:')) {
+      const sp = o.slice(6), team = ['#c83a3a', '#2a5ac8', '#2a8a4a', '#e0a020', '#7a3ac8'][strId(p.id) % 5];
+      if (sp === 'baseball') return { top: '#f2f2ee', sleeve: '#f2f2ee', pants: '#f2f2ee', cap: team, stripe: team, socks: team };
+      if (sp === 'soccer') return { top: team, sleeve: team, pants: '#f4f4f4', shorts: 1, socks: team };
+      if (sp === 'basketball') return { top: team, sleeve: null, pants: team, shorts: 1 };
+      if (sp === 'golf') return { top: '#f4f4f0', sleeve: '#f4f4f0', pants: '#4a5a6a', cap: '#f4f4f0' };
+      if (sp === 'boxing') return { top: '#e0b090', sleeve: null, pants: team, shorts: 1, bare: 1 };
+      if (sp === 'esports') return { top: '#1a1a22', sleeve: '#1a1a22', pants: '#2a2a32', stripe: team };
+      return Object.assign({}, OUTFIT.track, { top: team, sleeve: team, pants: team });
+    }
+    if (o === 'school') return p.gender === 'f' ? { top: '#24305a', sleeve: '#24305a', pants: '#24305a', skirt: 1, collar: '#f4f4f4', tie: '#c84a4a' } : OUTFIT.school;
+    if (o === 'apron') return { top: lk.shirt || '#8a9aba', sleeve: lk.shirt || '#8a9aba', pants: lk.pants || '#3d3d48', apron: '#e4c87a' };
+    if (OUTFIT[o]) return Object.assign({ skirt: p.gender === 'f' && o === 'suit' && strId(p.id) % 2 === 0 ? 1 : 0 }, OUTFIT[o]);
+    const skirt = p.gender === 'f' && strId(p.id) % 3 !== 0 && p.age >= 4;
+    return { top: lk.shirt || '#6b8fd6', sleeve: lk.shirt || '#6b8fd6', pants: lk.pants || '#2f3a55', skirt: skirt ? 1 : 0 };
+  }
+  const hairCol = (p) => mix((p.look && p.look.hair) || '#2e2420', '#dcdce0', p.grey || 0);
+  function drawPerson(c, x, y, now) {
+    const p = c.p, lk = p.look || {}, O = outfitColors(p);
+    const skin = lk.skin || '#f1c9a5', hair = hairCol(p), style = lk.hairStyle || (p.gender === 'f' ? 'bob' : 'short');
+    const act = c.state === 'act' ? c.act : c.state, face = c.face;
+    const walking = c.state === 'walk';
+    const fr = walking ? [0, 1, 0, 2][Math.floor(c.walkD / 3) % 4] : 0;
+    const blink = ((now + (c.sd % 50) / 10) % 3.8) < 0.13;
+    const r = p.routine;
+    x = Math.round(x); y = Math.round(y);
+    if (r === 'baby') return drawBaby(c, x, y, now, skin, hair, lk);
+    // proportions by age
+    const dims = r === 'toddler' ? { hw: 7, hh: 6, bh: 3, lh: 2, bw: 5 } : r === 'child' ? { hw: 8, hh: 7, bh: 4, lh: 3, bw: 6 } : r === 'teen' ? { hw: 8, hh: 7, bh: 5, lh: 4, bw: 6 } : { hw: 8, hh: 7, bh: 5, lh: 5, bw: 6 };
+    const elder = p.age >= 70;
+    const sitting = ['desk', 'homework', 'eat', 'sofa', 'music', 'stream', 'draw', 'relax'].includes(act) && c.state === 'act' && !(act === 'tv' && !c.tvMode && !c.gameMode && false);
+    const sitFloor = act === 'tv' || act === 'play' || (act === 'eat' && c.spot && c.spot.item.it.key === 'lowtable');
+    const crouch = act === 'petplay' || act === 'water' || act === 'watchpet';
+    let lh = dims.lh; if (sitting || sitFloor) lh = 1; if (crouch) lh = Math.max(1, lh - 2);
+    const bob = act === 'practice' ? 0 : (walking && fr ? -1 : 0) + (act === 'run' ? -(Math.floor(now * 10) % 2) : 0) + (act === 'happy' ? -Math.max(0, Math.round(Math.sin(now * 9) * 2)) : 0);
+    const H2 = dims.hh + dims.bh + lh + 1;
+    const top = y - H2 + bob + (elder ? 1 : 0);
+    const hx = x - Math.floor(dims.hw / 2), bx = x - Math.floor(dims.bw / 2);
+    const bodyTop = top + dims.hh;
+    const legTop = bodyTop + dims.bh;
+    // shadow
+    R(x - 4, y - 1, 8, 2, 'rgba(0,0,0,0.18)');
+    // legs
+    const pantsC = O.pants, shoe = '#2a2224';
+    if (!(sitting && face === 'up')) {
+      if (O.skirt && !sitting) { R(bx, legTop, dims.bw, Math.min(2, lh), pantsC); const sl = lh - 2; if (sl > 0) { R(x - 2, legTop + 2, 1, sl, skin); R(x + 1, legTop + 2, 1, sl, skin); } R(x - 2 - (fr === 1 ? 1 : 0), y - 1, 2, 1, shoe); R(x + 1 + (fr === 2 ? 1 : 0), y - 1, 2, 1, shoe); }
+      else if (face === 'left' || face === 'right') {
+        const d = face === 'right' ? 1 : -1;
+        const a1 = fr === 1 ? d : fr === 2 ? -d : 0;
+        R(x - 1 + a1, legTop, 2, lh, O.shorts ? skin : pantsC); R(x - 1 - a1, legTop, 2, lh, sh(O.shorts ? skin : pantsC, 0.85));
+        if (O.shorts) R(x - 2, legTop, 4, 1, pantsC);
+        R(x - 1 + a1 + (d > 0 ? 0 : -1), legTop + lh - 1, 3, 1, shoe);
+      } else {
+        const l1 = fr === 1 ? 1 : 0, l2 = fr === 2 ? 1 : 0;
+        const legC = O.shorts ? skin : pantsC;
+        R(x - 2, legTop, 2, lh - l1, legC); R(x, legTop, 2, lh - l2, legC);
+        if (O.shorts) R(bx, legTop, dims.bw, 1, pantsC);
+        if (O.socks && lh >= 3) { R(x - 2, legTop + lh - 2 - l1, 2, 1, O.socks); R(x, legTop + lh - 2 - l2, 2, 1, O.socks); }
+        R(x - 2, legTop + lh - 1 - l1, 2, 1, shoe); R(x, legTop + lh - 1 - l2, 2, 1, shoe);
+      }
+    }
+    // torso
+    const topC = O.top;
+    R(bx, bodyTop, dims.bw, dims.bh + (O.long ? 2 : 0), OL);
+    R(bx + (dims.bw > 5 ? 0 : 0), bodyTop, dims.bw, dims.bh + (O.long ? 1 : 0), topC);
+    R(bx, bodyTop + dims.bh - 1, dims.bw, 1, sh(topC, 0.8));
+    if (O.collar && face !== 'up') { R(x - 1, bodyTop, 2, 1, O.collar); }
+    if (O.tie && face !== 'up' && face === 'down') R(x, bodyTop + 1, 1, 2, O.tie);
+    if (O.apron && face !== 'up') R(bx + 1, bodyTop + 1, dims.bw - 2, dims.bh, O.apron);
+    if (O.stripe) R(bx, bodyTop + 1, dims.bw, 1, O.stripe);
+    if (O.badge && face === 'down') P1(bx + 1, bodyTop + 1, O.badge);
+    // arms
+    const armC = O.sleeve || skin;
+    const swing = walking ? (fr === 1 ? 1 : fr === 2 ? -1 : 0) : 0;
+    if (face === 'down' || face === 'up') {
+      R(bx - 1, bodyTop + 1 + Math.max(0, swing), 1, dims.bh - 2, armC); R(bx + dims.bw, bodyTop + 1 + Math.max(0, -swing), 1, dims.bh - 2, armC);
+      R(bx - 1, bodyTop + dims.bh - 1 + Math.max(0, swing), 1, 1, skin); R(bx + dims.bw, bodyTop + dims.bh - 1 + Math.max(0, -swing), 1, 1, skin);
+    } else { const d = face === 'right' ? 1 : -1; R(x - 1 + swing * d, bodyTop + 1, 2, dims.bh - 1, sh(armC, 0.9)); R(x - 1 + swing * d, bodyTop + dims.bh - 1, 2, 1, skin); }
+    // activity props held in hands
+    if (act === 'phone' || (act === 'idle' && false)) { const px = face === 'left' ? bx - 2 : bx + dims.bw; R(px, bodyTop + 1, 2, 3, '#2a2a30'); P1(px + (face === 'left' ? 0 : 1), bodyTop + 1, '#8ad0ff'); lights.push([px + 1, bodyTop + 2, 5, 'rgba(140,210,255,0.2)']); }
+    if (c.reading || act === 'read') { R(x - 3, bodyTop + 2, 6, 3, '#f4f0e6'); R(x, bodyTop + 2, 1, 3, '#c8c0b0'); }
+    if (act === 'sweep') { const sx = x + (c.sweepDir || 1) * 4; R(sx, bodyTop - 2, 1, dims.bh + lh + 2, '#a07a52'); R(sx - 1, y - 2, 3, 2, '#d8c070'); if (Math.floor(now * 4) % 2) { c.x += (c.sweepDir || 1) * 0.15; } }
+    if (act === 'water') { R(x + (face === 'left' ? -5 : 3), bodyTop + 1, 3, 2, '#5a8ac8'); if (Math.floor(now * 5) % 2) P1(x + (face === 'left' ? -6 : 6), bodyTop + 3, '#8ac0f0'); }
+    if (act === 'practice') {
+      const sp = p.sport; const ph = Math.floor(now * 3) % 4;
+      if (sp === 'baseball') { const ang = [[-5, -3], [-3, -6], [3, -6], [5, -2]][ph]; for (let i = 1; i <= 5; i++) P1(x + Math.round(ang[0] * i / 5), bodyTop + 2 + Math.round(ang[1] * i / 5), '#c8a070'); }
+      else if (sp === 'soccer' || sp === 'basketball') { const by = y - 2 - Math.abs(Math.round(Math.sin(now * 6) * 6)); R(x + 3, by, 3, 3, sp === 'soccer' ? '#f4f4f4' : '#e0782a'); }
+      else if (sp === 'boxing') { R(x + (ph % 2 ? 4 : 2), bodyTop + 1, 3, 3, '#c83a3a'); }
+      else { R(x + 3, bodyTop + (ph % 2 ? 0 : 2), 1, 6, '#8a8a92'); }
+    }
+    if (act === 'eat' && Math.floor(now * 2 + c.sd) % 3 === 0 && face === 'down') R(x + 2, bodyTop + 1, 1, 2, skin);
+    // head
+    const hy = top;
+    R(hx - 1, hy, dims.hw + 2, dims.hh, OL);
+    R(hx, hy + 1, dims.hw, dims.hh - 1, skin);
+    R(hx + 1, hy - 1 + 1, dims.hw - 2, 1, OL);
+    // hair by facing
+    const hair1 = hair, hair2 = sh(hair, 0.8);
+    if (face === 'up') {
+      R(hx, hy, dims.hw, dims.hh - 1, hair1); R(hx + 1, hy + dims.hh - 2, dims.hw - 2, 1, hair2);
+      if (style === 'long') R(hx, hy + dims.hh - 1, dims.hw, 3, hair1);
+      if (style === 'pony') R(x - 1, hy + dims.hh - 1, 2, 3, hair1);
+      if (style === 'bun') R(x - 2, hy - 2, 4, 3, hair1);
+    } else if (face === 'down') {
+      R(hx, hy, dims.hw, 2, hair1); R(hx, hy + 2, 1, dims.hh - 3, hair1); R(hx + dims.hw - 1, hy + 2, 1, dims.hh - 3, hair1);
+      if (style === 'short' || style === 'spiky') R(hx + 1, hy + 2, dims.hw - 2, 1, hair2);
+      if (style === 'spiky') { P1(hx + 1, hy - 1, hair1); P1(hx + 4, hy - 1, hair1); P1(hx + 6, hy - 1, hair1); }
+      if (style === 'side') R(hx + 1, hy + 2, dims.hw - 4, 1, hair1);
+      if (style === 'bob') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx - 1, hy + 2, 1, dims.hh - 1, hair1); R(hx + dims.hw, hy + 2, 1, dims.hh - 1, hair1); }
+      if (style === 'long') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx - 1, hy + 2, 1, dims.hh + 3, hair1); R(hx + dims.hw, hy + 2, 1, dims.hh + 3, hair1); }
+      if (style === 'bun') R(x - 2, hy - 2, 4, 2, hair1);
+      if (style === 'pony') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx + dims.hw, hy + 1, 2, 4, hair1); }
+      // face
+      const ey = hy + Math.floor(dims.hh / 2) + 1;
+      if (!blink && act !== 'floorsleep') { P1(hx + 2, ey, '#1a1418'); P1(hx + dims.hw - 3, ey, '#1a1418'); } else { P1(hx + 2, ey, sh(skin, 0.75)); P1(hx + dims.hw - 3, ey, sh(skin, 0.75)); }
+      if (r !== 'toddler') { P1(hx + 1, ey + 1, 'rgba(230,120,120,0.45)'); P1(hx + dims.hw - 2, ey + 1, 'rgba(230,120,120,0.45)'); }
+      if (c.talkWith || act === 'happy') P1(x, ey + 2, '#8a3a3a');
+      if (p.beard && p.age >= 20) R(hx + 1, hy + dims.hh - 1, dims.hw - 2, 1, hair2);
+      if (elder) { P1(hx + 1, hy + 3, sh(skin, 0.85)); }
+    } else {
+      const d = face === 'right' ? 1 : -1;
+      const back = d > 0 ? hx : hx + dims.hw - 3;
+      R(hx, hy, dims.hw, 2, hair1); R(back, hy + 2, 3, dims.hh - 3, hair1);
+      if (style === 'long') R(back, hy + 2, 3, dims.hh + 3, hair1);
+      if (style === 'pony') R(d > 0 ? hx - 2 : hx + dims.hw, hy + 1, 2, 5, hair1);
+      if (style === 'bun') R(d > 0 ? hx - 1 : hx + dims.hw - 2, hy - 1, 3, 3, hair1);
+      if (style === 'spiky') { P1(hx + 2, hy - 1, hair1); P1(hx + 5, hy - 1, hair1); }
+      const ex = d > 0 ? hx + dims.hw - 2 : hx + 1, ey = hy + Math.floor(dims.hh / 2) + 1;
+      if (!blink) P1(ex, ey, '#1a1418');
+      if (p.beard && p.age >= 20) R(d > 0 ? hx + dims.hw - 3 : hx + 1, hy + dims.hh - 1, 2, 1, hair2);
+    }
+    if (O.cap) { R(hx, hy - 1, dims.hw, 3, O.cap); if (face === 'down') R(hx + 1, hy + 2, dims.hw - 2, 1, sh(O.cap, 0.7)); else if (face !== 'up') R(face === 'right' ? hx + dims.hw : hx - 2, hy + 1, 2, 1, sh(O.cap, 0.7)); }
+    if (elder && p.age >= 78 && !sitting && !sitFloor) { const cxn = face === 'left' ? bx - 2 : bx + dims.bw + 1; R(cxn, bodyTop + 2, 1, dims.bh + lh - 2, '#6a4a2a'); }
+    // chair back over a seated person seen from behind
+    if (sitting && face === 'up' && ['desk', 'homework', 'stream', 'draw', 'music'].includes(act)) { R(x - 3, legTop - 2, 7, 4, OL); R(x - 2, legTop - 1, 5, 3, '#4a4a56'); }
+    if (sitting && face === 'up' && act === 'eat' && c.spot && c.spot.item.it.key !== 'lowtable') { R(x - 3, legTop - 1, 7, 3, OL); R(x - 2, legTop, 5, 2, '#8a6040'); }
+  }
+  function drawBaby(c, x, y, now, skin, hair, lk) {
+    if (c.state === 'act' && c.act === 'crib') { const bob = Math.floor(now * 1.5 + c.sd) % 4 === 0 ? 1 : 0; R(x - 3, y - 9 - bob, 6, 5, OL); R(x - 2, y - 8 - bob, 4, 4, skin); R(x - 2, y - 8 - bob, 4, 1, hair); if (!isNight()) { P1(x - 1, y - 6 - bob, '#1a1418'); P1(x + 1, y - 6 - bob, '#1a1418'); } return; }
+    const crawl = Math.floor(now * 4) % 2;
+    R(x - 4, y - 1, 8, 2, 'rgba(0,0,0,0.15)');
+    R(x - 3, y - 5, 7, 4, OL); R(x - 2, y - 4, 5, 3, lk.shirt || '#f5c6d4');
+    R(x - 3 + crawl, y - 1, 2, 1, skin); R(x + 1 - crawl, y - 1, 2, 1, skin);
+    const hx = c.face === 'left' ? x - 6 : x + 1;
+    R(hx, y - 8, 5, 5, OL); R(hx + 1, y - 7, 3, 4, skin); R(hx + 1, y - 7, 3, 1, hair);
+    P1(hx + (c.face === 'left' ? 1 : 3), y - 5, '#1a1418');
+    if (c.state === 'act' && c.act === 'crawl') { c.x += (c.face === 'left' ? -1 : 1) * 0.06; if (Math.floor(now) % 5 === 0) c.face = c.face === 'left' ? 'right' : 'left'; const L = SIM.L; if (L) c.x = Math.max(L.ox + 6, Math.min(L.ox + L.w * TS - 6, c.x)); }
+  }
+  function drawSleeper(c, now) { // lying in a bed / futon: head on the pillow, the blanket is drawn over the body
+    const s = c.spot, L = SIM.L; if (!s) return;
+    const x = L.ox + s.x * TS + (s.item.D.w === 2 ? TS : TS / 2) + (s.item.D.w > 2 ? 0 : 0), y = L.floorY + s.y * TS;
+    const p = c.p, skin = (p.look && p.look.skin) || '#f1c9a5', hair = hairCol(p);
+    const hx = L.ox + s.x * TS + 4;
+    R(hx - 1, y + 2, 9, 7, OL); R(hx, y + 3, 7, 5, skin); R(hx, y + 2, 7, 2, hair); R(hx - 1, y + 3, 1, 3, hair); R(hx + 7, y + 3, 1, 3, hair);
+    R(hx + 1, y + 6, 2, 1, sh(skin, 0.7)); R(hx + 4, y + 6, 2, 1, sh(skin, 0.7));
+    const bc = s.item.it.key === 'futon' ? '#c46a6a' : s.item.it.key === 'bed_luxury' ? '#7a3a5a' : s.item.it.key === 'bed_double' ? '#4f7aa8' : '#6a9a7a';
+    R(hx - 2, y + 9, 12, 12, bc); R(hx - 2, y + 9, 12, 1, sh(bc, 1.3)); R(hx + 1, y + 13, 6, 6, sh(bc, 1.1));
+    void x;
+    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) bubbleAt(hx + 8, y - 2, 'z');
+  }
+  function drawFloorSleeper(c, now) {
+    const x = Math.round(c.x), y = Math.round(c.y), p = c.p, skin = (p.look && p.look.skin) || '#f1c9a5', hair = hairCol(p);
+    R(x - 7, y - 10, 14, 12, OL); R(x - 6, y - 9, 12, 10, '#e8e4dc'); R(x - 6, y - 5, 12, 6, '#8aa0c0');
+    R(x - 3, y - 9, 6, 4, skin); R(x - 3, y - 9, 6, 1, hair);
+    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) bubbleAt(x + 5, y - 14, 'z');
+  }
+  // ---------- pets
+  function drawPet(a, now) {
+    const p = a.p, x = Math.round(a.x), y = Math.round(a.y);
+    if (p.kind === 'bird' || p.kind === 'hamster') return;
+    const col = p.color || (p.kind === 'dog' ? '#c8955a' : '#9a9aa2'), dark = sh(col, 0.72), light = mix(col, '#ffffff', 0.35);
+    const walking = a.state === 'walk', fr = walking ? Math.floor((a.walkD || 0) / 2.5) % 2 : 0;
+    const d = a.face === 'left' ? -1 : 1;
+    R(x - 5, y - 1, 10, 2, 'rgba(0,0,0,0.16)');
+    if (a.state === 'sleep') {
+      R(x - 4, y - 4, 9, 4, OL); R(x - 3, y - 3, 7, 3, col); R(x - 3, y - 3, 7, 1, light); R(x + (d > 0 ? 2 : -3), y - 4, 2, 2, dark);
+      if (Math.floor(now * 1.2 + a.sd) % 3 === 0) bubbleAt(x + 4, y - 9, 'z');
+      return;
+    }
+    const sit = a.state === 'sit' || a.state === 'eat';
+    const hop = a.state === 'happy' ? -Math.max(0, Math.round(Math.sin(now * 10) * 2)) : 0;
+    if (p.kind === 'dog') {
+      const by = y - 6 + hop;
+      R(x - 5, by - 1, 10, 5, OL); R(x - 4, by, 8, 3, col); R(x - 4, by, 8, 1, light);
+      if (!sit) { R(x - 4 + fr, by + 3, 1, 3, dark); R(x - 2 - fr, by + 3, 1, 3, col); R(x + 2 + fr, by + 3, 1, 3, dark); R(x + 3 - fr, by + 3, 1, 3, col); } else { R(x - 4, by + 3, 8, 1, dark); R(x + 1 * d, by + 3, 2, 2, col); }
+      const hx = d > 0 ? x + 3 : x - 7;
+      R(hx - 1, by - 4, 6, 6, OL); R(hx, by - 3, 4, 4, col); R(d > 0 ? hx + 3 : hx - 1, by - 1, 2, 2, light); P1(d > 0 ? hx + 4 : hx - 1, by - 1, '#2a2020');
+      R(d > 0 ? hx : hx + 3, by - 4, 1, 3, dark);
+      P1(d > 0 ? hx + 2 : hx + 1, by - 2, '#1a1418');
+      const wag = Math.floor(now * (a.state === 'happy' ? 12 : 3)) % 2;
+      R(d > 0 ? x - 6 : x + 5, by - 1 - wag, 1, 2, col);
+      if (a.state === 'eat' && Math.floor(now * 4) % 2) P1(hx + 2, by + 3, '#c8a060');
+    } else {
+      const by = y - 5 + hop;
+      R(x - 4, by - 1, 8, 4, OL); R(x - 3, by, 6, 2, col); R(x - 3, by, 6, 1, light);
+      if (!sit) { R(x - 3 + fr, by + 2, 1, 3, dark); R(x + 2 - fr, by + 2, 1, 3, dark); } else R(x - 3, by + 2, 6, 1, dark);
+      const hx = d > 0 ? x + 2 : x - 6;
+      R(hx - 1, by - 4, 6, 5, OL); R(hx, by - 3, 4, 3, col); P1(hx, by - 5, col); P1(hx + 3, by - 5, col);
+      P1(d > 0 ? hx + 2 : hx + 1, by - 2, '#3a8a3a');
+      const tl = Math.floor(now * 2 + a.sd) % 2;
+      R(d > 0 ? x - 5 : x + 4, by - 3 - tl, 1, 4, col);
+    }
+    if (p.sick) bubbleAt(x + 3, y - 14, 'sweat');
+  }
+  // ---------- cars (owned vehicles only), seen from above like the room, parked nose-in inside a bay
+  const CAR_DIM = { compact: [12, 18], sedan: [13, 21], suv: [14, 21], ev: [13, 20], luxury: [14, 23], sports: [13, 19] };
+  function drawCar(cr, bay, dl) {
+    const k2 = 0.55 + 0.45 * dl, [w, h] = CAR_DIM[cr.type] || [13, 20];
+    const x = bay.x + Math.floor((bay.w - w) / 2), y = bay.y + Math.floor((bay.h - h) / 2);
+    const body = sh(cr.color || '#5c6f8f', k2), dark = sh(body, 0.72), lite = mix(body, '#ffffff', 0.3), glass = sh(dl > 0.4 ? '#8fb6d4' : '#34445c', 1), ol = sh('#1c1618', 1);
+    // soft shadow on the ground (translucent, so the ground stays visible)
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x + 1, y + 2, w, h);
+    // outline follows the rounded body (corners left open → no box behind the car)
+    R(x + 1, y - 1, w - 2, h + 2, ol); R(x - 1, y + 1, w + 2, h - 2, ol); R(x, y, w, h, ol);
+    // wheels peek out at the sides
+    for (const wy of [y + 3, y + h - 6]) { R(x - 1, wy, 1, 3, '#111114'); R(x + w, wy, 1, 3, '#111114'); }
+    R(x + 1, y + 1, w - 2, h - 2, body);
+    R(x + 1, y + 1, w - 2, 1, lite); R(x + 1, y + h - 2, w - 2, 1, dark);
+    // windscreen (front, toward the house), roof, rear window (toward the viewer)
+    const front = cr.type === 'sports' ? 6 : 4, roofH = Math.max(4, h - front - (cr.type === 'suv' ? 6 : 8));
+    R(x + 2, y + front, w - 4, 3, glass); R(x + 2, y + front + 3, w - 4, roofH, sh(body, 0.9));
+    R(x + 2, y + front + 3 + roofH, w - 4, 2, glass);
+    if (cr.type === 'suv') { R(x + 3, y + front + 4, w - 6, 1, sh('#2a2a2a', k2)); R(x + 3, y + front + roofH, w - 6, 1, sh('#2a2a2a', k2)); }
+    if (cr.type === 'sports') R(x + Math.floor(w / 2) - 1, y + 1, 2, h - 2, mix(body, '#ffffff', 0.55));
+    if (cr.type === 'luxury') { R(x + 1, y + Math.floor(h / 2), 1, 3, '#d8c070'); R(x + w - 2, y + Math.floor(h / 2), 1, 3, '#d8c070'); }
+    if (cr.type === 'ev') P1(x + Math.floor(w / 2), y + 2, '#5ad0a0');
+    // lights: headlights face the house, tail lights face the viewer
+    P1(x + 1, y + 1, '#f4ecc0'); P1(x + w - 2, y + 1, '#f4ecc0');
+    R(x + 1, y + h - 2, 2, 1, '#d84a4a'); R(x + w - 3, y + h - 2, 2, 1, '#d84a4a');
+    if (dl < 0.4) { lights.push([x + 2, y + h - 1, 4, 'rgba(255,80,80,0.35)']); lights.push([x + w - 2, y + h - 1, 4, 'rgba(255,80,80,0.35)']); }
+  }
+  // ---------- bubbles
+  const ICON = {
+    z: ['111', '001', '010', '100', '111'], heart: ['01010', '11111', '11111', '01110', '00100'], note: ['0011', '0010', '0010', '1110', '1110'],
+    dots: ['00000', '00000', '10101', '00000', '00000'], sweat: ['010', '111', '111', '010'], ex: ['1', '1', '1', '0', '1'], star: ['00100', '01110', '11111', '01110', '01010'],
+  };
+  function bubbleAt(x, y, kind) {
+    const ic = ICON[kind] || ICON.dots;
+    const col = kind === 'heart' ? '#e05a7a' : kind === 'z' ? '#8aa0d0' : kind === 'sweat' ? '#6aa0e0' : kind === 'star' ? '#e7c26a' : kind === 'note' ? '#6a5ab0' : '#4a4a5a';
+    if (kind === 'z') { ic.forEach((row, j) => [...row].forEach((b, i) => { if (b === '1') P1(x + i, y + j, col); })); return; }
+    const bw = ic[0].length + 4, bh = ic.length + 4;
+    R(x - 1, y - 1, bw + 2, bh + 2, '#3a3040'); R(x, y, bw, bh, '#ffffff'); R(x + 2, y + bh, 2, 2, '#ffffff'); P1(x + 2, y + bh + 1, '#3a3040');
+    ic.forEach((row, j) => [...row].forEach((b, i) => { if (b === '1') P1(x + 2 + i, y + 2 + j, col); }));
+  }
+  let lights = [];
+  let m_ = null;
 
   // ---------- frame
+  function mount(canvas) {
+    cv = canvas; g = cv.getContext('2d');
+    resize();
+    window.addEventListener('resize', resize);
+    cv.addEventListener('pointerdown', onPointer);
+  }
+  function resize() {
+    if (!cv) return;
+    const parent = cv.parentElement; const cssW = parent ? parent.clientWidth : W * 2;
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    k = Math.max(1, Math.floor((cssW * dpr) / W));
+    cv.width = W * k; cv.height = H * k;
+    cv.style.width = (W * k / dpr) + 'px'; cv.style.height = (H * k / dpr) + 'px';
+    g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  }
+  function onPointer(e) {
+    if (!pickCb || !SIM.L) return;
+    const r = cv.getBoundingClientRect(); const px = (e.clientX - r.left) / r.width * W, py = (e.clientY - r.top) / r.height * H;
+    let best = null, bd = 99;
+    for (const c of SIM.chars.values()) { if (c.state === 'out') continue; let cx = c.x, cy = c.y - 8; if (c.state === 'act' && (c.act === 'sleep' || c.act === 'crib') && c.spot) { cx = SIM.L.ox + c.spot.x * TS + 8; cy = SIM.L.floorY + c.spot.y * TS + 8; } const d = Math.hypot(px - cx, py - cy); if (d < bd) { bd = d; best = { label: c.p.label, x: cx, y: cy - 10 }; } }
+    for (const a of SIM.pets.values()) { if (a.p.kind === 'bird' || a.p.kind === 'hamster') continue; const d = Math.hypot(px - a.x, py - a.y + 4); if (d < bd) { bd = d; best = { label: a.p.label || '', x: a.x, y: a.y - 12 }; } }
+    if (best && bd < 14) pickCb({ label: best.label, x: best.x / W, y: best.y / H });
+  }
+  function onPick(cb) { pickCb = cb; }
+  function setView(v) { viewMode = v; SIM.sig = ''; }
+  function getView() { return viewMode; }
+  function mood(tone) { SIM.mood = { tone, until: SIM.clock + 4 }; }
   function frame(state, now) {
     if (!g) return;
-    const dt = Math.min(0.1, last ? (now - last) / 1000 : 0.016); last = now;
-    const m = LC.sceneModel(state);
-    const t = now / 1000;
-    lights.length = 0;
-    const ph = m.phase, L = daylight(ph);
-    const wet = m.weather === 'rain' || m.weather === 'snow', grey = m.weather === 'cloudy' ? 0.35 : wet ? 0.55 : 0;
-    let [top, bot] = skyAt(ph);
-    if (grey) { top = mix(top, shade('#7d8796', 0.35 + 0.65 * L), grey); bot = mix(bot, shade('#9aa3ae', 0.35 + 0.65 * L), grey); }
-    for (let i = 0; i < 8; i++) R(0, i * 7, W, 7, mix(top, bot, i / 7));
-    // stars & moon & sun
-    if (L < 0.6 && !wet) {
-      for (let i = 0; i < 36; i++) { const x = h01(i, 7) * W, y = h01(i, 9) * (HZ - 10); const tw = (Math.sin(t * 1.7 + i) + 1) / 2; if ((1 - L) * (0.4 + 0.6 * tw) > 0.55) R(x, y, 1, 1, i % 7 ? '#cfd8ff' : '#fff4c8'); }
+    const tnow = now / 1000;
+    const dt = Math.min(0.1, last ? tnow - last : 0.016); last = tnow;
+    acc += dt; if (acc < 1 / 30) return; // ~30 fps is plenty for pixel art
+    const step = Math.min(0.1, acc); acc = 0;
+    SIM.clock += step;
+    // the model only changes when the game state changes (rev), so it is rebuilt at most once per change
+    if (SIM.mState !== state || SIM.mRev !== state.rev) { SIM.mState = state; SIM.mRev = state.rev; SIM.base = LC.roomModel(state); }
+    const base = Object.assign({}, SIM.base);
+    const pets = base.pets.map((p) => { const pet = state.pets.find((q) => q.id === p.id); return Object.assign({}, p, { label: pet ? `${LC.PETS[pet.kind].label}の${pet.name} ${p.age}歳` : '' }); });
+    base.pets = pets;
+    if (viewMode === 'office' && !base.office) viewMode = 'home';
+    const m = viewMode === 'office' ? officeModel(base) : base;
+    m_ = m;
+    const sig = viewMode + '|' + m.size + '|' + m.floor + '|' + m.items.map((i) => i.key + i.id).join(',') + '|' + (m.office ? m.office.shown : '');
+    if (sig !== SIM.sig) { const fresh = !SIM.L || SIM.sig.split('|')[0] !== viewMode; SIM.sig = sig; SIM.L = buildLayout(m); if (fresh) { SIM.chars.clear(); SIM.pets.clear(); } syncActors(m, SIM.L); resetActorsToLayout(SIM.L); }
+    else syncActors(m, SIM.L);
+    const L = SIM.L;
+    lights = [];
+    const t = dayT(), dl = daylight(t);
+    // behaviour (presentation only)
+    for (const c of SIM.chars.values()) stepChar(c, L, m, step);
+    for (const a of SIM.pets.values()) stepPet(a, L, step);
+    // draw
+    drawSurroundings(m, L, dl);
+    drawRoomShell(m, L, dl, tnow);
+    for (const p of L.placed) if (p.under && p.x >= 0) drawItem(p, dl, tnow, L);
+    // depth-sorted furniture, people and pets
+    const list = [];
+    for (const p of L.placed) if (!p.under && p.x >= 0) list.push({ y: L.floorY + (p.y + p.D.h) * TS - (p.D.place === 'center' && p.it.key.startsWith('sofa') ? 2 : 0), f: () => drawItem(p, dl, tnow, L) });
+    for (const p of L.placed) if (p.under && p.x >= 0 && /^petbed|^bowl/.test(p.it.key)) { /* drawn under */ }
+    for (const c of SIM.chars.values()) {
+      if (c.state === 'out') continue;
+      if (c.state === 'act' && c.act === 'sleep') { const s = c.spot; list.push({ y: L.floorY + (s.item.y + s.item.D.h) * TS + 0.5, f: () => drawSleeper(c, tnow) }); continue; }
+      if (c.state === 'act' && c.act === 'floorsleep') { list.push({ y: c.y - 6, f: () => drawFloorSleeper(c, tnow) }); continue; }
+      let yy = c.y;
+      if (c.state === 'act' && c.spot && c.spot.on && c.act === 'sofa') yy = L.floorY + (c.spot.item.y + 1) * TS - 3;
+      if (c.state === 'act' && c.act === 'crib') yy = L.floorY + (c.spot.item.y + 1) * TS + 4;
+      const dy = c.state === 'act' && c.act === 'sofa' ? -1 : c.state === 'act' && c.act === 'crib' ? -1 : 0;
+      list.push({ y: yy, f: () => drawPerson(c, c.x, c.y + dy, tnow) });
     }
-    const sunT = (ph - 0.25) / 0.5;
-    if (sunT > 0 && sunT < 1) { const x = 8 + sunT * (W - 22), y = HZ - 6 - Math.sin(Math.PI * sunT) * (HZ - 12); if (!wet) { R(x - 1, y + 1, 8, 4, 'rgba(255,220,140,0.35)'); R(x + 1, y - 1, 4, 8, 'rgba(255,220,140,0.35)'); } R(x, y, 6, 6, wet ? '#d8d6c8' : '#ffd56a'); R(x + 1, y + 1, 4, 4, wet ? '#e4e2d6' : '#fff0b0'); }
-    let moonT = ph >= 0.75 ? (ph - 0.75) / 0.5 : ph <= 0.25 ? (ph + 0.25) / 0.5 : -1;
-    if (moonT > 0 && moonT < 1) { const x = 8 + moonT * (W - 22), y = HZ - 10 - Math.sin(Math.PI * moonT) * (HZ - 16); if (!wet) { R(x - 2, y - 2, 10, 10, 'rgba(240,235,200,0.12)'); } R(x, y, 6, 6, '#f2ecc8'); R(x + 3, y + 1, 2, 2, '#d9d2a8'); R(x + 1, y + 4, 1, 1, '#d9d2a8'); }
-    // clouds
-    const nClouds = m.weather === 'clear' ? 3 : 6;
-    for (let i = 0; i < nClouds; i++) { const c = A.clouds[i]; c.x += c.v * dt * (wet ? 1.6 : 1); if (c.x > W + 30) c.x = -c.w - 10; const col = shade(grey ? '#8a93a2' : '#e9edf2', 0.35 + 0.65 * L); R(c.x, c.y, c.w, 3, col); R(c.x + 3, c.y - 2, c.w - 7, 2, col); R(c.x + 6, c.y - 4, Math.max(4, c.w - 14), 2, col); R(c.x + 1, c.y + 3, c.w - 2, 1, shade(col, 0.85)); }
-    // far layer
-    drawFar(m, L, t);
-    // ground
-    const snowy = m.weather === 'snow' || (m.climate === 'snowy' && (m.month === 12 || m.month <= 2));
-    const grass = snowy ? '#e6ecf2' : m.style === 'urban' ? '#5f7a52' : m.climate === 'dry' ? '#9a8a52' : '#5a8a4a';
-    R(0, HZ, W, GY + 1 - HZ, shade(grass, 0.45 + 0.55 * L));
-    for (let x = 0; x < W; x += 3) R(x, HZ - 1 + ((x * 7) % 3 === 0 ? 0 : 1), 1, 1, shade(grass, 0.4 + 0.55 * L));
-    const road = m.style === 'rural' ? '#6b5236' : '#50535c';
-    R(0, GY + 1, W, H - GY - 1, shade(road, 0.45 + 0.55 * L));
-    for (let x = 2; x < W; x += 5) R(x, GY + 3 + (x % 3), 1, 1, shade(road, 0.35 + 0.5 * L));
-    if (m.style !== 'rural') for (let x = 6; x < W; x += 22) R(x, GY + 8, 9, 1, shade('#d8d2b8', 0.4 + 0.6 * L));
-    // layout
-    const hw = houseWidth(m.house.sprite);
-    const hx = 4;
-    drawHouse(m, hx, L, t);
-    let cx = hx + hw + 3;
-    for (const c of m.cars) { drawCar(c, cx, GY + 1, L); cx += carW(c.type) + 3; }
-    let right = W - 4;
-    if (m.office) { const ow = [0, 26, 32, 38][m.office.size]; drawOffice(m.office, W - ow - 3, L); right = W - ow - 7; }
-    placeAndDraw(m, cx + 2, right, L, t, dt, ph);
-    // darkness overlay then lights
-    const dark = (1 - L) * 0.3 + grey * 0.1;
-    if (dark > 0.01) R(0, 0, W, H, `rgba(8,12,34,${dark.toFixed(3)})`);
-    for (const [x, y, w, h, c, glow] of lights) { if (L < 0.55) { if (glow) R(x - 1, y - 1, w + 2, h + 2, 'rgba(255,214,120,0.18)'); R(x, y, w, h, c); } }
-    // weather particles (drawn last, light-weight)
-    if (m.weather === 'rain') { g.fillStyle = 'rgba(170,195,230,0.55)'; for (const d of A.rain) { d.y += d.v * dt; d.x -= d.v * dt * 0.15; if (d.y > H) { d.y = -4; d.x = Math.random() * (W + 20); } g.fillRect(Math.round(d.x), Math.round(d.y), 1, 3); } }
-    if (m.weather === 'snow') { g.fillStyle = 'rgba(255,255,255,0.9)'; for (const f of A.snow) { f.y += f.v * dt; f.x += Math.sin(t + f.p) * 0.15; if (f.y > H) { f.y = -2; f.x = Math.random() * W; } g.fillRect(Math.round(f.x), Math.round(f.y), 1, 1); } }
-    if (m.over) R(0, 0, W, H, 'rgba(20,20,28,0.45)');
+    for (const a of SIM.pets.values()) list.push({ y: a.y, f: () => drawPet(a, tnow) });
+    // cars belong to the home (not the office view) and sit in their bays, depth-sorted with anyone walking outside
+    SIM.carsDrawn = [];
+    if (m.kind !== 'office') m.cars.slice(0, L.bays.length).forEach((cr, i) => { const b = L.bays[i]; SIM.carsDrawn.push({ id: cr.id, type: cr.type, bay: b }); list.push({ y: b.y + b.h, f: () => drawCar(cr, b, dl) }); });
+    list.sort((a, b) => a.y - b.y);
+    for (const e of list) e.f();
+    // weather outside
+    if (m.weather === 'rain') { g.fillStyle = 'rgba(190,210,240,0.6)'; for (let i = 0; i < 16; i++) { const rx = (i * 37 + Math.floor(tnow * 60)) % W, ry = H - OUT + ((i * 13 + Math.floor(tnow * 80)) % OUT); g.fillRect(rx, ry, 1, 2); } }
+    if (m.weather === 'snow') { g.fillStyle = '#ffffff'; for (let i = 0; i < 14; i++) { const rx = (i * 37 + Math.floor(tnow * 6 + Math.sin(tnow + i) * 3)) % W, ry = H - OUT + ((i * 13 + Math.floor(tnow * 12)) % OUT); g.fillRect(rx, ry, 1, 1); } }
+    if ((m.month === 3 || m.month === 4) && m.outside !== 'parking' && m.kind !== 'office') { g.fillStyle = '#f4b8c8'; for (let i = 0; i < 8; i++) { const rx = (i * 53 + Math.floor(tnow * 9)) % W, ry = (i * 29 + Math.floor(tnow * 7 + Math.sin(tnow * 2 + i) * 2)) % (H - 2); if (ry < L.wallY || ry > H - OUT) g.fillRect(rx, ry, 1, 1); } }
+    // night: darken, then lamps / screens / windows glow
+    const dark = (1 - dl) * 0.55;
+    if (dark > 0.02) {
+      g.fillStyle = `rgba(14,18,46,${dark.toFixed(3)})`; g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = 'lighter';
+      const room = `rgba(255,200,130,${(0.11 * (1 - dl)).toFixed(3)})`;
+      g.fillStyle = room; g.fillRect(L.ox, L.wallY, L.w * TS, L.h * TS + WALL);
+      for (const [lx, ly, rr, col] of lights) { const gr = g.createRadialGradient(lx, ly, 0, lx, ly, rr); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(lx - rr, ly - rr, rr * 2, rr * 2); }
+      if (!m.cars.length || true) { g.fillStyle = 'rgba(255,220,150,0.18)'; const doorPx2 = L.ox + L.doorX * TS - 4; g.fillRect(doorPx2, H - OUT, 16, 6); }
+      g.globalCompositeOperation = 'source-over';
+    }
+    // bubbles (talk, hearts, mood)
+    SIM.bubbles = SIM.bubbles.filter((b) => b.until > SIM.clock);
+    for (const b of SIM.bubbles) { const c = SIM.chars.get(b.id); if (c && c.state !== 'out' && !(c.act === 'sleep')) bubbleAt(Math.round(c.x) + 2, Math.round(c.y) - 30, b.kind); }
+    for (const c of SIM.chars.values()) if (c.state === 'act' && ['music', 'stream'].includes(c.act) && Math.floor(tnow * 1.5 + c.sd) % 3 === 0) bubbleAt(Math.round(c.x) + 3, Math.round(c.y) - 28, 'note');
+    if (SIM.mood && SIM.mood.until > SIM.clock) { const kind = SIM.mood.tone === 'good' ? 'star' : 'sweat'; for (const c of SIM.chars.values()) if (c.state !== 'out' && c.act !== 'sleep' && c.p.routine !== 'staff') bubbleAt(Math.round(c.x) - 4, Math.round(c.y) - 30, kind); }
   }
-
-  // ---------- far background by region style / country
-  function ridge(seed, x, amp, base) { return base - (Math.sin(x / 23 + seed) * 0.5 + Math.sin(x / 9 + seed * 2) * 0.25 + Math.sin(x / 47 + seed * 3) * 0.6) * amp; }
-  function drawFar(m, L, t) {
-    const k = 0.35 + 0.65 * L;
-    if (m.style === 'urban') {
-      const tall = m.country === 'cn' ? 1.5 : m.country === 'us' ? 1.25 : 1;
-      for (let x = 0, i = 0; x < W; i++) {
-        const bw = 8 + Math.floor(h01(i, 3) * 12), bh = (10 + h01(i, 5) * 22) * tall;
-        const col = shade(m.country === 'de' ? '#7a6e6a' : '#5a6478', k * (0.8 + h01(i, 8) * 0.2));
-        R(x, HZ - bh, bw, bh, col);
-        if (m.country === 'de' && i % 5 === 2) { R(x + bw / 2 - 1, HZ - bh - 8, 2, 8, col); R(x + bw / 2 - 2, HZ - bh - 4, 4, 1, col); }
-        for (let wy = HZ - bh + 3; wy < HZ - 4; wy += 4) for (let wx = x + 2; wx < x + bw - 2; wx += 3) { if (h01(i, wx, wy) > 0.55) { if (L < 0.5) light(wx, wy, 1, 1, '#ffd98a'); else R(wx, wy, 1, 1, shade('#9fb4c8', k)); } }
-        x += bw + 1;
-      }
-    } else {
-      const far = shade(m.climate === 'dry' ? '#9a7c62' : '#6c7f9a', k), near = shade(m.climate === 'dry' ? '#7d6a50' : m.climate === 'snowy' ? '#5f7488' : '#4f6e58', k);
-      for (let x = 0; x < W; x++) { const y = ridge(1.3, x, 8, HZ - 17); R(x, y, 1, HZ - y, far); if (m.climate === 'snowy' && y < HZ - 21) R(x, y, 1, 2, shade('#eef3f8', k)); }
-      for (let x = 0; x < W; x++) { const y = ridge(4.1, x, 5, HZ - 7); R(x, y, 1, HZ - y, near); }
-      if (m.style === 'town') for (let i = 0; i < 7; i++) { const x = 52 + i * 22 + h01(i, 2) * 8, hh = 5 + h01(i, 4) * 5; R(x, HZ - hh, 8, hh, shade('#8a8e98', k)); R(x - 1, HZ - hh - 2, 10, 2, shade('#5a5e70', k)); if (L < 0.5 && h01(i, 6) > 0.4) light(x + 3, HZ - hh + 2, 2, 2, '#ffd98a'); }
-    }
-    // decorations
-    if (m.country === 'jp' && m.style !== 'urban') { const pc = shade('#5a4a3a', k); for (const px of [86, 170]) { R(px, HZ - 26, 1, 26, pc); R(px - 4, HZ - 24, 9, 1, pc); } g.fillStyle = shade('#3a3030', k); for (let x = 0; x < W; x++) { const y = HZ - 24 + Math.round(Math.abs((((x + 22) % 84) - 42) / 42) * -3 + 3); g.fillRect(x, y, 1, 1); } }
-    if (m.palette === 'south') for (const px of [70, 128, 190]) { const tc = shade('#6a4a2e', k), lc = shade('#3f7a3e', k); R(px, HZ - 18, 2, 18, tc); R(px - 5, HZ - 20, 12, 2, lc); R(px - 3, HZ - 22, 8, 2, lc); R(px - 7, HZ - 18, 3, 2, lc); R(px + 6, HZ - 18, 3, 2, lc); }
-    if (m.style === 'rural') { const fc = shade('#7a6040', k); for (let x = 48; x < W; x += 6) R(x, HZ - 4, 1, 4, fc); R(48, HZ - 3, W - 48, 1, fc); }
-  }
-
-  // ---------- houses
-  const HW = { hut: 30, small: 32, house: 40, big: 52, estate: 72, apart: 50, mansion: 38, used: 38, newhouse: 42, luxury: 58 };
-  function houseWidth(sp) { return HW[sp] || 40; }
-  function roofCol(m) { return { east: '#4a5a78', west: '#a8483a', mixed: '#5d4a42', south: '#c06a3a' }[m.palette] || '#5a5a6a'; }
-  function wallCol(m, i) { const p = { east: ['#e8e0cc', '#d8cfb8'], west: ['#efe6d6', '#e2d2b8'], mixed: ['#d8dce4', '#e8dcc6'], south: ['#e8c89a', '#d6a7b0', '#a8c8d8'] }[m.palette] || ['#ddd']; return p[i % p.length]; }
-  function win(x, y, w, h, L, lit, k) {
-    R(x - 1, y - 1, w + 2, h + 2, shade('#3a3a46', k));
-    if (L < 0.5 && lit) light(x, y, w, h, '#ffd27a', true); else R(x, y, w, h, shade('#8fb6d6', k)), R(x, y, 1, 1, shade('#c8e0f0', k));
-  }
-  function drawHouse(m, x, L, t) {
-    const sp = m.house.sprite, k = 0.4 + 0.6 * L, w = houseWidth(sp), base = GY;
-    const wall = shade(wallCol(m, 0), k), wall2 = shade(wallCol(m, 1), k), roof = shade(roofCol(m), k), dk = shade('#2c2a30', k), door = shade('#6a4a34', k);
-    const lit = (i) => h01(i, Math.floor(t / 20)) > 0.25;
-    const tri = (x0, yBase, ww, hh, col) => { for (let i = 0; i < hh; i++) { const inset = Math.round((hh - 1 - i) * (ww / 2) / hh); R(x0 + inset, yBase - hh + i, ww - inset * 2, 1, col); } };
-    if (sp === 'hut') { R(x + 2, base - 12, w - 4, 12, shade('#9a6a42', k)); for (let i = 0; i < 6; i++) R(x + 3 + i * 4, base - 11 + (i % 2) * 5, 2, 1, shade('#7a5232', k)); tri(x - 1, base - 11, w + 2, 11, shade('#b08a4a', k)); for (let i = 0; i < 5; i++) R(x + 4 + i * 5, base - 18 + (i % 2), 1, 5, shade('#8a6a32', k)); R(x + 12, base - 8, 5, 8, dk); return; }
-    if (sp === 'small' || sp === 'used') { const wl = sp === 'used' ? shade('#c4b8a2', k) : wall; R(x + 2, base - 16, w - 4, 16, wl); tri(x - 1, base - 15, w + 2, 10, roof); R(x + 5, base - 9, 5, 9, door); win(x + 15, base - 12, 5, 4, L, lit(1), k); win(x + 24, base - 12, 4, 4, L, lit(2), k); if (sp === 'used') { R(x + 2, base - 6, w - 4, 1, shade('#a49882', k)); } R(x + 2, base - 1, w - 4, 1, shade('#7a7468', k)); return; }
-    if (sp === 'house' || sp === 'newhouse') {
-      const wl = sp === 'newhouse' ? shade('#f2f2ee', k) : wall;
-      R(x + 2, base - 26, w - 4, 26, wl); R(x + 2, base - 14, w - 4, 1, shade('#b8b0a0', k));
-      if (sp === 'newhouse') { R(x, base - 30, w, 4, shade('#3e4450', k)); R(x + 4, base - 31, w - 14, 1, shade('#3e4450', k)); R(x + 22, base - 12, 12, 8, shade('#3a3a46', k)); if (L < 0.5) light(x + 23, base - 11, 10, 6, '#ffd27a', true); else R(x + 23, base - 11, 10, 6, shade('#8fb6d6', k)); }
-      else tri(x - 2, base - 25, w + 4, 12, roof);
-      R(x + 6, base - 10, 6, 10, door); R(x + 10, base - 5, 1, 1, shade('#e0c060', k));
-      win(x + 8, base - 22, 5, 4, L, lit(3), k); win(x + 22, base - 22, 5, 4, L, lit(4), k); if (sp === 'house') win(x + 25, base - 10, 6, 5, L, lit(5), k);
-      return;
-    }
-    if (sp === 'big' || sp === 'luxury') {
-      const wl = sp === 'luxury' ? shade('#ece8e0', k) : wall;
-      R(x + 2, base - 28, w - 4, 28, wl); R(x + 2, base - 15, w - 4, 1, shade('#b8b0a0', k));
-      if (sp === 'luxury') { R(x, base - 31, w, 3, shade('#2e3440', k)); for (let i = 0; i < 4; i++) { R(x + 6 + i * 12, base - 26, 8, 9, shade('#2e3440', k)); if (L < 0.5) light(x + 7 + i * 12, base - 25, 6, 7, '#ffe09a', true); else R(x + 7 + i * 12, base - 25, 6, 7, shade('#9cc4e0', k)); } R(x + w / 2 - 3, base - 11, 7, 11, shade('#3a2c24', k)); for (let i = 0; i < 3; i++) { R(x + 4 + i * 18, base - 2, 1, 2, shade('#5a5a5a', k)); light(x + 4 + i * 18, base - 3, 1, 1, '#ffe8a8', true); } }
-      else { tri(x - 2, base - 27, w + 4, 13, roof); R(x + w - 12, base - 38, 4, 8, shade('#7a5a4a', k)); for (let i = 0; i < 4; i++) win(x + 6 + i * 11, base - 24, 5, 5, L, lit(6 + i), k); win(x + 6, base - 11, 6, 5, L, lit(10), k); win(x + 38, base - 11, 6, 5, L, lit(11), k); R(x + 22, base - 11, 7, 11, door); }
-      return;
-    }
-    if (sp === 'estate') {
-      R(x + 2, base - 32, w - 4, 32, shade('#efe8da', k)); tri(x, base - 31, w, 10, shade('#5a4a60', k)); R(x + w / 2 - 10, base - 40, 20, 9, shade('#efe8da', k)); tri(x + w / 2 - 12, base - 39, 24, 6, shade('#5a4a60', k));
-      for (let i = 0; i < 6; i++) { win(x + 6 + i * 11, base - 26, 4, 6, L, lit(20 + i), k); win(x + 6 + i * 11, base - 14, 4, 6, L, lit(30 + i), k); }
-      for (let i = 0; i < 4; i++) R(x + w / 2 - 9 + i * 6, base - 20, 2, 20, shade('#d8d0c0', k));
-      R(x + w / 2 - 3, base - 10, 6, 10, shade('#4a3424', k)); R(x - 2, base - 4, w + 4, 4, shade('#3f6a3a', k));
-      return;
-    }
-    if (sp === 'apart') {
-      R(x + 2, base - 26, w - 4, 26, shade('#c9c3b5', k)); R(x, base - 28, w, 2, shade('#6a6a72', k)); R(x + 2, base - 14, w - 4, 2, shade('#8a867c', k));
-      for (let fl = 0; fl < 2; fl++) for (let i = 0; i < 3; i++) { const yy = base - 24 + fl * 13; R(x + 5 + i * 14, yy + 2, 4, 9, shade('#7a6a5a', k)); win(x + 11 + i * 14, yy + 3, 3, 3, L, lit(40 + fl * 3 + i), k); }
-      for (let i = 0; i < 7; i++) R(x + w - 6 + (i % 2), base - 14 + i * 2, 3, 1, shade('#5a5a62', k));
-      return;
-    }
-    if (sp === 'mansion') {
-      R(x + 2, base - 60, w - 4, 60, shade('#b8bcc6', k)); R(x, base - 62, w, 2, shade('#5a5e6a', k));
-      for (let fl = 0; fl < 6; fl++) { const yy = base - 57 + fl * 9; if (yy < 2) continue; R(x + 2, yy + 6, w - 4, 1, shade('#8a8e98', k)); for (let i = 0; i < 4; i++) win(x + 5 + i * 8, yy + 1, 4, 4, L, lit(50 + fl * 4 + i), k); }
-      R(x + w / 2 - 3, base - 8, 6, 8, shade('#3a3e48', k)); if (L < 0.5) light(x + w / 2 - 2, base - 7, 4, 6, '#ffe6a0', true);
-    }
-  }
-  function drawOffice(o, x, L) {
-    const k = 0.4 + 0.6 * L, base = GY;
-    const dims = [null, [26, 20], [32, 34], [38, 52]][o.size];
-    const [w, h] = dims;
-    R(x, base - h, w, h, shade(o.size === 3 ? '#4a5a78' : '#6a7888', k));
-    for (let yy = base - h + 3; yy < base - 8; yy += 5) for (let xx = x + 3; xx < x + w - 3; xx += 5) { if (L < 0.5) { if (LC.hash01(xx, yy) > 0.3) light(xx, yy, 3, 3, '#cfe6ff', false); else R(xx, yy, 3, 3, shade('#2a3240', k)); } else R(xx, yy, 3, 3, shade('#a8c8e8', k)); }
-    R(x + w / 2 - 4, base - 7, 8, 7, shade('#2a3240', k));
-    R(x + 2, base - h - 4, w - 4, 4, shade('#e8749a', k)); // company sign
-    if (o.listed) { R(x + w - 7, base - h - 10, 1, 6, shade('#ddd', k)); R(x + w - 6, base - h - 10, 4, 3, shade('#e0b040', k)); }
-    for (let i = 1; i < Math.min(3, o.count); i++) { const sx = x - 10 * i; R(sx, base - 14, 8, 14, shade('#7a8898', k)); R(sx + 2, base - 11, 4, 2, shade('#a8c8e8', k)); }
-  }
-  // ---------- cars
-  function carW(type) { return { compact: 16, sedan: 20, suv: 20, ev: 19, luxury: 22, sports: 20 }[type] || 18; }
-  function drawCar(c, x, base, L) {
-    const k = 0.4 + 0.6 * L, col = shade(c.color, k), dk = shade(c.color, k * 0.7), glass = shade('#9cc8e0', k), tire = '#18181c', w = carW(c.type);
-    const body = (y, hh, x0, ww) => R(x0, base - y, ww, hh, col);
-    if (c.type === 'sports') { body(5, 3, x, w); R(x + 5, base - 7, 8, 2, col); R(x + 6, base - 7, 6, 1, glass); R(x, base - 7, 2, 2, dk); }
-    else if (c.type === 'suv') { body(6, 4, x, w); R(x + 2, base - 10, 15, 4, col); R(x + 3, base - 9, 6, 2, glass); R(x + 10, base - 9, 6, 2, glass); R(x + 3, base - 11, 13, 1, dk); }
-    else if (c.type === 'luxury') { body(5, 3, x, w); R(x + 4, base - 8, 13, 3, col); R(x + 5, base - 7, 5, 2, glass); R(x + 11, base - 7, 5, 2, glass); R(x, base - 3, w, 1, shade('#c8ccd4', k)); }
-    else if (c.type === 'compact') { body(5, 3, x, w); R(x + 3, base - 8, 9, 3, col); R(x + 4, base - 7, 3, 2, glass); R(x + 8, base - 7, 3, 2, glass); }
-    else { body(5, 3, x, w); R(x + 4, base - 8, 11, 3, col); R(x + 5, base - 7, 4, 2, glass); R(x + 10, base - 7, 4, 2, glass); if (c.type === 'ev') R(x + 1, base - 4, 2, 1, shade('#3aa0e0', k)); }
-    R(x + 2, base - 2, 3, 2, tire); R(x + w - 5, base - 2, 3, 2, tire); R(x + 3, base - 2, 1, 1, '#777');  R(x + w - 4, base - 2, 1, 1, '#777');
-    light(x + w - 1, base - 4, 1, 1, '#fff3c0', true); R(x, base - 4, 1, 1, shade('#c03030', k));
-  }
-
-  // ---------- people & pets
-  function chooseAct(p, m, ph, now, hasPet) {
-    const L = daylight(ph);
-    const md = A.moods[p.id]; if (md && md.until > now) return md.tone === 'good' ? 'happy' : md.tone === 'bad' ? 'sad' : 'idle';
-    const bucket = Math.floor(now / 1000 / 5 + (strId(p.id) % 7));
-    const r = h01(strId(p.id), bucket);
-    if (p.stage === 'baby') return r < 0.5 ? 'crawl' : r < 0.8 ? 'idle' : 'play';
-    if (L < 0.22) return r < 0.7 ? 'idle' : 'sit';
-    if (p.stage === 'toddler' || p.stage === 'child') return r < 0.35 ? 'play' : r < 0.6 ? 'walk' : hasPet && r < 0.8 ? 'pet' : 'idle';
-    if (p.working && L > 0.7 && (p.relation === 'self' || p.relation === 'spouse')) return r < 0.6 ? 'work' : r < 0.8 ? 'walk' : 'idle';
-    if (p.stage === 'elder' || p.retired) return r < 0.4 ? 'sit' : r < 0.6 ? 'walk' : hasPet && r < 0.8 ? 'pet' : 'idle';
-    if (p.stage === 'teen') return r < 0.3 ? 'walk' : r < 0.5 ? 'idle' : hasPet && r < 0.65 ? 'pet' : r < 0.85 ? 'talk' : 'sit';
-    return r < 0.3 ? 'walk' : r < 0.55 ? 'idle' : hasPet && r < 0.7 ? 'pet' : r < 0.85 ? 'talk' : 'sit';
-  }
-  function placeAndDraw(m, x0, x1, L, t, dt, ph) {
-    const now = performance.now();
-    const people = m.people, pets = m.pets;
-    const n = people.length + pets.length;
-    const span = Math.max(20, x1 - x0);
-    const step = Math.min(17, span / Math.max(1, n));
-    const dinner = people.length >= 2 && ph > 0.69 && ph < 0.79;
-    // stable order: elders, adults, kids, pets interleaved near the end
-    const ents = [];
-    people.forEach((p) => ents.push({ kind: 'p', p }));
-    pets.forEach((p, i) => ents.splice(Math.max(1, ents.length - i), 0, { kind: 'pet', p }));
-    let tableX = 0;
-    if (dinner) { tableX = x0 + span / 2; const tw = Math.min(span - 20, people.length * 9 + 6); R(tableX - tw / 2, GY - 7, tw, 2, shade('#8a6038', 0.4 + 0.6 * L)); R(tableX - tw / 2 + 2, GY - 5, 1, 5, shade('#6a4628', 0.4 + 0.6 * L)); R(tableX + tw / 2 - 3, GY - 5, 1, 5, shade('#6a4628', 0.4 + 0.6 * L)); for (let i = 0; i < people.length; i++) { R(tableX - tw / 2 + 3 + i * 9, GY - 8, 3, 1, '#f0f0f0'); R(tableX - tw / 2 + 4 + i * 9, GY - 9, 1, 1, '#e08a4a'); } }
-    const seen = {};
-    let pi = 0;
-    ents.forEach((e, i) => {
-      const id = e.p.id; seen[id] = 1;
-      const slot = x0 + step * (i + 0.5);
-      if (e.kind === 'p') {
-        const st = A.chars[id] || (A.chars[id] = { x: slot, tx: slot, face: 1, act: 'idle' });
-        let act = chooseAct(e.p, m, ph, now, pets.length > 0);
-        let target = slot;
-        if (dinner && !['happy', 'sad'].includes(act)) { act = e.p.stage === 'baby' ? 'idle' : 'eat'; const tw = Math.min(span - 20, people.length * 9 + 6); target = tableX - tw / 2 + 4 + pi * 9; pi++; }
-        else if (act === 'walk' || act === 'crawl' || act === 'play') target = slot + Math.sin(now / 1800 + strId(id)) * Math.min(6, step * 0.35);
-        else if (act === 'pet' && pets.length) { const pe = A.pets[pets[0].id]; if (pe) target = pe.x - 5; }
-        st.tx = target;
-        const sp = (e.p.stage === 'elder' ? 5 : e.p.stage === 'baby' ? 3 : 10) * dt;
-        const diff = st.tx - st.x; const moving = Math.abs(diff) > 0.6;
-        if (moving) { st.x += Math.sign(diff) * Math.min(Math.abs(diff), sp); st.face = Math.sign(diff); }
-        else if (act === 'talk') st.face = (i % 2 ? -1 : 1);
-        drawPerson(e.p, st.x, GY, moving && act !== 'crawl' ? 'walk' : act, t, st.face || 1, L);
-      } else {
-        const st = A.pets[id] || (A.pets[id] = { x: slot, tx: slot, face: 1 });
-        const r = h01(strId(id), Math.floor(now / 4000));
-        const act = L < 0.25 ? 'sleep' : e.p.sick ? 'sleep' : r < 0.4 ? 'walk' : r < 0.65 ? 'sit' : r < 0.85 ? 'play' : 'sleep';
-        st.tx = act === 'walk' ? slot + Math.sin(now / 1300 + strId(id)) * Math.min(8, step * 0.5) : slot;
-        const diff = st.tx - st.x; const moving = Math.abs(diff) > 0.5;
-        if (moving) { st.x += Math.sign(diff) * Math.min(Math.abs(diff), 9 * dt); st.face = Math.sign(diff); }
-        drawPet(e.p, st.x, GY, moving ? 'walk' : act, t, st.face || 1, L);
-      }
-    });
-    for (const id in A.chars) if (!seen[id]) delete A.chars[id];
-    for (const id in A.pets) if (!seen[id]) delete A.pets[id];
-  }
-  function hairColor(p) { return mix(p.look.hair, '#d8d8dc', p.grey); }
-  function drawPerson(p, cx, foot, act, t, face, L) {
-    const k = 0.68 + 0.32 * L, lk = p.look;
-    const skin = shade(lk.skin, k), hair = shade(hairColor(p), k), shirtBase = p.suit ? '#2e3548' : lk.shirt, shirt = shade(shirtBase, k), pants = shade(p.suit ? '#262b3a' : lk.pants, k), eye = '#1a1418';
-    const seed = strId(p.id), x = Math.round(cx);
-    const blink = ((t + (seed % 50) / 10) % 3.6) < 0.14;
-    const breath = Math.sin((t + seed % 9) * 2.6) > 0.55 ? 1 : 0;
-    if (p.stage === 'baby') {
-      const up = act === 'play' ? (Math.floor(t * 4) % 2) : 0;
-      const crawlF = act === 'crawl' ? Math.floor(t * 5) % 2 : 0;
-      R(x - 3, foot - 4 - up, 6, 3, shade(lk.shirt, k)); // onesie
-      R(x - 3 + crawlF, foot - 1, 2, 1, skin); R(x + 1 - crawlF, foot - 1, 2, 1, skin);
-      const hx = face > 0 ? x + 1 : x - 5;
-      R(hx, foot - 8 - up, 4, 4, skin); R(hx, foot - 8 - up, 4, 1, hair);
-      if (!blink) { R(hx + (face > 0 ? 2 : 1), foot - 6 - up, 1, 1, eye); }
-      if (act === 'play') R(hx + (face > 0 ? 3 : -1), foot - 7 - up - 1, 1, 1, skin);
-      return;
-    }
-    const Hh = Math.round(p.height) - (act === 'pet' ? 3 : 0);
-    const headH = Hh <= 10 ? 4 : 5, headW = Hh <= 10 ? 4 : 5;
-    const bodyW = Hh >= 15 ? 5 : 4;
-    let bodyH = Math.round((Hh - headH) * 0.5), legH = Hh - headH - bodyH;
-    let jump = 0;
-    if (act === 'happy') jump = Math.max(0, Math.round(Math.sin(t * 9) * 2));
-    if (act === 'play') jump = Math.max(0, Math.round(Math.sin(t * 7 + seed) * 3));
-    const sitting = act === 'sit' || act === 'eat' || act === 'work';
-    const bx = x - Math.floor(bodyW / 2);
-    let top = foot - Hh - jump;
-    if (sitting) top += legH - 2;
-    const bodyTop = top + headH;
-    // legs
-    if (sitting) {
-      R(bx + (face > 0 ? 0 : -3), bodyTop + bodyH, bodyW + 3, 2, pants);
-      R(bx + (face > 0 ? bodyW + 1 : -3), bodyTop + bodyH + 2, 2, Math.max(1, foot - (bodyTop + bodyH + 2)), pants);
-      if (act !== 'eat') { R(bx - 1, foot - 3, bodyW + 2, 1, shade('#7a5a3a', k)); R(bx - 1, foot - 2, 1, 2, shade('#5a3e28', k)); R(bx + bodyW, foot - 2, 1, 2, shade('#5a3e28', k)); }
-    } else {
-      const wf = act === 'walk' ? Math.floor(t * 8 + seed) % 2 : 0;
-      const lw = bodyW >= 5 ? 2 : 1, rx = bx + bodyW - lw;
-      R(bx, bodyTop + bodyH, lw, legH - (wf ? 1 : 0), pants); R(rx, bodyTop + bodyH, lw, legH - (wf ? 0 : 1), pants);
-      R(bx + (wf ? -face : 0), foot - 1 - jump - (wf ? 1 : 0), lw, 1, '#2a2226'); R(rx + (wf ? 0 : face), foot - 1 - jump - (wf ? 0 : 1), lw, 1, '#2a2226');
-      if (act === 'sad' || (p.stage === 'elder' && act === 'walk')) { if (p.stage === 'elder') R(x + face * 4, foot - legH - 2, 1, legH + 2, shade('#6a5038', k)); }
-    }
-    // body
-    const hunch = act === 'sad' ? 1 : 0;
-    R(bx, bodyTop + hunch - breath * 0, bodyW, bodyH - hunch, shirt);
-    if (breath && act !== 'sad') R(bx + 1, bodyTop, bodyW - 2, 1, shade(shirtBase, k * 1.12));
-    if (p.suit) { R(x, bodyTop, 1, Math.min(3, bodyH), shade('#f0f0f0', k)); R(x, bodyTop + 1, 1, 2, shade('#b03a4a', k)); }
-    // arms
-    const armY = bodyTop + 1 - breath, armL = bx - 1, armR = bx + bodyW;
-    const sleeve = shade(shirtBase, k * 0.85);
-    if (act === 'happy' || (act === 'play' && jump > 1)) { R(armL, armY - 4, 1, 4, sleeve); R(armR, armY - 4, 1, 4, sleeve); R(armL, armY - 5, 1, 1, skin); R(armR, armY - 5, 1, 1, skin); }
-    else if (act === 'work') { const tp = Math.floor(t * 10) % 2; const fx = face > 0 ? armR : armL - 3; R(face > 0 ? armR : armL - 2, armY + 1, 3, 1, sleeve); R(fx + (face > 0 ? 3 : 0), armY + 1 - tp, 1, 1, skin); R(face > 0 ? armR + 2 : armL - 6, bodyTop + bodyH - 1, 5, 1, shade('#9aa0aa', k)); R(face > 0 ? armR + 5 : armL - 6, bodyTop + bodyH - 4, 1, 3, shade('#3a3e48', k)); if (L < 0.6) light(face > 0 ? armR + 5 : armL - 6, bodyTop + bodyH - 4, 1, 2, '#9fd8ff', false); }
-    else if (act === 'eat') { const up = Math.floor(t * 2 + seed) % 3 === 0; const ax = face > 0 ? armR : armL; R(ax, up ? armY - 1 : armY, 1, 3, sleeve); R(ax + (face > 0 ? 1 : -1), up ? top + headH - 1 : armY + 2, 1, 1, skin); R(face > 0 ? armL : armR, armY, 1, bodyH - 1, sleeve); }
-    else if (act === 'pet') { const ax = face > 0 ? armR : armL; const pat = Math.floor(t * 4) % 2; R(ax, armY, 1, 2, sleeve); R(ax + face, armY + 2 + pat, 2, 1, skin); R(face > 0 ? armL : armR, armY, 1, bodyH - 1, sleeve); }
-    else if (act === 'talk') { const gst = Math.floor(t * 3 + seed) % 4 === 0; const ax = face > 0 ? armR : armL; R(ax, armY - (gst ? 2 : 0), 1, gst ? 2 : bodyH - 1, sleeve); R(ax + (gst ? face : 0), armY - (gst ? 3 : -bodyH + 2), 1, 1, skin); R(face > 0 ? armL : armR, armY, 1, bodyH - 1, sleeve); }
-    else { const sw = act === 'walk' ? (Math.floor(t * 8 + seed) % 2) : 0; R(armL, armY + hunch + sw, 1, bodyH - 1, sleeve); R(armR, armY + hunch + (1 - sw) * (act === 'walk' ? 1 : 0), 1, bodyH - 1, sleeve); R(armL, armY + hunch + sw + bodyH - 1, 1, 1, skin); R(armR, armY + hunch + bodyH - 1 + (act === 'walk' ? 1 - sw : 0), 1, 1, skin); }
-    // head
-    const hy = top + hunch, hx = x - Math.floor(headW / 2);
-    const style = lk.hairStyle, longHair = style === 'long' || style === 'bob';
-    if (style === 'long') { R(hx - 1, hy + 1, 1, headH + 2, hair); R(hx + headW, hy + 1, 1, headH + 2, hair); }
-    if (style === 'pony') R(face > 0 ? hx - 1 : hx + headW, hy + 1, 1, 4, hair);
-    R(hx, hy, headW, headH, skin);
-    const bald = p.gender === 'm' && p.grey > 0.75 && (seed % 3 === 0);
-    if (!bald) { R(hx, hy, headW, 1, hair); R(face > 0 ? hx : hx + headW - 1, hy + 1, 1, longHair ? headH - 1 : 2, hair); if (longHair) R(face > 0 ? hx + headW - 1 : hx, hy + 1, 1, 2, hair); }
-    else R(face > 0 ? hx : hx + headW - 1, hy + 1, 1, 2, hair);
-    if (style === 'spiky' && !bald) { R(hx + 1, hy - 1, 1, 1, hair); R(hx + 3, hy - 1, 1, 1, hair); }
-    if (style === 'bun' && !bald) R(hx + 1, hy - 2, 3, 2, hair);
-    if (style === 'side' && !bald) R(hx, hy - 1, headW - 1, 1, hair);
-    const ex = face > 0 ? hx + headW - 2 : hx + 1, ey = hy + 2 + (act === 'sad' ? 1 : 0);
-    if (!blink) { R(ex, ey, 1, 1, eye); if (headW >= 5) R(face > 0 ? ex - 2 : ex + 2, ey, 1, 1, eye); }
-    else R(ex, ey, 1, 1, shade(lk.skin, k * 0.85));
-    if (act === 'happy') R(face > 0 ? ex - 1 : ex, ey + 2, 2, 1, shade('#9a4a4a', k));
-    if (act === 'sad') { const drop = Math.floor(t * 2) % 3; R(ex, ey + 1 + drop, 1, 1, '#7fb8f0'); }
-    if (lk.beard && p.age >= 26 && p.gender === 'm') R(hx + (face > 0 ? 1 : 0), hy + headH - 1, headW - 1, 1, hair);
-    if (p.relation === 'self') { const bob = Math.round(Math.sin(t * 3) * 0.6); R(x - 1, top - 4 + bob - jump * 0, 3, 1, '#ec7aa0'); R(x, top - 3 + bob, 1, 1, '#ec7aa0'); }
-  }
-  function drawPet(p, cx, foot, act, t, face, L) {
-    const k = 0.68 + 0.32 * L, col = shade(p.color, k), dk = shade(p.color, k * 0.7), x = Math.round(cx), seed = strId(p.id);
-    const eye = '#141014';
-    if (p.kind === 'dog' || p.kind === 'cat') {
-      const wf = act === 'walk' ? Math.floor(t * 8 + seed) % 2 : 0;
-      const jump = act === 'play' ? Math.max(0, Math.round(Math.sin(t * 8 + seed) * 2)) : 0;
-      if (act === 'sleep') { R(x - 4, foot - 2, 8, 2, col); R(face > 0 ? x + 3 : x - 6, foot - 3, 3, 3, col); if (p.kind === 'cat') R(face > 0 ? x + 3 : x - 6, foot - 4, 1, 1, col); R(face > 0 ? x - 6 : x + 4, foot - 2, 2, 1, dk); if (Math.floor(t * 1.5) % 3 === 0) R(x + face * 4, foot - 7, 1, 1, '#cfd8ff'); return; }
-      const by = foot - 5 - jump, sit = act === 'sit';
-      R(x - 3, by + (sit ? 1 : 0), 6, 3, col);
-      if (!sit) { R(x - 3 + wf, foot - 2 - jump, 1, 2, dk); R(x + 2 - wf, foot - 2 - jump, 1, 2, dk); } else { R(x - 3, foot - 2, 2, 2, col); R(x + 1, foot - 2, 1, 2, dk); }
-      const hx = face > 0 ? x + 2 : x - 5;
-      R(hx, by - 3, 3, 3, col);
-      if (p.kind === 'cat') { R(hx, by - 4, 1, 1, col); R(hx + 2, by - 4, 1, 1, col); } else R(face > 0 ? hx : hx + 2, by - 3, 1, 3, dk);
-      R(face > 0 ? hx + 2 : hx, by - 2, 1, 1, eye);
-      const wag = Math.floor(t * (p.kind === 'dog' ? 10 : 2) + seed) % 2;
-      if (p.kind === 'dog') R(face > 0 ? x - 4 : x + 3, by - 1 - wag, 1, 2, col);
-      else { R(face > 0 ? x - 4 : x + 3, by - 3, 1, 4, col); R(face > 0 ? x - 5 + wag : x + 4 - wag, by - 4, 1, 1, col); }
-      if (p.sick) R(hx + 1, by - 6, 1, 1, '#7fb8f0');
-      return;
-    }
-    if (p.kind === 'bird') {
-      R(x - 2, foot - 9, 5, 1, shade('#8a6a4a', k)); R(x, foot - 8, 1, 8, shade('#8a6a4a', k));
-      const hop = act === 'play' || act === 'walk' ? Math.max(0, Math.round(Math.sin(t * 9 + seed) * 2)) : 0;
-      R(x - 1, foot - 12 - hop, 3, 3, col); R(face > 0 ? x + 2 : x - 2, foot - 11 - hop, 1, 1, shade('#e0a030', k)); R(face > 0 ? x + 1 : x - 1, foot - 12 - hop, 1, 1, eye);
-      if (hop) R(x - 2, foot - 11 - hop, 1, 1, dk);
-      return;
-    }
-    const wf = act === 'walk' ? Math.floor(t * 10 + seed) % 2 : 0;
-    R(x - 2, foot - 3, 4, 3, col); R(x - 2 + wf, foot - 1, 1, 1, dk); R(face > 0 ? x + 1 : x - 2, foot - 2, 1, 1, eye); R(face > 0 ? x - 1 : x, foot - 4, 1, 1, col);
+  // draw at 1:1 into an offscreen buffer, then scale by an integer factor
+  let off = null, og = null;
+  // Wrap frame so all drawing happens at logical resolution on an offscreen canvas.
+  const frameInner = frame;
+  function frameScaled(state, now) {
+    if (!cv) return;
+    if (!off) { off = document.createElement('canvas'); off.width = W; off.height = H; og = off.getContext('2d'); }
+    const screen = g; g = og; g.imageSmoothingEnabled = false;
+    const kk = k; k = 1;
+    try { frameInner(state, now); } finally { k = kk; g = screen; }
+    g.imageSmoothingEnabled = false;
+    g.drawImage(off, 0, 0, W * k, H * k);
   }
   function preview(canvas, look, gender) {
-    const pg = canvas.getContext('2d'); pg.imageSmoothingEnabled = false;
-    const keep = g; g = pg;
-    R(0, 0, 24, 24, '#1b2331'); R(0, 20, 24, 4, '#2a3a2e');
-    drawPerson({ id: 'preview', look, height: 18, stage: 'young', grey: 0, gender, age: 25, relation: 'none' }, 12, 21, 'idle', performance.now() / 1000, 1, 1);
-    g = keep;
+    const c2 = canvas.getContext('2d'); const save = g; g = c2; g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    const fake = { p: { id: 'preview', look, gender, age: 25, routine: 'adult', outfit: 'casual', grey: 0 }, state: 'idle', face: 'down', walkD: 0, sd: 3 };
+    try { drawPerson(fake, Math.floor(canvas.width / 2), canvas.height - 3, 1); } finally { g = save; }
   }
-  return { mount, frame, mood, preview, W, H };
+  return { mount, OUT, LIP, TS, frame: frameScaled, mood, preview, setView, getView, onPick, resize, W, H, _sim: SIM, _build: buildLayout, _office: officeModel };
 })();
 </script>
 <script>// ===== candlestick chart renderer (drawing only; all prices come from the engine) =====
@@ -4655,6 +5609,7 @@ const Scene = (function () {
     if (data && data.state) { try { S = LC.deserialize(data.state); if (data.playing) S.time.playing = true; } catch (e) { S = null; } }
     if (!S && load(SLOT + 'auto')) { try { S = LC.deserialize(load(SLOT + 'auto')); } catch (e) { S = null; } }
     Scene.mount($('#scene'));
+    Scene.onPick((h) => { const tip = $('#sceneTip'); if (!tip || ui.mode !== 'main') return; tip.textContent = h.label; tip.style.left = (h.x * 100) + '%'; tip.style.top = (h.y * 100) + '%'; tip.hidden = false; clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); });
     buildSpeeds();
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
@@ -4663,6 +5618,7 @@ const Scene = (function () {
     document.addEventListener('visibilitychange', () => { if (document.hidden && S) saveTo('auto'); });
     if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => (S && ui.mode === 'main' ? { state: LC.serialize(S), playing: S.time.playing } : {}));
     requestAnimationFrame(loop);
+    window.__lc = { get S() { return S; } }; // read-only handle for automated UI tests
   }
   function loop(now) {
     const dt = lastFrame ? Math.min(0.25, (now - lastFrame) / 1000) : 0;
@@ -4684,7 +5640,7 @@ const Scene = (function () {
   function updateClock() {
     const T = S.time, age = LC.playerAge(S);
     const p = Math.min(1, T.progress);
-    const held = p >= 1 && S.events.active;
+    const held = !!S.events.active;
     const cal = LC.calendar(S);
     const vals = { age, year: `${cal.y}年${cal.m}月`, name: LC.P(S).name, speed: `1年 ≈ ${trim(LC.secondsPerYear(T.baseSeconds, T.speed))}秒`, playing: T.playing, sp: T.speed, held: !!held };
     if (clockCache.age !== vals.age) $('#ageNum').textContent = age;
@@ -4715,6 +5671,13 @@ const Scene = (function () {
     const pets = LC.visiblePets(S).map((p) => `${LC.PETS[p.kind].label}の${p.name}`);
     const cars = S.vehicles.map((v) => v.label);
     $('#sceneSub').textContent = parts.concat(pets, cars).join(' · ');
+    const rm = LC.roomModel(S), tg = $('#viewToggle');
+    const visitors = rm.people.filter((p) => p.visiting);
+    if (visitors.length) $('#sceneSub').textContent += ` · 遊びに来ている孫 ${visitors.map((p) => p.age + '歳').join('・')}`;
+    if (rm.office) { tg.hidden = false; const v = Scene.getView(); tg.textContent = v === 'office' ? '自宅を見る' : 'オフィスを見る'; tg.setAttribute('aria-pressed', v === 'office'); }
+    else { tg.hidden = true; if (Scene.getView() === 'office') Scene.setView('home'); }
+    if (Scene.getView() === 'office' && rm.office) $('#sceneCap').textContent = `${rm.office.name}のオフィス · 社員${rm.office.employees}人${rm.office.listed ? ' · 上場企業' : ''}`;
+    const st = rm.stored; $('#sceneStore').textContent = st > 0 ? `置ききれない家具 ${st}点は倉庫にあります` : '';
   }
   function summarizeHousehold(list) {
     const cnt = {};
@@ -4815,7 +5778,7 @@ const Scene = (function () {
       return;
     }
     const v = LC.activeView(S);
-    const key = v ? S.events.active.defId + JSON.stringify(S.events.active.ctx) + ':' + v.choices.map((c) => (c.disabled ? 0 : 1)).join('') : null;
+    const key = v ? v.n + ':' + S.events.active.defId + JSON.stringify(S.events.active.ctx) + ':' + v.choices.map((c) => (c.disabled ? 0 : 1)).join('') + ':' + S.time.playing : null;
     if (!v) { if (!layer.hidden) { layer.hidden = true; layer.innerHTML = ''; } shownEvent = null; return; }
     if (shownEvent === key) return;
     shownEvent = key;
@@ -4825,8 +5788,8 @@ const Scene = (function () {
     layer.innerHTML = `<div class="ev-card ${v.important ? 'important' : ''}" role="dialog" aria-label="${esc(v.title)}">
       <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span></div>
       <p class="ev-text">${esc(v.text)}</p>
-      <p class="ev-hold">時間は止まっています。選んだあと、▶ で再開できます。</p>
-      <div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-v="${i}" ${c.disabled ? 'disabled' : ''}>
+      <p class="ev-hold">${S.time.playing ? '時間は止まっています。選ぶと結果を反映して、自動で再開します。' : '一時停止中です。選んだあとも止まったままです（▶ で再開）。'}</p>
+      <div class="choices">${v.choices.map((c, i) => `<button class="choice" data-act="choose" data-v="${i}" data-n="${v.n}" ${c.disabled ? 'disabled' : ''}>
         <span class="c-l">${esc(c.label)}</span>
         ${c.now ? `<span class="c-fx"><b>いま</b><span>${esc(c.now)}</span></span>` : ''}${c.future ? `<span class="c-fx"><b>この先</b><span>${esc(c.future)}</span></span>` : ''}${c.risk ? `<span class="c-fx risk"><b>リスク</b><span>${esc(c.risk)}</span></span>` : ''}
         ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</button>`).join('')}</div></div>`;
@@ -4838,18 +5801,19 @@ const Scene = (function () {
     if (!ui.sheet) ui.wasPlaying = S.time.playing;
     if (S.time.playing) { S.time.playing = false; LC.bump(S); }
     ui.sheet = name; ui.tab = tab || defaultTab(name); ui.msg = null; ui.confirm = null; ui.asset = null; ui.buyType = null;
-    $('#sheet').hidden = false; document.documentElement.classList.add('lock');
+    $('#sheet').hidden = false; document.documentElement.classList.add('lock'); markDock();
     renderSheet();
     $('#sheetBody').scrollTop = 0;
   }
   function closeSheet(silent) {
     if (!ui.sheet) return;
-    ui.sheet = null; $('#sheet').hidden = true; document.documentElement.classList.remove('lock');
+    ui.sheet = null; $('#sheet').hidden = true; document.documentElement.classList.remove('lock'); markDock();
     if (!silent && ui.wasPlaying && !(S.events.active && S.events.active.blocking) && !S.over) { S.time.playing = true; LC.bump(S); }
     ui.wasPlaying = false;
   }
+  function markDock() { document.querySelectorAll('.dock [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === ui.sheet))); }
   function defaultTab(n) { return { life: 'home', market: 'overview', menu: 'save', biz: 'jobs' }[n] || null; }
-  const TABS = { life: [['home', '住まい'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '銘柄'], ['world', '世界経済']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
+  const TABS = { life: [['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '銘柄'], ['world', '世界経済']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
   function renderSheet() {
     if (!ui.sheet) return;
     $('#sheetTitle').textContent = SHEETS[ui.sheet];
@@ -4892,6 +5856,7 @@ const Scene = (function () {
       }).join('') + `</div>`;
       return html;
     }
+    if (ui.tab === 'furn') return sheetFurniture();
     if (ui.tab === 'car') {
       let html = S.vehicles.length ? `<div class="list">${S.vehicles.map((v) => `<div class="box opt"><span class="name">${esc(v.label)}</span><span class="sub">いまの価値 ${Y(v.value)} · 維持費 年${Y(v.maint)} · ${v.year}年購入</span><button class="btn sm" data-act="sellCar" data-v="${v.id}">売る（${Y(v.value * 0.9)}）</button></div>`).join('')}</div>` : `<div class="box"><p>車は持っていません。</p></div>`;
       html += adultOnly();
@@ -4916,6 +5881,22 @@ const Scene = (function () {
     let html = `<div class="box"><h4>生活水準</h4><p>生活費と幸福度が変わります。いまの生活費は年${Y((b.expense.find((e) => e.k === 'living') || { v: 0 }).v)}です。</p><div class="seg" style="margin-top:10px">${Object.keys(LC.LIFESTYLES).map((k) => `<button data-act="lifestyle" data-v="${k}" class="${S.lifestyle === k ? 'on' : ''}" ${LC.isIndependent(S) ? '' : 'disabled'}>${LC.LIFESTYLES[k].label}（×${LC.LIFESTYLES[k].mul}）</button>`).join('')}</div></div>`;
     html += `<p class="section-title">海外に移住する</p><div class="list">` + Object.keys(LC.COUNTRIES).filter((c) => c !== S.country).map((c) => { const C = LC.COUNTRIES[c]; return `<div class="box opt"><span class="name">${C.name}</span><span class="sub">物価 ×${C.cost} · 賃金 ×${C.wage} · 移住費 ${Y(1000000 * C.cost)}</span>${confirmBtn('move', c, '移住する', '本当に移住（確認）', LC.playerAge(S) < 18)}</div>`; }).join('') + `</div><p class="hint">移住すると仕事は退職になり、持ち家は売却されます。家族の住まいは新しい国の賃貸マンションになります。</p>`;
     return html;
+  }
+  function sheetFurniture() {
+    const parents = LC.atParents(S), cap = parents ? 4 : LC.homeCapacity(S), placed = LC.placedFurniture(S), placedIds = new Set(placed.map((f) => f.uid));
+    const used = placed.reduce((a, f) => a + LC.FURNITURE[f.key].slots, 0);
+    let html = `<div class="box"><h4>部屋の広さ<span class="num">${used} / ${cap}</span></h4><div class="cap-bar"><i style="width:${Math.min(100, used / cap * 100)}%"></i></div>
+      <p class="hint" style="margin-top:6px">${parents ? '実家暮らしの間は、自分の部屋に置ける物（机・パソコン・本棚など）だけ買えます。家族の家具は実家の暮らし向きで決まります。' : '買った家具は部屋のアニメーションに置かれ、売ると消えます。広い家ほどたくさん置けます。小物（植物・ランプなど）は場所をとりません。'}</p></div>`;
+    const mine = LC.furnitureList(S);
+    html += `<p class="section-title">持っている家具（${mine.length}点）</p>` + (mine.length ? `<div class="list">${mine.map((f) => { const D = LC.FURNITURE[f.key]; const here = placedIds.has(f.uid); return `<div class="box opt"><span class="name">${esc(D.label)}${here ? '' : ' <span class="tag">倉庫</span>'}</span><span class="sub">${f.src === 'starter' ? '実家から持ってきた物' : `${f.year}年に${Y(f.price)}で購入`} · 場所 ${D.slots}</span>${confirmBtn('sellFurn', f.uid, f.price ? `売る（${Y(Math.round(f.price * 0.25 / 1000) * 1000)}）` : '処分する', '本当に手放す（確認）')}</div>`; }).join('')}</div>` : `<div class="box"><p>${parents ? 'まだ自分の家具はありません。' : '家具がありません。'}</p></div>`);
+    const cat = ui.furnCat || 'all';
+    html += `<p class="section-title">買う</p><div class="chip-row">${[['all', 'すべて']].concat(LC.FURNITURE_GROUPS).map(([k, l]) => `<button class="chip-btn ${cat === k ? 'on' : ''}" data-act="furnCat" data-v="${k}">${l}</button>`).join('')}</div><div class="list">`;
+    for (const k of Object.keys(LC.FURNITURE)) {
+      const D = LC.FURNITURE[k]; if (cat !== 'all' && D.cat !== cat) continue;
+      const c = LC.canBuyFurniture(S, k), price = LC.furniturePrice(S, k);
+      html += `<div class="box opt"><span class="name">${esc(D.label)}</span><span class="sub">${Y(price)} · 場所 ${D.slots || 'とらない'}${D.use ? ' · ' + ({ sleep: '寝る', eat: '食事', sit: 'くつろぐ', tv: 'テレビを見る', work: '勉強・仕事', pc: 'パソコン作業', read: '読書', cook: '料理', chore: '家事', watch: '眺める', music: '演奏', game: 'ゲーム', exercise: '運動', relax: 'くつろぐ' }[D.use] || '') : ''}${c.ok ? '' : ' · ' + esc(c.msg)}</span><button class="btn sm" data-act="buyFurn" data-v="${k}" ${c.ok ? '' : 'disabled'}>買う</button></div>`;
+    }
+    return html + '</div>';
   }
   function confirmBtn(act, v, label, confirmLabel, disabled) {
     const armed = ui.confirm === act + ':' + v;
@@ -5171,7 +6152,7 @@ const Scene = (function () {
     if (ui.tab === 'settings') {
       return `<div class="box"><h4>1年の長さ（1倍速）</h4><div class="form"><label>秒数（5〜300）<input id="setSec" type="number" inputmode="numeric" min="5" max="300" value="${S.time.baseSeconds}"></label><div class="btn-row"><button class="btn" data-act="setSec">変更する</button></div></div><p class="hint" style="margin-top:6px">速度ボタンはこの長さを割ります。例：26秒なら2倍速は13秒、4倍速は6.5秒。</p></div>
         <div class="box"><h4>見た目を変える</h4>${lookControls(LC.P(S).look, 'myLook')}</div>
-        <div class="box"><h4>選択イベント</h4><p>選択が必要な出来事が起きると、その瞬間に時間が止まります。選んだあとも止まったままなので、▶ を押して再開してください。</p></div>`;
+        <div class="box"><h4>選択イベント</h4><p>選択が必要な出来事が起きると、その瞬間に時間が止まります。選ぶと結果が反映され、少し間をおいて自動で再開します。⏸ で止めていた場合は、選んだあとも止まったままです。</p></div>`;
     }
     if (ui.tab === 'new') {
       return `<div class="box"><h4>新しい人生</h4><p>キャラクター作成からやり直します。いまの人生を残したい場合は、先にスロットへセーブしてください。</p><div class="btn-row">${confirmBtn('newgame', '', 'キャラクター作成へ', '本当にやり直す（確認）')}</div></div>
@@ -5200,12 +6181,24 @@ const Scene = (function () {
     if (el.tagName === 'SELECT' || el.tagName === 'INPUT') return;
     const act = el.dataset.act, v = el.dataset.v;
     switch (act) {
-      case 'play': { if (S.over) return; const r = LC.togglePlay(S); if (r && !r.ok && r.msg) toast(r.msg, true); break; }
+      case 'play': { if (S.over) return; const r = LC.togglePlay(S); if (r && r.ok && r.held) toast(r.playing ? '選択後に自動で再開します。' : '選択後も一時停止のままにします。'); shownEvent = null; renderEvent(); break; }
       case 'speed': LC.setSpeed(S, +v); if (!S.time.playing && !S.over && !S.events.active) LC.togglePlay(S); break;
       case 'next': { const had = !!S.events.active; const r = LC.nextYear(S); if (r.blocked && had) toast('先に選択肢を選んでください。', true); break; }
-      case 'choose': { const r = LC.chooseEvent(S, +v); if (!r.ok) toast(r.msg, true); else if (!S.events.active && !S.over) toast('一時停止中です。▶ で再開できます。'); shownEvent = null; renderEvent(); break; }
+      case 'choose': {
+        if (ui.choosing) break; ui.choosing = true; setTimeout(() => { ui.choosing = false; }, 300); // one tap = one decision
+        const h0 = S.history.length;
+        const r = LC.chooseEvent(S, +v, false, el.dataset.n != null ? +el.dataset.n : null);
+        if (!r.ok) { if (r.msg) toast(r.msg, true); break; }
+        const rec = S.history.length > h0 ? S.history[S.history.length - 1] : null;
+        if (!S.events.active && !S.over) { const txt = rec ? `${rec.title}：${rec.desc.length > 40 ? rec.desc.slice(0, 40) + '…' : rec.desc}` : '決定しました。'; toast(txt + (S.time.playing ? '' : '（一時停止中・▶で再開）')); }
+        shownEvent = null; renderEvent(); break;
+      }
       case 'sheet': if (ui.sheet === v) closeSheet(); else openSheet(v); break;
       case 'close': closeSheet(); break;
+      case 'viewToggle': Scene.setView(Scene.getView() === 'office' ? 'home' : 'office'); renderScene(); break;
+      case 'buyFurn': result(LC.buyFurniture(S, v)); break;
+      case 'sellFurn': ui.confirm = null; result(LC.sellFurniture(S, v)); break;
+      case 'furnCat': ui.furnCat = v; renderSheet(); break;
       case 'tab': ui.tab = v; ui.msg = null; ui.asset = null; ui.confirm = null; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'focus': { const cur = S.focus.slice(); const i = cur.indexOf(v); if (i >= 0) cur.splice(i, 1); else cur.push(v); LC.setFocus(S, cur); break; }
       case 'lifestyle': { const r = LC.setLifestyle(S, v); if (ui.sheet) result(r); break; }
@@ -5288,8 +6281,10 @@ const Scene = (function () {
     ui.mode = m;
     document.body.classList.toggle('pre', m !== 'main');
     $('#setup').hidden = m !== 'setup'; $('#intro').hidden = m !== 'intro';
-    if (m !== 'intro') { const sc = $('#scene'), card = $('#mainScene'); if (sc.parentNode !== card) card.insertBefore(sc, card.firstChild); }
-    window.scrollTo(0, 0);
+    if (m !== 'intro') { const sc = $('#scene'), card = $('#sceneStage'); if (sc.parentNode !== card) card.insertBefore(sc, card.firstChild); }
+    requestAnimationFrame(() => Scene.resize());
+    const sc = $('#scroller'); if (sc && m !== 'main') sc.scrollTop = 0;
+    for (const id of ['#setup', '#intro']) { const el = $(id + ' .pre-in'); if (el) el.scrollTop = 0; }
   }
   function openSetup(fromGame) {
     closeSheet(true);
@@ -5395,7 +6390,7 @@ const Scene = (function () {
       <p class="hint">シード ${S.seed}${S.mode === 'choose' ? ' · 家庭を選ぶモード' : ''}</p>
       </div>
       <div class="pre-bar two-btn"><button class="btn" data-act="redo">作り直す</button><button class="btn primary big" data-act="beginLife">この人生を始める</button></div>`;
-    $('#introScene').appendChild($('#scene'));
+    $('#introScene').appendChild($('#scene')); requestAnimationFrame(() => Scene.resize());
   }
   function beginLife() {
     ui.prevS = null; ui.form = null;
@@ -5416,3 +6411,5 @@ const Scene = (function () {
   if (H && H.ready) H.ready(start); else start((H && H.data) || {});
 })();
 </script>
+</body>
+</html>
