@@ -519,6 +519,160 @@ tr.fc td { color: var(--muted); font-style: italic; }
 .choice.risky { border-left: 3px solid var(--bad); }
 .crumb { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
 .co-mini { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 8px 12px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12.5px; color: var(--muted); } .co-mini b { color: var(--text); font-size: 14px; }
+
+/* ===== LIFE CAPITAL UI v2 — same night-sky tokens; adds the home overview, people, event tiers and the wide (PC) layout ===== */
+:root { --act: #e7a35a; --info: #86a8f0; --tap: 44px; }
+
+/* ---------- header: name/date on line 1, job + cash on line 2 (cash opens the money sheet) */
+.meta { flex-direction: column; flex-wrap: nowrap; gap: 1px; padding-bottom: 1px; min-width: 0; flex: 1 1 auto; }
+.meta-l1 { display: flex; flex-wrap: wrap; gap: 0 6px; min-width: 0; }
+.meta-l2 { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; }
+.ms-job { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 0 1 auto; color: var(--muted); }
+.ms-cash { flex: none; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line-2); background: var(--panel-2); border-radius: 999px; padding: 1px 9px; font-size: 12.5px; font-weight: 600; color: var(--gold); }
+.ms-l { font-family: var(--f-body); font-weight: 500; font-size: 10.5px; color: var(--muted); }
+.ms-cash.neg { color: var(--bad); }
+/* the pink bar keeps its look; the next age waits at its right end, and the bar flashes when it wraps */
+.bar { overflow: visible; margin-right: 3.4em; }
+.bar-fill { transition: none; }
+.bar-next { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); padding-left: 7px; font-family: var(--f-num); font-size: 10.5px; color: var(--pink); white-space: nowrap; line-height: 1; }
+.bar.lap { animation: barWrap 0.9s ease-out; }
+@keyframes barWrap { 0% { box-shadow: 0 0 0 0 rgba(236, 122, 160, 0.9); } 40% { box-shadow: 0 0 0 4px rgba(236, 122, 160, 0.35); background: color-mix(in srgb, var(--pink) 40%, var(--panel-2)); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.age.age-up #ageNum { animation: agePop 0.9s cubic-bezier(.2, 1.6, .4, 1); display: inline-block; }
+@keyframes agePop { 0% { transform: scale(1); color: var(--text); } 25% { transform: scale(1.28); color: var(--pink); text-shadow: 0 0 14px rgba(236, 122, 160, 0.6); } 100% { transform: scale(1); color: var(--text); } }
+.age-fx { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); pointer-events: none; font-family: var(--f-display); font-size: 34px; line-height: 1; color: #fff3f7; text-shadow: 0 2px 0 var(--pink-deep), 0 0 18px rgba(236, 122, 160, 0.7); padding: 8px 16px; border-radius: 10px; background: rgba(14, 18, 26, 0.55); }
+.age-fx.go { animation: ageFx 1.5s ease-out forwards; }
+@keyframes ageFx { 0% { opacity: 0; transform: translate(-50%, -30%) scale(0.8); } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); } 70% { opacity: 1; transform: translate(-50%, -55%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -75%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .age.age-up #ageNum, .bar.lap, .age-fx.go, .oc-toast { animation: none !important; } }
+.oc-toast.year { border-left-color: var(--pink); }
+
+/* ---------- shared bits */
+.empty { margin: 0; color: var(--muted); font-size: 13.5px; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: 10px; }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 6px 0; min-height: 32px; }
+.link-btn:hover { color: var(--text); }
+.num.gold, b.gold { color: var(--gold); }
+b.up, .num.up { color: var(--good); } b.down, .num.down { color: var(--bad); }
+
+/* ---------- いまの状況 (numbers) */
+.now-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.now-cell { min-height: 74px; }
+
+/* ---------- いま知っておくこと */
+.brief { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bi { width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; text-align: left; border: 1px solid var(--line); background: var(--panel-2); border-radius: 10px; padding: 9px 10px; min-height: var(--tap); }
+button.bi:hover { border-color: var(--line-2); }
+.bi-ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--ink); }
+.bi-ic.act { color: var(--act); } .bi-ic.bad { color: var(--bad); } .bi-ic.good { color: var(--good); } .bi-ic.info { color: var(--info); }
+.bi.act { border-left: 3px solid var(--act); } .bi.bad { border-left: 3px solid var(--bad); } .bi.good { border-left: 3px solid var(--good); }
+.bi-tx { display: grid; gap: 1px; min-width: 0; }
+.bi-tx b { font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bi-tx > span { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.bi-k { font-style: normal; font-size: 10.5px; font-weight: 500; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; line-height: 1.5; }
+.bi-k.act { color: var(--act); } .bi-k.bad { color: var(--bad); } .bi-k.good { color: var(--good); } .bi-k.info { color: var(--info); }
+.bi-go { color: var(--faint); font-size: 18px; }
+
+/* ---------- 家族と人間関係 */
+.people { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pp { display: grid; grid-template-columns: 30px minmax(0, 1fr) 84px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
+.pp:first-child { border-top: 0; }
+.pp.gone { opacity: 0.55; }
+.pp-ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--panel-2); border: 1px solid var(--line-2); color: var(--text); font-family: var(--f-display); }
+.pp-ic.friend { color: var(--rel); border-color: color-mix(in srgb, var(--rel) 45%, transparent); }
+.pp-tx { display: grid; min-width: 0; }
+.pp-tx b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-tx span { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.pp-m { display: grid; gap: 2px; }
+.pp-ml { font-size: 10.5px; color: var(--muted); text-align: right; }
+.pp-m .meter { margin-top: 0; }
+.pp-d { border-top: 1px solid var(--line); padding: 8px 0; }
+.pp-d summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; min-height: 32px; }
+#secFamily .sub-h { margin-top: 14px; }
+
+/* ---------- 直近の出来事: grouped by age */
+.log .age-sep { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 -2px; font-size: 12px; color: var(--muted); }
+.log .age-sep:first-child { margin-top: 0; }
+.log .age-sep b { font-family: var(--f-display); font-weight: 400; font-size: 14px; color: var(--pink); }
+
+/* ---------- events: tiers, paragraphs, numbered cards */
+.ev-tier { font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--muted); white-space: nowrap; }
+.ev-tier.major { color: #1a0f16; background: var(--pink); border-color: var(--pink); font-weight: 700; }
+.ev-tier.special { color: #2a1d05; background: var(--gold); border-color: var(--gold); font-weight: 700; }
+.ev-top h3 { flex-basis: 100%; order: 3; font-size: 19px; line-height: 1.35; text-wrap: balance; }
+.ev-top .when { order: 2; }
+.ev-top .ev-peek { order: 2; margin-left: 0; }
+.ev-body { display: grid; gap: 6px; }
+.ev-body .ev-text { line-height: 1.75; }
+.ev-card.tier-daily { gap: 8px; }
+.ev-card.tier-daily .ev-top h3 { font-size: 17px; }
+.ev-card.tier-major { border-width: 1px; border-top: 3px solid var(--pink); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5); }
+.choice { position: relative; min-height: 52px; padding: 11px 12px 11px 12px; border-radius: 12px; transition: border-color .12s, background .12s, transform .06s; }
+.choice:active:not([disabled]) { transform: scale(0.99); background: color-mix(in srgb, var(--pink) 12%, var(--panel-2)); }
+.choice .c-l { display: flex; gap: 10px; align-items: baseline; font-size: 15px; line-height: 1.4; }
+.c-no { flex: none; width: 22px; height: 22px; border-radius: 6px; display: inline-grid; place-items: center; font-family: var(--f-num); font-size: 12px; font-weight: 600; background: var(--ink); border: 1px solid var(--line-2); color: var(--muted); transform: translateY(-1px); }
+.choice:hover:not([disabled]) .c-no { border-color: var(--pink); color: var(--pink); }
+.choice .c-fx { margin-left: 32px; grid-template-columns: 5.2em minmax(0, 1fr); }
+.choice .c-fx.now b::before { content: '◇ '; } .choice .c-fx.fut b::before { content: '→ '; } .choice .c-fx.risk b::before { content: '⚠ '; }
+.choice .c-why { margin-left: 32px; }
+.choice .c-why::before { content: '× '; }
+
+/* ---------- dock: 6 sections on phones; 設定 lives in ⋯ there */
+.dock { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.dock .dock-set { display: none; }
+.dock button span { white-space: nowrap; font-size: 11.5px; }
+@media (max-width: 370px) { .dock button span { font-size: 10.5px; letter-spacing: -0.02em; } }
+.ic-house { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1 1 7v1h2v7h4v-4h2v4h4V8h2V7z'/%3E%3C/svg%3E"); }
+.ic-person { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='5.5' cy='4.5' r='2.5'/%3E%3Ccircle cx='11.5' cy='5.5' r='2'/%3E%3Cpath d='M1 14c0-3 2-5 4.5-5S10 11 10 14zm9.5 0c0-1.6-.5-3-1.4-4 .6-.6 1.4-.9 2.4-.9 2 0 3.5 1.8 3.5 4.9z'/%3E%3C/svg%3E"); }
+.ic-book { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2h4.5C7.3 2 8 2.6 8 3.4V14c0-.7-.6-1.2-1.4-1.2H2zm12 0H9.5C8.7 2 8 2.6 8 3.4V14c0-.7.6-1.2 1.4-1.2H14z'/%3E%3C/svg%3E"); }
+.ic-gear { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M7 1h2l.4 2 1.5.7 1.7-1.2 1.4 1.4-1.2 1.7.7 1.5 2 .4v2l-2 .4-.7 1.5 1.2 1.7-1.4 1.4-1.7-1.2-1.5.7L9 15H7l-.4-2-1.5-.7-1.7 1.2-1.4-1.4 1.2-1.7L2.5 9 1 9V7l2-.4.7-1.5-1.2-1.7 1.4-1.4 1.7 1.2 1.5-.7zm1 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z'/%3E%3C/svg%3E"); }
+
+/* ---------- home order on phones: what is happening → what to know → numbers → this year → recent → people → the rest */
+.home .col { display: contents; }
+#mainScene { order: 1; } #secNow { order: 2; } #secBrief { order: 3; } #secLife { order: 4; } #secLog { order: 5; }
+#secFamily { order: 6; } #secStats { order: 7; } #secMoney { order: 8; } #secMap { order: 9; } #secRivals { order: 10; } .home .foot-note { order: 11; }
+
+/* ---------- wide screens (PC / landscape tablet): 3 columns + a side rail for the menu */
+@media (min-width: 1080px) {
+  #app { display: grid; grid-template-columns: 92px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .clock { grid-column: 1 / -1; grid-row: 1; }
+  .clock-in { max-width: 1320px; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 24px; padding: 10px 24px; }
+  .clock-row { grid-column: 1; grid-row: 1 / span 2; }
+  .clock .bar { grid-column: 2; grid-row: 1; }
+  .clock .ctrl { grid-column: 2; grid-row: 2; }
+  #ageNum { font-size: 52px; }
+  .meta { min-width: 15em; }
+  .stage { grid-column: 2; grid-row: 2; }
+  .dock { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; gap: 4px; padding: 12px 8px; border-top: 0; border-right: 1px solid var(--line); overflow-y: auto; }
+  .dock button { padding: 10px 2px; }
+  .dock button span { font-size: 12px; white-space: normal; text-align: center; line-height: 1.25; }
+  .dock .dock-set { display: grid; margin-top: auto; }
+  .dock button[aria-current="true"] { box-shadow: inset 3px 0 0 var(--pink); }
+  .wrap.home { padding: 18px 24px 28px; grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(280px, 330px); max-width: 1320px; margin: 0 auto; align-items: start; gap: 16px; }
+  .home .col { display: grid; gap: 14px; align-content: start; min-width: 0; }
+  .home .col-a { grid-column: 1; } .home .col-b { grid-column: 2; } .home .col-c { grid-column: 3; }
+  .home .col > * { order: 0; }
+  .home .col-a, .home .col-c { position: sticky; top: 0; }
+  .home .foot-note { grid-column: 1 / -1; }
+  .now-grid { grid-template-columns: 1fr; }
+  .now-cell { min-height: 0; }
+  .col-a .stat4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .col-a .money-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sheet { align-items: center; padding: 16px; }
+  .sheet-panel { max-width: 920px; max-height: calc(100% - 8px); border-radius: 16px; border-bottom: 1px solid var(--line-2); }
+  .event { align-items: center; }
+  .ev-card { max-width: 640px; margin-bottom: 0; padding: 20px 22px; }
+  .outcome { top: 12px; }
+}
+@media (min-width: 1500px) { .wrap.home { grid-template-columns: 320px minmax(0, 1fr) 360px; } }
+/* 1080–1359px: two columns (the pixel scene keeps a useful width), numbers and people on the right */
+@media (min-width: 1080px) and (max-width: 1359px) {
+  .wrap.home { grid-template-columns: minmax(0, 1fr) minmax(290px, 340px); }
+  .home .col-b { grid-column: 1; grid-row: 1 / span 2; }
+  .home .col-a { grid-column: 2; grid-row: 1; position: static; }
+  .home .col-c { grid-column: 2; grid-row: 2; position: static; }
+}
+.choice .c-fx b { font-size: 11.5px; }
+@media (max-width: 480px) { .choice .c-fx, .choice .c-why { margin-left: 0; grid-template-columns: 4.9em minmax(0, 1fr); } }
+/* a result notice and a new decision can be on screen together: the card starts below the notice */
+.event.block.with-note { padding-top: 58px; }
 </style>
 </head>
 <body>
@@ -529,9 +683,10 @@ tr.fc td { color: var(--muted); font-style: italic; }
     <div class="clock-in">
       <div class="clock-row">
         <div class="age"><span id="ageNum">0</span><span class="age-u">歳</span></div>
-        <div class="meta"><span id="metaYear">2026年</span><span class="dot">·</span><span id="metaName" class="meta-name"></span><span class="dot">·</span><span id="metaSpeed">1年 ≈ 26秒</span></div>
+        <div class="meta"><div class="meta-l1"><span id="metaName" class="meta-name"></span><span class="dot">·</span><span id="metaYear">2026年</span><span class="dot">·</span><span id="metaSpeed">1年 ≈ 26秒</span></div>
+          <div class="meta-l2" id="metaStatus"></div></div>
       </div>
-      <div class="bar" id="bar" role="progressbar" aria-label="1年の進み具合" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="barFill"></div><div class="bar-ticks"></div></div>
+      <div class="bar" id="bar" role="progressbar" aria-label="1年の進み具合（右端で1歳）" aria-valuemin="0" aria-valuemax="100"><div class="bar-fill" id="barFill"></div><div class="bar-ticks"></div><span class="bar-next" id="barNext" aria-hidden="true"></span></div>
       <div class="ctrl">
         <button id="btnPlay" class="btn-play" data-act="play" aria-label="再生"></button>
         <div class="speeds" id="speeds" role="group" aria-label="進行速度"></div>
@@ -541,19 +696,27 @@ tr.fc td { color: var(--muted); font-style: italic; }
     </div>
   </header>
   <div class="stage" id="stage">
-  <main class="wrap" id="scroller">
-    <section class="scene-card" id="mainScene">
-      <div class="scene-stage" id="sceneStage"><canvas id="scene" aria-label="人生の生活シーン（タップで人物の名前）"></canvas>
-        <button id="viewToggle" class="scene-toggle" data-act="viewToggle" hidden></button><div id="sceneTip" class="scene-tip" hidden></div></div>
-      <div class="scene-cap"><p id="sceneCap" class="cap-main"></p><p id="sceneSub" class="cap-sub"></p><p id="sceneStore" class="cap-sub"></p></div>
-    </section>
-    <section class="card now-card" id="secNow"></section>
-    <section class="card" id="secLife"></section>
-    <section class="card" id="secStats"></section>
-    <section class="card" id="secMoney"></section>
-    <section class="card" id="secMap"></section>
-    <section class="card" id="secRivals"></section>
-    <section class="card" id="secLog"></section>
+  <main class="wrap home" id="scroller">
+    <div class="col col-a">
+      <section class="card now-card" id="secNow"></section>
+      <section class="card" id="secStats"></section>
+      <section class="card" id="secMoney"></section>
+    </div>
+    <div class="col col-b">
+      <section class="scene-card" id="mainScene">
+        <div class="scene-stage" id="sceneStage"><canvas id="scene" aria-label="人生の生活シーン（タップで人物の名前）"></canvas>
+          <button id="viewToggle" class="scene-toggle" data-act="viewToggle" hidden></button><div id="sceneTip" class="scene-tip" hidden></div><div id="ageFx" class="age-fx" hidden></div></div>
+        <div class="scene-cap"><p id="sceneCap" class="cap-main"></p><p id="sceneSub" class="cap-sub"></p><p id="sceneStore" class="cap-sub"></p></div>
+      </section>
+      <section class="card brief-card" id="secBrief"></section>
+      <section class="card" id="secLife"></section>
+      <section class="card" id="secLog"></section>
+    </div>
+    <div class="col col-c">
+      <section class="card" id="secFamily"></section>
+      <section class="card" id="secMap"></section>
+      <section class="card" id="secRivals"></section>
+    </div>
     <p class="foot-note">金額・税・年金・相続などはゲーム用の近似モデルです。実際の制度や投資判断の参考にはしないでください。</p>
   </main>
   <div id="sheet" class="sheet" hidden>
@@ -569,12 +732,14 @@ tr.fc td { color: var(--muted); font-style: italic; }
   <div id="ending" class="ending" hidden></div>
   <div id="toast" class="toast" role="status" hidden></div>
   </div>
-  <nav class="dock" aria-label="操作">
-    <button data-act="sheet" data-v="life"><i class="ic ic-home"></i><span>暮らし</span></button>
+  <nav class="dock" aria-label="メインメニュー">
+    <button data-act="home" data-v="home"><i class="ic ic-house"></i><span>ホーム</span></button>
+    <button data-act="sheet" data-v="life"><i class="ic ic-person"></i><span>人生</span></button>
+    <button data-act="sheet" data-v="biz"><i class="ic ic-biz"></i><span>仕事・会社</span></button>
     <button data-act="sheet" data-v="market"><i class="ic ic-chart"></i><span>投資</span></button>
-    <button data-act="sheet" data-v="biz"><i class="ic ic-biz"></i><span>仕事</span></button>
-    <button data-act="sheet" data-v="goals"><i class="ic ic-goal"></i><span>目標</span></button>
-    <button data-act="sheet" data-v="money"><i class="ic ic-yen"></i><span>お金</span></button>
+    <button data-act="sheet" data-v="money"><i class="ic ic-yen"></i><span>資産</span></button>
+    <button data-act="sheet" data-v="history"><i class="ic ic-book"></i><span>記録</span></button>
+    <button class="dock-set" data-act="sheet" data-v="menu"><i class="ic ic-gear"></i><span>設定</span></button>
   </nav>
 </div>
 <script>(function(root){
@@ -9574,7 +9739,7 @@ const Scene = (function () {
     const held = !!S.events.active;
     const cal = LC.calendar(S);
     const vals = { age, year: `${cal.y}年${cal.m}月`, name: LC.P(S).name, speed: `1年 ≈ ${trim(LC.secondsPerYear(T.baseSeconds, T.speed))}秒`, playing: T.playing, sp: T.speed, held: !!held };
-    if (clockCache.age !== vals.age) $('#ageNum').textContent = age;
+    if (clockCache.age !== vals.age) { $('#ageNum').textContent = age; onAgeChange(clockCache.age, age); }
     if (clockCache.year !== vals.year) $('#metaYear').textContent = vals.year;
     if (clockCache.name !== vals.name) $('#metaName').textContent = vals.name;
     if (clockCache.speed !== vals.speed) $('#metaSpeed').textContent = vals.speed;
@@ -9589,7 +9754,7 @@ const Scene = (function () {
 
   // ---------- main render
   function renderAll() {
-    renderScene(); renderNow(); renderLife(); renderStats(); renderMoney(); renderMap(); renderRivals(); renderLog(); renderEvent();
+    renderScene(); renderStatusLine(); renderNow(); renderBrief(); renderLife(); renderFamily(); renderStats(); renderMoney(); renderMap(); renderRivals(); renderLog(); renderEvent(); updateBarNext();
     if (ui.sheet && !ui.typing) renderSheet();
   }
   function renderScene() {
@@ -9615,11 +9780,10 @@ const Scene = (function () {
     for (const c of list) { const k = { father: '両親', mother: '両親', sibling: 'きょうだい', grandparent: '祖母', spouse: '配偶者', child: '子ども' }[c.relation] || '家族'; cnt[k] = (cnt[k] || 0) + 1; }
     return Object.keys(cnt).map((k) => (k === '両親' ? (cnt[k] === 2 ? '両親' : '親') : k === 'きょうだい' || k === '子ども' ? `${k}${cnt[k]}人` : k)).join('・');
   }
-  function renderNow() { const el = $('#secNow'); if (el) el.innerHTML = `<div class="card-head"><h3>いまの状況</h3><span class="hint">タップで詳しく</span></div>${nowCard()}`; }
+  function renderNow() { const el = $('#secNow'); if (el) el.innerHTML = `<div class="card-head"><h3>いまの状況</h3><span class="hint">数字をタップで内訳</span></div>${nowCard()}`; }
   function renderLife() {
     const age = LC.playerAge(S), C = LC.country(S), indep = LC.isIndependent(S);
-    const fam = S.order.map((id) => S.characters[id]).filter((c) => c.relation !== 'self' && c.relation !== 'grandchild' || (c.relation === 'grandchild' && c.alive))
-      .map((c) => `<span class="${c.alive ? '' : 'gone'}">${esc(LC.relLabel(S, c))} ${c.alive ? LC.ageOfChar(S, c) + '歳' : ''}</span>`).join('');
+    // the family list lives in the 家族と人間関係 card (renderFamily)
     const school = S.career.status === 'student' || S.career.status === 'child' ? (S.education.school || (age < 6 ? '未就学' : '—')) : S.career.job ? `${S.career.job.company}（${LC.JOB_TYPES[S.career.job.type].label}）` : '—';
     const biz = S.businesses.filter((b) => !b.parentId).map((b) => b.name).join('、');
     const lifestyle = indep ? `<div class="seg" role="group" aria-label="生活水準">${Object.keys(LC.LIFESTYLES).map((k) => `<button data-act="lifestyle" data-v="${k}" class="${S.lifestyle === k ? 'on' : ''}">${LC.LIFESTYLES[k].label}</button>`).join('')}</div>` : `<span>家庭の暮らし向き「${LC.WEALTH[S.family.wealth].label}」</span>`;
@@ -9632,12 +9796,11 @@ const Scene = (function () {
         <p>${S.focus.length === 2 ? '2つ選ぶと時間を分け合うため、それぞれの効果は6割になります。' : S.focus.length ? '1つに絞ると効果は最大です。もう1つ選ぶと時間を分け合います。' : '重点を選ぶと、その年の成長や収入が変わります。'}${focusEffectText()}</p>`;
     }
     $('#secLife').innerHTML = `
-      <div class="card-head"><h3>いまの人生</h3><span class="hint">${esc(LC.STAGE_LABEL[LC.stageOf(age)])}${S.temper ? ' · ' + esc(S.temper) + '性格' : ''}</span></div>
+      <div class="card-head"><h3>プロフィールと今年の重点</h3><span class="hint">${esc(LC.STAGE_LABEL[LC.stageOf(age)])}${S.temper ? ' · ' + esc(S.temper) + '性格' : ''}</span></div>
       <dl class="rows">
         <div class="row"><dt>住まい</dt><dd>${esc(C.name)}・${esc(S.region.name)}<br><span class="hint">${esc(S.residence.label)}${S.residence.own ? '（持ち家）' : S.residence.rent ? `（家賃 月${Y(S.residence.rent)}）` : ''}</span></dd></div>
         <div class="row"><dt>実家</dt><dd>${esc(LC.TIERS[S.family.birthTier].label)}に生まれる<br><span class="hint">いまの実家：${S.family.settled ? '相続済み' : esc(LC.TIERS[S.family.wealth].short) + '・' + esc(S.family.home.label)} · 出生地 ${esc(S.birth.region.pref)}（${esc(S.birth.region.area)}）</span></dd></div>
-        <div class="row"><dt>家族</dt><dd><div class="fam">${fam || '<span>—</span>'}</div></dd></div>
-        <div class="row"><dt>職業</dt><dd>${esc(LC.statusLabel(S))}</dd></div>
+        <div class="row"><dt>立場</dt><dd>${esc(LC.statusLabel(S))}<br><span class="hint">家族は「家族と人間関係」へ</span></dd></div>
         <div class="row"><dt>学校・会社</dt><dd>${esc(school || '—')}${biz ? `<br><span class="hint">経営：${esc(biz)}</span>` : ''}</dd></div>
         <div class="row"><dt>生活水準</dt><dd>${lifestyle}</dd></div>
       </dl>
@@ -9669,7 +9832,7 @@ const Scene = (function () {
     let list = S.history.slice().reverse();
     if (ui.logImp) list = list.filter((r) => r.important);
     const total = list.length;
-    if (!ui.logAll) list = list.slice(0, 30);
+    const shown = ui.logAll ? total : Math.min(total, ui.logN || 8); list = list.slice(0, shown); let lastAge = null;
     const items = list.map((r) => {
       const open = ui.open[r.id];
       let detail = '';
@@ -9681,14 +9844,16 @@ const Scene = (function () {
         detail = `<div class="detail"><span>${r.year}年${r.month}月・${r.age}歳</span>${st}${ab}${mo}${nt}${!st && !mo && !ab ? '<span>数値の変化なし</span>' : ''}</div>`;
       }
       const fav = (S.favs || []).includes(r.id);
-      return `<li class="rec-li"><button class="star ${fav ? 'on' : ''}" data-act="fav" data-v="${r.id}" aria-label="${fav ? '☆を外す' : '☆を付ける（大切な思い出）'}" aria-pressed="${fav}">${fav ? '★' : '☆'}</button><button class="rec ${r.important ? 'imp' : ''} ${r.tone} ${fav ? 'faved' : ''}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
+      const sep = r.age !== lastAge ? `<li class="age-sep"><b>${r.age}歳</b><span>${r.year}年</span></li>` : ''; lastAge = r.age;
+      return sep + `<li class="rec-li"><button class="star ${fav ? 'on' : ''}" data-act="fav" data-v="${r.id}" aria-label="${fav ? '☆を外す' : '☆を付ける（大切な思い出）'}" aria-pressed="${fav}">${fav ? '★' : '☆'}</button><button class="rec ${r.important ? 'imp' : ''} ${r.tone} ${fav ? 'faved' : ''}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
         <span class="when"><b>${r.age}歳</b>${r.year}</span>
         <span class="ttl"><span class="tag ${LC.CAT[r.cat] ? LC.CAT[r.cat].color : ''}">${LC.CAT[r.cat] ? LC.CAT[r.cat].label : ''}</span><span class="t">${esc(locYen(r.title))}</span></span>
         <span class="desc">${esc(locYen(r.desc))}</span>${detail}</button></li>`;
     }).join('');
-    $('#secLog').innerHTML = `<div class="card-head"><h3>人生の記録</h3><div class="log-tools"><button class="chip-btn ${ui.logImp ? '' : 'on'}" data-act="logImp" data-v="0">すべて</button><button class="chip-btn ${ui.logImp ? 'on' : ''}" data-act="logImp" data-v="1">重要のみ</button></div></div>
-      <p class="hint" style="margin:-6px 0 10px">新しい順 · タップで詳細 · ☆で大切な思い出に（人生の最後に振り返ります）</p><ol class="log">${items}</ol>
-      ${total > 30 ? `<div class="btn-row"><button class="btn sm" data-act="logAll">${ui.logAll ? '最新30件だけ表示' : `すべて表示（${total}件）`}</button></div>` : ''}`;
+    $('#secLog').innerHTML = `<div class="card-head"><h3>直近の出来事</h3><div class="log-tools"><button class="chip-btn ${ui.logImp ? '' : 'on'}" data-act="logImp" data-v="0">すべて</button><button class="chip-btn ${ui.logImp ? 'on' : ''}" data-act="logImp" data-v="1">重要のみ</button></div></div>
+      <p class="hint" style="margin:-6px 0 10px">新しい順 · タップで数値の変化 · ☆で大切な思い出に</p><ol class="log">${items}</ol>
+      ${!total ? '<p class="empty">まだ記録はありません。時間を進めると、出来事がここに新しい順で並びます。</p>' : ''}
+      <div class="btn-row">${shown < total ? `<button class="btn sm" data-act="logMore">もっと見る（残り${total - shown}件）</button>` : ''}${shown > 8 ? `<button class="btn sm" data-act="logLess">最新8件に戻す</button>` : ''}<button class="btn sm" data-act="sheet" data-v="history" data-tab="time">年表で振り返る ›</button></div>`;
   }
 
   // ---------- events
@@ -9714,17 +9879,20 @@ const Scene = (function () {
     if (!v) { if (!layer.hidden) { layer.hidden = true; layer.innerHTML = ''; } shownEvent = null; ui.peek = false; return; }
     if (shownEvent === key) return;
     shownEvent = key;
-    // the previous result notice may stay for its short moment; it sits above the card and never blocks a tap
-    layer.className = 'event block';
+    // the previous result notice may stay for its short moment; it sits above the card and never blocks a tap.
+    // a birthday notice is not needed once a decision takes the screen
+    { const oc = $('#outcome'); if (!oc.hidden && oc.querySelector('.oc-toast.year')) { oc.hidden = true; layer.classList.remove('with-note'); } }
+    layer.className = 'event block' + ($('#outcome').hidden ? '' : ' with-note');
     layer.hidden = false;
     const cat = LC.CAT[v.cat] || LC.CAT.life;
-    layer.innerHTML = `<div class="ev-card ${v.important ? 'important' : ''} ${v.special ? 'special' : ''}" role="dialog" aria-label="${esc(v.title)}">${v.special ? `<div class="ev-banner"><span>★</span>${esc(v.banner)}<span>★</span></div>` : ''}
-      <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span><button class="ev-peek" data-act="peek" aria-label="いったん下ろして画面を見る">いったん下ろす ▾</button></div>
-      <p class="ev-text">${esc(locYen(v.text))}</p>${v.prev ? `<p class="ev-prev">${esc(v.prev)}</p>` : ''}
+    const tier = TIER(v);
+    layer.innerHTML = `<div class="ev-card tier-${tier.k} ${v.important ? 'important' : ''} ${v.special ? 'special' : ''}" role="dialog" aria-label="${esc(v.title)}">${v.special ? `<div class="ev-banner"><span>★</span>${esc(v.banner)}<span>★</span></div>` : ''}
+      <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><span class="ev-tier ${tier.k}">${tier.l}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span><button class="ev-peek" data-act="peek" aria-label="いったん下ろして画面を見る">いったん下ろす ▾</button></div>
+      <div class="ev-body">${evParas(locYen(v.text))}</div>${v.prev ? `<p class="ev-prev">${esc(v.prev)}</p>` : ''}
       <p class="ev-hold">${S.time.playing ? '時間は止まっています。選んだ瞬間に結果を反映して、そのまま再開します。' : '一時停止中です。選んだあとも止まったままです（▶ で再開）。'}</p>
-      <div class="choices">${v.choices.map((c, i) => `<button class="choice ${c.risk ? 'risky' : ''}" data-act="choose" data-v="${i}" data-n="${v.n}" ${c.disabled ? 'disabled' : ''}>
-        <span class="c-l">${esc(locYen(c.label))}</span>
-        ${c.now ? `<span class="c-fx"><b>いま</b><span>${esc(locYen(c.now))}</span></span>` : ''}${c.future ? `<span class="c-fx"><b>この先</b><span>${esc(locYen(c.future))}</span></span>` : ''}${c.risk ? `<span class="c-fx risk"><b>リスク</b><span>${esc(locYen(c.risk))}</span></span>` : ''}
+      <div class="choices" role="group" aria-label="選択肢（1回タップで決定）">${v.choices.map((c, i) => `<button class="choice ${c.risk ? 'risky' : ''}" data-act="choose" data-v="${i}" data-n="${v.n}" ${c.disabled ? 'disabled' : ''}>
+        <span class="c-l"><span class="c-no" aria-hidden="true">${i + 1}</span>${esc(locYen(c.label))}</span>
+        ${c.now ? `<span class="c-fx now"><b>いま</b><span>${esc(locYen(c.now))}</span></span>` : ''}${c.future ? `<span class="c-fx fut"><b>この先</b><span>${esc(locYen(c.future))}</span></span>` : ''}${c.risk ? `<span class="c-fx risk"><b>リスク</b><span>${esc(locYen(c.risk))}</span></span>` : ''}
         ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</button>`).join('')}</div>
       ${v.id === 'milestone' ? `<label class="ev-note">思いを書き残す（任意・120字まで。人生の年表に残ります）<textarea id="evNote" maxlength="120" rows="2" placeholder="例）この10年でいちばん大事だったこと"></textarea></label>` : ''}
       ${autoBar()}</div>`;
@@ -9732,7 +9900,7 @@ const Scene = (function () {
   }
 
   // ---------- sheets
-  const SHEETS = { life: '暮らし', market: '投資・不動産・世界経済', biz: '仕事・キャリア・会社', goals: '目標', money: '総資産とお金の流れ', menu: 'メニュー', abil: '能力と適性', history: '人生ヒストリー' };
+  const SHEETS = { life: '人生・家族・暮らし', market: '投資・不動産・世界経済', biz: '仕事・キャリア・会社', goals: '目標', money: '資産とお金の流れ', menu: 'メニュー', abil: '能力と適性', history: '記録・実績' };
   function openSheet(name, tab) {
     if (!ui.sheet) ui.wasPlaying = S.time.playing;
     if (S.time.playing) { S.time.playing = false; LC.bump(S); }
@@ -9747,15 +9915,15 @@ const Scene = (function () {
     if (!silent && ui.wasPlaying && !(S.events.active && S.events.active.blocking) && !S.over) { S.time.playing = true; LC.bump(S); }
     ui.wasPlaying = false;
   }
-  function markDock() { document.querySelectorAll('.dock [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === ui.sheet))); }
-  function defaultTab(n) { return { life: 'home', market: 'overview', menu: 'save', biz: 'jobs', money: 'total', history: 'eval' }[n] || null; }
-  const TABS = { life: [['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '株式・投信'], ['realty', '不動産'], ['crypto', '仮想通貨'], ['world', '世界経済']], money: [['total', '総資産'], ['flow', '収支の内訳'], ['family', '実家']], history: [['eval', '評価'], ['time', '年表'], ['money', 'お金の推移'], ['room', '部屋']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
+  function markDock() { document.querySelectorAll('.dock [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === 'home' ? !ui.sheet : b.dataset.v === ui.sheet))); }
+  function defaultTab(n) { return { life: 'fam', market: 'overview', menu: 'save', biz: 'jobs', money: 'total', history: 'time' }[n] || null; }
+  const TABS = { life: [['fam', '家族・人間関係'], ['abil', 'プロフィール・能力'], ['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '株式・投信'], ['realty', '不動産'], ['crypto', '仮想通貨'], ['world', '世界経済']], money: [['total', '総資産'], ['flow', '収支の内訳'], ['family', '実家']], history: [['time', '年表'], ['goals', '目標・実績'], ['eval', '評価'], ['money', 'お金の推移'], ['room', '部屋']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
   function renderSheet() {
     if (!ui.sheet) return;
     $('#sheetTitle').textContent = SHEETS[ui.sheet];
     const tabs = TABS[ui.sheet];
     $('#sheetTabs').innerHTML = tabs && !ui.asset ? tabs.map(([k, l]) => `<button class="chip-btn ${ui.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}">${l}</button>`).join('') : '';
-    const fn = { life: sheetLife, market: sheetMarket, biz: sheetBiz, goals: sheetGoals, money: sheetMoneyX, menu: sheetMenu, abil: sheetAbil, history: sheetHistory }[ui.sheet];
+    const fn = ui.sheet === 'life' && ui.tab === 'fam' ? sheetFamily : ui.sheet === 'life' && ui.tab === 'abil' ? sheetAbil : ui.sheet === 'history' && ui.tab === 'goals' ? sheetGoals : { life: sheetLife, market: sheetMarket, biz: sheetBiz, goals: sheetGoals, money: sheetMoneyX, menu: sheetMenu, abil: sheetAbil, history: sheetHistory }[ui.sheet];
     const msg = ui.msg ? `<p class="msg ${ui.msg.ok ? 'ok' : ''}" role="status">${esc(ui.msg.text)}</p>` : '';
     $('#sheetBody').classList.toggle('mkt', ui.sheet === 'market');
     // remember where each view was scrolled to, so coming back from a detail screen returns to the same place
@@ -9855,7 +10023,7 @@ const Scene = (function () {
       html += `<div class="box"><h4>投資資産<span class="num">${Y(bs.investable)}</span></h4>${kv([['含み損益', `<span class="${gain >= 0 ? 'up' : 'down'}">${LC.signedYen(gain)}</span>`], ['実現損益（累計）', LC.signedYen(S.portfolio.realized)], ['受け取った配当（累計）', Y(S.portfolio.dividends)], ['配当の見込み（年・税引後）', Y(LC.annualDividendEstimate(S))], ['売買手数料（累計）', Y(S.portfolio.fees)],
         S.country === 'jp' && ['NISA 今年の枠', `${Y(S.finance.nisa.annualUsed)} / ${Y(LC.CONFIG.JP.nisaAnnual)}`], S.country === 'jp' && ['NISA 生涯枠', `${Y(S.finance.nisa.lifetimeUsed)} / ${Y(LC.CONFIG.JP.nisaLifetime)}`], ['使える現金', Y(S.finance.cash)]])}</div>`;
       if (bs.realEstate - bs.home > 0 || bs.crypto > 0) html += `<div class="box">${kv([['投資用不動産', Y(bs.rentals)], ['仮想通貨', Y(bs.crypto)]])}</div>`;
-      html += `<p class="section-title">保有銘柄</p>` + (hs.length ? `<div class="list">${hs.map((h) => { const d = LC.assetDef(h.id); return `<button class="asset-row" data-act="asset" data-v="${h.id}"><span class="nm">${esc(d.name)} <span class="tag">${h.acct === 'nisa' ? 'NISA' : h.acct === 'founder' ? '創業者株' : '課税'}</span></span><span class="px">${Y(h.value)}</span><span class="sub">${LC.fmtQty(d, h.qty)} · 平均取得 ${YP(h.avgCost)}</span><span class="chg ${h.gain >= 0 ? 'up' : 'down'}">${LC.signedYen(h.gain)}</span></button>`; }).join('')}</div>` : `<div class="box"><p>まだ何も持っていません。「銘柄」から選べます。</p></div>`);
+      html += `<p class="section-title">保有銘柄</p>` + (hs.length ? `<div class="list">${hs.map((h) => { const d = LC.assetDef(h.id); return `<button class="asset-row" data-act="asset" data-v="${h.id}"><span class="nm">${esc(d.name)} <span class="tag">${h.acct === 'nisa' ? 'NISA' : h.acct === 'founder' ? '創業者株' : '課税'}</span></span><span class="px">${Y(h.value)}</span><span class="sub">${LC.fmtQty(d, h.qty)} · 平均取得 ${YP(h.avgCost)}</span><span class="chg ${h.gain >= 0 ? 'up' : 'down'}">${LC.signedYen(h.gain)}</span></button>`; }).join('')}</div>` : `<div class="box"><p class="empty">まだ投資していません。銘柄を選んで買うと、ここに保有数量・平均取得単価・評価額・損益が並びます。</p><div class="btn-row"><button class="btn sm" data-act="tab" data-v="list">株式・投信の一覧を見る ›</button></div></div>`);
       const grp = S.businesses.filter((x) => x.parentId);
       if (grp.length) html += `<p class="section-title">グループ会社の株式（非上場・会社が保有）</p><div class="list">${grp.map((x) => `<button class="asset-row" data-act="grpOpen" data-v="${x.id}"><span class="nm">${esc(x.name)} <span class="tag">${esc(LC.CTRL_LABEL[LC.ctrlLevel(S, x)].replace(/（.*）/, ''))}</span></span><span class="px">${Y(x.parentStake * x.valuation)}</span><span class="sub">持分 ${Math.round(x.parentStake * 100)}% · 取得額 ${Y((x.acq && x.acq.paid) || 0)}</span><span class="chg ${x.parentStake * x.valuation - ((x.acq && x.acq.paid) || 0) >= 0 ? 'up' : 'down'}">${LC.signedYen(x.parentStake * x.valuation - ((x.acq && x.acq.paid) || 0))}</span></button>`).join('')}</div>`;
       html += `<p class="section-title">積立</p>` + (S.portfolio.recurring.length ? `<div class="list">${S.portfolio.recurring.map((r) => `<div class="box opt"><span class="name">${esc(LC.assetDef(r.id).name)}</span><span class="sub">毎月${Y(r.monthly)} · ${r.acct === 'nisa' ? 'NISA' : '課税口座'}</span><button class="btn sm" data-act="stopRec" data-v="${r.id}" data-k="${r.acct}">停止</button></div>`).join('')}</div>` : `<div class="box"><p>積立は設定されていません。銘柄の画面から毎月の金額を決められます。</p></div>`);
@@ -9944,6 +10112,7 @@ const Scene = (function () {
       ['実現損益（この銘柄）', `<span class="${q.realized >= 0 ? 'up' : 'down'}">${LC.signedYen(q.realized)}</span>`]].concat(holds.map(({ acct, h }) => [acct === 'nisa' ? '　うちNISA' : acct === 'founder' ? '　うち創業者株' : '　うち課税口座', LC.fmtQty(a, h.qty)])))}</div>`;
     html += `<div class="box"><h4>売買</h4><div class="form"><div class="two"><label>${isStock ? '株数' : `金額（${curName()}）`}<input id="tfQty" type="number" inputmode="numeric" min="0" step="${isStock ? 1 : 'any'}" value="${f.qty}" data-act="tradeForm"></label>
       <label>口座<select id="tfAcct" data-act="tradeForm"><option value="taxable" ${f.acct === 'taxable' ? 'selected' : ''}>課税口座</option>${S.country === 'jp' && a.kind !== 'crypto' ? `<option value="nisa" ${f.acct === 'nisa' ? 'selected' : ''}>NISA（非課税）</option>` : ''}${S.portfolio.holdings[id + ':founder'] ? `<option value="founder" ${f.acct === 'founder' ? 'selected' : ''}>創業者株（売却のみ）</option>` : ''}</select></label></div>
+      ${(() => { const hq = (S.portfolio.holdings[id + ':' + f.acct] || {}).qty || 0, cash = S.finance.cash; return `<dl class="kv order-sum"><dt>この口座の保有</dt><dd>${hq > 0 ? LC.fmtQty(a, hq) : 'なし'}</dd><dt>購入に使える現金</dt><dd class="${cash < 0 ? 'down' : ''}">${Y(Math.max(0, cash))}</dd><dt>注文金額（見込み）</dt><dd><b>${Y(estimate)}</b></dd><dt>買った後の現金</dt><dd class="${cash - estimate < 0 ? 'down' : ''}">${cash - estimate < 0 ? '資金が足りません' : Y(cash - estimate)}</dd></dl>`; })()}
       <p class="hint">${isStock ? `約${Y(estimate)}（手数料0.1%込み）` : a.kind === 'crypto' ? `約${LC.fmtQty(a, qty)}（手数料${(LC.CONFIG.CRYPTO_FEE * 100).toFixed(1)}%別）` : `約${LC.fmtQty(a, qty)}`} · 現金 ${Y(S.finance.cash)} · 価格は最新の終値</p>
       <div class="btn-row"><button class="btn primary" data-act="buy" data-v="${id}" ${LC.playerAge(S) < 18 ? 'disabled' : ''}>買う</button><button class="btn" data-act="sell" data-v="${id}" ${holds.some((x) => x.acct === f.acct) ? '' : 'disabled'}>売る</button></div>
       <label>積立（毎月の金額・${curName()}）<input id="tfMonthly" type="number" inputmode="numeric" min="0" step="any" value="${f.monthly}" data-act="tradeForm"></label>
@@ -10158,7 +10327,7 @@ const Scene = (function () {
       case 'speed': LC.setSpeed(S, +v); if (!S.time.playing && !S.over && !S.events.active) LC.togglePlay(S); break;
       case 'next': { const had = !!S.events.active; const r = LC.nextYear(S); if (r.blocked && had) toast('先に選択肢を選んでください。', true); break; }
       case 'choose': {
-        if (ui.choosing) break; ui.choosing = true; setTimeout(() => { ui.choosing = false; }, 300); // one tap = one decision
+        const evN = el.dataset.n != null ? +el.dataset.n : -1; if (ui.choosing === evN) break; ui.choosing = evN; clearTimeout(ui.chooseT); ui.chooseT = setTimeout(() => { ui.choosing = null; }, 300); // one tap = one decision for this event; the next event can be answered at once
         const h0 = S.history.length; const noteEl = document.getElementById('evNote'); const noteTxt = noteEl ? noteEl.value : '';
         const r = LC.chooseEvent(S, +v, false, el.dataset.n != null ? +el.dataset.n : null);
         if (!r.ok) { if (r.msg) toast(r.msg, true); break; }
@@ -10167,7 +10336,10 @@ const Scene = (function () {
         void rec; if (r.outcome) showOutcome(r.outcome); // short notice only — no result screen, no extra button
         shownEvent = null; renderEvent(); break;
       }
-      case 'sheet': if (ui.sheet === v) closeSheet(); else openSheet(v); break;
+      case 'sheet': { const tb = el.dataset.tab || null; if (ui.sheet === v && !tb) closeSheet(); else if (ui.sheet === v) { ui.tab = tb; ui.asset = null; renderSheet(); $('#sheetBody').scrollTop = 0; } else openSheet(v, tb); break; }
+      case 'home': closeSheet(); { const sc = $('#scroller'); if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' }); } markDock(); break;
+      case 'logMore': ui.logN = (ui.logN || 8) + 20; renderLog(); break;
+      case 'logLess': ui.logN = 8; ui.logAll = false; renderLog(); break;
       case 'close': closeSheet(); break;
       case 'viewToggle': Scene.setView(Scene.getView() === 'office' ? 'home' : 'office'); renderScene(); break;
       case 'buyFurn': result(LC.buyFurniture(S, v)); break;
@@ -10239,7 +10411,7 @@ const Scene = (function () {
       case 'endHistory': endingFinish(); $('#eventLayer').hidden = true; openSheet('history'); break;
       case 'endNext': endingNext(); break;
       case 'endSkip': endingFinish(); break;
-      case 'history': $('#eventLayer').hidden = true; openSheet('history'); break;
+      case 'history': $('#eventLayer').hidden = true; openSheet('history', 'eval'); break;
       case 'propOpen': ui.prop = v; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'propBack': ui.prop = null; renderSheet(); break;
       case 'sellProp': ui.confirm = null; ui.prop = null; result(LC.sellRealty(S, v)); break;
@@ -10535,8 +10707,7 @@ const Scene = (function () {
     const met = (o.met || []).length ? [`<span class="dc up">新しい人脈を獲得</span>`] : [];
     const all = head.concat(met, rest), shown = all.slice(0, 4), more = all.length - shown.length;
     el.innerHTML = `<div class="oc-toast ${o.tone || ''}" role="status" aria-live="polite"><b class="oc-t">${esc(o.title)}</b><span class="oc-chips">${shown.join('') || '<span class="dc">変化なし</span>'}${more > 0 ? `<span class="dc more">他${more}件</span>` : ''}</span></div>`;
-    el.hidden = false;
-    clearTimeout(showOutcome._t); showOutcome._t = setTimeout(() => { el.hidden = true; }, 2800);
+    noteOn(el);
   }
 
   // ---------- abilities
@@ -10763,7 +10934,7 @@ const Scene = (function () {
     if (ui.div && ct === 'div') return html + `<p class="crumb">${esc(b.name)} › 事業部</p>` + bizDivisions(b); // a division screen: no company header, the division comes first
     if (ct !== 'ov') html += `<div class="co-mini"><b>${esc(b.name)}</b><span>売上 ${Y(b.revenueRun)}</span><span class="${op != null && op < 0 ? 'down' : ''}">営業利益 ${op != null ? LC.signedYen(op) : '—'}</span><span class="${b.cash < 0 ? 'down' : ''}">現金 ${Y(b.cash)}</span><span>社員 ${b.employees}人</span></div>`;
     else html += `<div class="box"><h4>${esc(b.name)}<span class="tag biz">${LC.INDUSTRIES[b.industry].label}${b.listed ? '・上場' : ''}・${b.foundedYear}年設立</span></h4>
-      <div class="kpis">${kpi('売上（年換算）', Y(b.revenueRun), growth != null ? `前年比 ${pctS(growth)}` : '')}${kpi('営業利益（前期）', op != null ? LC.signedYen(op) : '—', L ? `利益率 ${pctS(op / Math.max(1, L.revenue))}` : '決算は年末', op != null && op < 0 ? 'bad' : '')}${kpi('会社の現金', Y(b.cash), `借入 ${Y(b.debt)}`, b.cash < 0 ? 'bad' : '')}${kpi('企業価値', Y(b.valuation), `持株 ${Math.round(b.ownership * 1000) / 10}%`, 'gold')}${kpi('社員', b.employees + '人', `グループ計 ${g.employees}人`)}${kpi('品質', Math.round(b.quality), `研究開発 年${Y(b.rnd || 0)}`)}</div></div>`;
+      <div class="kpis">${kpi('売上（年換算）', Y(b.revenueRun), growth != null ? `前年比 ${pctS(growth)}` : '')}${kpi('営業利益（前期）', op != null ? LC.signedYen(op) : '—', L ? `利益率 ${pctS(op / Math.max(1, L.revenue))}` : '決算は年末', op != null && op < 0 ? 'bad' : '')}${kpi('会社の現金', Y(b.cash), `借入 ${Y(b.debt)}`, b.cash < 0 ? 'bad' : '')}${kpi('企業価値', Y(b.valuation), `持株 ${Math.round(b.ownership * 1000) / 10}%`, 'gold')}${kpi('社員', b.employees + '人', `グループ計 ${g.employees}人`)}${L ? kpi('純利益（前期）', LC.signedYen(L.net), `法人税 ${Y(L.tax)}`, L.net < 0 ? 'bad' : '') : ''}${L ? kpi('人件費（前期）', Y(L.labor), `売上比 ${pctS(L.labor / Math.max(1, L.revenue))}`) : ''}${kpi('品質', Math.round(b.quality), `研究開発 年${Y(b.rnd || 0)}`)}</div></div>`;
     void 0;
     html += `<div class="sheet-tabs inner">${CTABS.map(([k, l]) => `<button class="chip-btn ${ct === k ? 'on' : ''}" data-act="ctab" data-v="${k}">${l}</button>`).join('')}</div>`;
     html += ({ ov: bizOverview, fin: bizFinance, div: bizDivisions, bud: budgetTab, emp: bizEmployees, sh: bizShareholders, ma: bizMA, act: bizActions, news: bizNews }[ct] || bizOverview)(b);
@@ -10946,22 +11117,17 @@ const Scene = (function () {
   // home: the most important things right now, details one tap away
   function nowCard() {
     if (!S) return '';
-    const bs = LC.balanceSheet(S), b = LC.budget(S), age = LC.playerAge(S), c = LC.calendar(S), role = LC.careerRole ? LC.careerRole(S) : null;
-    const job = S.career.job ? `${(LC.OCC[S.career.job.type] || {}).label || '会社員'}・${S.career.job.company || ''}` : role ? role.label : S.career.status === 'student' ? (S.education.school || '学生') : age < 6 ? '未就学' : LC.statusLabel(S);
+    const bs = LC.balanceSheet(S), b = LC.budget(S);
     const mi = b.indep ? b.totalIncome / 12 : null, me = b.indep ? (b.totalExpense + b.totalTax) / 12 : null;
     const sp = LC.spouse ? LC.spouse(S) : null, kids = LC.childrenOf(S).filter((k) => k.alive !== false).length;
-    const alerts = [];
-    if (S.finance.debts.some((d) => d.type === 'consumer' && d.principal > 0)) alerts.push('カードローンの残高があります');
-    for (const x of S.businesses.filter((y) => !y.parentId)) if (x.cash < 0) alerts.push(`${x.name}の資金が不足しています`);
-    if (S.stats.health < 35) alerts.push('健康が悪化しています');
-    if (S.goal10) alerts.push(`目標：${S.goal10.label}（${S.goal10.until}歳まで）`);
     const ab = LC.abilAvg ? LC.abilAvg(S) : null;
+    const cell = (act, v, tab, l, val, sub, cls) => `<button class="now-cell" data-act="${act}" data-v="${v}" ${tab ? `data-tab="${tab}"` : ''}><span class="now-l">${l}</span><b class="num ${cls || ''}">${val}</b><span class="now-s">${sub}</span></button>`;
     return `<div class="now-grid">
-      <div class="now-main"><span class="now-l">いま</span><b>${age}歳・${c.y}年${c.m}月</b><span class="now-s">${esc(job)}</span></div>
-      <button class="now-cell" data-act="sheet" data-v="money"><span class="now-l">所持金</span><b class="num">${Y(bs.cash)}</b><span class="now-s">総資産 ${Y(bs.totalAssets)}</span></button>
-      <button class="now-cell" data-act="sheet" data-v="money"><span class="now-l">毎月の収支</span><b class="num ${mi != null && mi - me < 0 ? 'down' : ''}">${mi == null ? '—' : LC.signedYen(mi - me)}</b><span class="now-s">${mi == null ? '家族の家計' : `収入 ${Y(mi)}・支出 ${Y(me)}`}</span></button>
-      <button class="now-cell" data-act="sheet" data-v="abil"><span class="now-l">家族・健康・能力</span><b>${sp ? '既婚' : '独身'}${kids ? `・子${kids}人` : ''}</b><span class="now-s">健康 ${Math.round(S.stats.health)}・幸福 ${Math.round(S.stats.happiness)}${ab != null ? `・能力 ${Math.round(ab)}` : ''}</span></button>
-    </div>${alerts.length ? `<ul class="now-alerts">${alerts.slice(0, 3).map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}`;
+      ${cell('sheet', 'money', 'total', '純資産', Y(bs.net), `総資産 ${Y(bs.totalAssets)} · 負債 ${Y(bs.debts)}`, bs.net < 0 ? 'down' : 'gold')}
+      ${cell('sheet', 'money', 'flow', '毎月の収支', mi == null ? '—' : LC.signedYen(mi - me), mi == null ? '子どものうちは家族の家計' : `収入 ${Y(mi)} · 支出 ${Y(me)}`, mi != null && mi - me < 0 ? 'down' : mi != null ? 'up' : '')}
+      ${cell('sheet', 'market', 'overview', '投資・不動産', Y(bs.investable + bs.rentals), `株・投信など ${Y(bs.investable)} · 賃貸不動産 ${Y(bs.rentals)}`)}
+      ${cell('sheet', 'life', 'fam', '家族・健康', `${sp ? '既婚' : '独身'}${kids ? `・子${kids}人` : ''}`, `健康 ${Math.round(S.stats.health)} · 幸福 ${Math.round(S.stats.happiness)}${ab != null ? ` · 能力 ${Math.round(ab)}` : ''}`)}
+    </div>`;
   }
   // acquired company detail
   function subDetail(x) {
@@ -11112,6 +11278,154 @@ const Scene = (function () {
       <p class="hint" style="margin-top:6px">投資：${esc(X.invest)}<br>社会保障：${esc(X.welfare)}<br>株式市場：${esc(C.market || '')}<br>不動産：${esc(C.estate || '')}</p></div>`;
   }
 
+
+  // ======================= UI v2: home overview, people, header status, age-up, keyboard =======================
+  // Everything here reads the real game state (S / LC). Nothing is shown when the data does not exist yet.
+
+  // ---- header: who you are right now (job · cash). The pink bar and big age stay as they were.
+  function jobLine() {
+    const age = LC.playerAge(S), role = LC.careerRole ? LC.careerRole(S) : null;
+    if (S.over) return '人生を終えました';
+    if (S.career.job) return `${(LC.OCC[S.career.job.type] || {}).label || '会社員'}・${S.career.job.company || ''}`;
+    if (role) return role.label;
+    if (S.career.status === 'student' || S.career.status === 'child') return S.education.school || (age < 6 ? '未就学' : '学生');
+    return LC.statusLabel(S);
+  }
+  function renderStatusLine() {
+    const el = $('#metaStatus'); if (!el || !S) return;
+    const cash = S.finance.cash;
+    const html = `<span class="ms-job">${esc(jobLine())}</span><button class="ms-cash num ${cash < 0 ? 'neg' : ''}" data-act="sheet" data-v="money" aria-label="所持金 ${esc(Y(cash))}（タップで資産の内訳）"><span class="ms-l">所持金</span>${esc(Y(cash))}</button>`;
+    if (el._h !== html) { el.innerHTML = html; el._h = html; }
+  }
+
+  // ---- birthday: a short pop on the age, a flash at the end of the bar, and one quiet notice with how the year went
+  const yearBase = { age: null, net: null, inv: null, gain: null };
+  function snapYear() { const bs = LC.balanceSheet(S), H = LC.holdingsList(S); yearBase.net = bs.net; yearBase.inv = bs.investable; yearBase.gain = H.reduce((a, h) => a + h.gain, 0); }
+  function onAgeChange(prev, age) {
+    if (prev == null || age !== prev + 1) { yearBase.age = age; snapYear(); return; }
+    const a = document.querySelector('.age'); if (a) { a.classList.remove('age-up'); void a.offsetWidth; a.classList.add('age-up'); }
+    const bar = $('#bar'); if (bar) { bar.classList.remove('lap'); void bar.offsetWidth; bar.classList.add('lap'); }
+    const fx = $('#ageFx'); if (fx) { fx.textContent = `${age}歳`; fx.hidden = false; fx.classList.remove('go'); void fx.offsetWidth; fx.classList.add('go'); clearTimeout(fx._t); fx._t = setTimeout(() => { fx.hidden = true; }, 1600); }
+    const bs = LC.balanceSheet(S), H = LC.holdingsList(S), gain = H.reduce((x, h) => x + h.gain, 0);
+    const chips = [];
+    if (yearBase.net != null && Math.abs(bs.net - yearBase.net) >= 1) chips.push(`<span class="dc ${bs.net >= yearBase.net ? 'up' : 'down'}">純資産 ${LC.signedYen(bs.net - yearBase.net)}</span>`);
+    if (H.length && yearBase.gain != null && Math.abs(gain - yearBase.gain) >= 1) chips.push(`<span class="dc ${gain >= yearBase.gain ? 'up' : 'down'}">投資評価損益 ${LC.signedYen(gain - yearBase.gain)}</span>`);
+    yearBase.age = age; snapYear();
+    if (S.events.active || S.over) return; // a decision is on screen: the header pop is enough
+    const el = $('#outcome'); if (!el) return;
+    el.innerHTML = `<div class="oc-toast year" role="status" aria-live="polite"><b class="oc-t">🎂 ${age}歳になりました</b><span class="oc-chips">${chips.join('')}</span></div>`;
+    noteOn(el);
+  }
+  // one notice at a time; while it is up, a decision card starts below it instead of underneath it
+  function noteOn(el) {
+    el.hidden = false; $('#eventLayer').classList.add('with-note');
+    clearTimeout(showOutcome._t); showOutcome._t = setTimeout(() => { el.hidden = true; $('#eventLayer').classList.remove('with-note'); }, 2800);
+  }
+  function updateBarNext() {
+    const el = $('#barNext'); if (!el || !S) return;
+    const t = `${LC.playerAge(S) + 1}歳`; if (el.textContent !== t) el.textContent = t;
+  }
+
+  // ---- home: "いま知っておくこと" — only items that exist right now, most urgent first
+  function briefItems() {
+    const out = [], age = LC.playerAge(S);
+    const add = (kind, icon, title, text, act, v, tab) => out.push({ kind, icon, title, text, act, v, tab });
+    if (S.over) return out;
+    // needs action
+    if (S.events.queue && S.events.queue.length) add('act', '!', '決断が待っています', `${S.events.queue.length}件の出来事がこのあと控えています。`, null);
+    if (S.finance.cash < 0) add('bad', '!', '現金がマイナスです', '支出を見直すか、資産を売って穴埋めしましょう。', 'sheet', 'money');
+    if (S.finance.debts.some((d) => d.type === 'consumer' && d.principal > 0)) add('bad', '!', 'カードローンの残高があります', '金利が高いので、早めの返済が安全です。', 'sheet', 'money');
+    for (const x of S.businesses.filter((y) => !y.parentId)) if (x.cash < 0) add('bad', '!', `${x.name}の資金が不足しています`, '会社の資金繰りを確認してください。', 'sheet', 'biz');
+    if (S.stats.health < 35) add('bad', '♥', '健康が悪化しています', '今年の重点に「健康を優先」を入れると回復します。', null);
+    if (S.stats.stress > 75) add('bad', '≋', 'ストレスが限界に近づいています', '休むか、重点を見直しましょう。', null);
+    if (age >= 22 && LC.isIndependent(S) && S.career.status === 'unemployed' && !S.businesses.some((b) => !b.parentId)) add('act', '⌕', '仕事を探せます', '求人に応募すると収入が生まれます。', 'sheet', 'biz');
+    // investments: the real holdings and how they moved since the last birthday
+    const H = LC.holdingsList(S);
+    if (H.length) {
+      const val = H.reduce((a, h) => a + h.value, 0), gain = H.reduce((a, h) => a + h.gain, 0);
+      const since = yearBase.gain != null ? gain - yearBase.gain : null;
+      add(gain >= 0 ? 'good' : 'bad', gain >= 0 ? '▲' : '▼', '投資', `評価額 ${Y(val)} · 含み損益 ${LC.signedYen(gain)}${since != null && Math.abs(since) >= 1 ? `（この1年 ${LC.signedYen(since)}）` : ''}`, 'sheet', 'market');
+    }
+    // company: last two closed years
+    for (const b of S.businesses.filter((y) => !y.parentId).slice(0, 2)) {
+      const h = b.hist2 || []; const L = h[h.length - 1], P = h[h.length - 2];
+      if (L && P && P.rev > 0) { const g = (L.rev - P.rev) / P.rev, k = L.op < 0 ? 'bad' : g >= 0 ? 'good' : 'bad'; add(k, g >= 0 ? '▲' : '▼', b.name, `${L.y}年の売上 ${Y(L.rev)}（前年比 ${g >= 0 ? '+' : ''}${(g * 100).toFixed(0)}%）· 営業利益 ${LC.signedYen(L.op)}`, 'sheet', 'biz'); }
+      else if (L) add('info', '■', b.name, `${L.y}年の売上 ${Y(L.rev)} · 営業利益 ${LC.signedYen(L.op)}`, 'sheet', 'biz');
+      else add('info', '■', b.name, '最初の決算はまだです。', 'sheet', 'biz');
+    }
+    // family: the latest family news within the last year
+    const fam = S.history.slice().reverse().find((r) => r.cat === 'family' && r.year >= S.time.year - 1);
+    if (fam) add('info', '◆', '家族', `${fam.age}歳：${fam.title}`, 'sheet', 'life', 'fam');
+    if (S.goal10) add('info', '◎', '目標', `${S.goal10.label}（${S.goal10.until}歳まで）`, 'sheet', 'history', 'goals');
+    return out;
+  }
+  function renderBrief() {
+    const el = $('#secBrief'); if (!el || !S) return;
+    const it = briefItems();
+    const LBL = { act: '対応', bad: '注意', good: '好調', info: 'お知らせ' };
+    const row = (x) => { const inner = `<span class="bi-ic ${x.kind}" aria-hidden="true">${x.icon}</span><span class="bi-tx"><b>${esc(x.title)}<em class="bi-k ${x.kind}">${LBL[x.kind]}</em></b><span>${esc(x.text)}</span></span>${x.act ? '<span class="bi-go" aria-hidden="true">›</span>' : ''}`;
+      return x.act ? `<li><button class="bi ${x.kind}" data-act="${x.act}" data-v="${x.v}" ${x.tab ? `data-tab="${x.tab}"` : ''}>${inner}</button></li>` : `<li><div class="bi ${x.kind}">${inner}</div></li>`; };
+    el.innerHTML = `<div class="card-head"><h3>いま知っておくこと</h3><span class="hint">${it.length ? 'タップで詳しく' : ''}</span></div>${it.length ? `<ul class="brief">${it.slice(0, 6).map(row).join('')}</ul>` : `<p class="empty">いまは特に知らせることはありません。時間を進めると、仕事・家族・お金の変化がここにまとまります。</p>`}`;
+  }
+
+  // ---- people: family members (real characters) and the people met along the way (with closeness)
+  const RELICON = { father: '父', mother: '母', sibling: '兄', grandparent: '祖', spouse: '配', child: '子', grandchild: '孫' };
+  function famRows(limit) {
+    const list = S.order.map((id) => S.characters[id]).filter((c) => c.relation !== 'self' && (c.alive || c.relation !== 'grandchild'));
+    list.sort((a, b) => (b.alive - a.alive) || (['spouse', 'child', 'father', 'mother', 'sibling', 'grandparent', 'grandchild'].indexOf(a.relation) - ['spouse', 'child', 'father', 'mother', 'sibling', 'grandparent', 'grandchild'].indexOf(b.relation)));
+    const rows = list.slice(0, limit || 99).map((c) => {
+      const age = LC.ageOfChar(S, c), st = !c.alive ? `${c.deathYear || ''}年に他界` : [c.residing ? '同居' : '別居', c.job || (age < 6 ? '未就学' : age < 23 && c.relation === 'child' ? '学生' : '')].filter(Boolean).join('・');
+      return `<li class="pp ${c.alive ? '' : 'gone'}"><span class="pp-ic" aria-hidden="true">${RELICON[c.relation] || '家'}</span><span class="pp-tx"><b>${esc(c.name)}</b><span>${esc(LC.relLabel(S, c))}${c.alive ? ` · ${age}歳` : ''} · ${esc(st)}</span></span>${c.alive ? `<span class="pp-m" title="健康 ${Math.round(c.health || 0)}"><span class="pp-ml">健康</span><span class="meter"><i style="width:${Math.round(c.health || 0)}%;background:var(--health)"></i></span></span>` : ''}</li>`;
+    });
+    return { rows, total: list.length };
+  }
+  function peopleRows(limit) {
+    const ps = (S.people || []).filter((p) => !p.gone).slice().sort((a, b) => b.rel - a.rel);
+    return { rows: ps.slice(0, limit || 99).map((p) => `<li class="pp"><span class="pp-ic friend" aria-hidden="true">${esc((LC.PEOPLE_ROLE[p.role] || '人').slice(0, 1))}</span><span class="pp-tx"><b>${esc(p.name)}</b><span>${esc(LC.PEOPLE_ROLE[p.role] || p.role)}${p.age ? ` · ${p.age}歳` : ''}${p.path ? ` · いまは${esc(p.path)}` : ''}</span></span><span class="pp-m" title="親密度 ${Math.round(p.rel)}"><span class="pp-ml">親密度 <b class="num">${Math.round(p.rel)}</b></span><span class="meter"><i style="width:${Math.round(p.rel)}%;background:var(--rel)"></i></span></span></li>`), total: ps.length };
+  }
+  function renderFamily() {
+    const el = $('#secFamily'); if (!el || !S) return;
+    const F = famRows(6), P = peopleRows(4);
+    el.innerHTML = `<div class="card-head"><h3>家族と人間関係</h3><button class="link-btn" data-act="sheet" data-v="life" data-tab="fam">すべて見る ›</button></div>
+      ${F.rows.length ? `<ul class="people">${F.rows.join('')}</ul>` : '<p class="empty">家族の情報はまだありません。</p>'}
+      ${F.total > 6 ? `<p class="hint">ほか${F.total - 6}人</p>` : ''}
+      <p class="sub-h">大切な人<span class="hint">親密度 0〜100</span></p>
+      ${P.rows.length ? `<ul class="people">${P.rows.join('')}</ul>` : '<p class="empty">まだ家族以外の大切な人はいません。友だち・恩師・仕事仲間は、出来事を通じて増えていきます。</p>'}`;
+  }
+  // the 人生 → 家族・人間関係 tab: everyone, with what happened between you
+  function sheetFamily() {
+    const F = famRows(), P = peopleRows();
+    const sp = LC.spouse(S), kids = LC.childrenOf(S).filter((k) => k.alive !== false);
+    const fam = S.history.filter((r) => r.cat === 'family').slice(-8).reverse();
+    let html = `<div class="box"><h4>家族<span class="hint">${sp ? '既婚' : '独身'}${kids.length ? `・子ども${kids.length}人` : ''}</span></h4>${F.rows.length ? `<ul class="people">${F.rows.join('')}</ul>` : '<p class="empty">家族の情報はまだありません。</p>'}</div>`;
+    html += `<div class="box"><h4>大切な人<span class="hint">親密度 0〜100</span></h4>${P.rows.length ? `<ul class="people">${P.rows.join('')}</ul><p class="hint">親密度が高い人ほど、困ったときの助けや仕事の縁につながります。</p>` : '<p class="empty">まだ家族以外の大切な人はいません。友だち・恩師・仕事仲間は、出来事を通じて増えていきます。</p>'}</div>`;
+    const ps = (S.people || []).filter((p) => !p.gone);
+    if (ps.length) html += `<div class="box"><h4>それぞれとの歩み</h4>${ps.slice().sort((a, b) => b.rel - a.rel).map((p) => { const ev = S.history.filter((r) => (r.desc || '').includes(p.name.split(' ').pop()) || (r.title || '').includes(p.name.split(' ').pop())).slice(-3).reverse();
+      return `<details class="pp-d"><summary><b>${esc(p.name)}</b><span class="hint">${esc(LC.PEOPLE_ROLE[p.role] || p.role)} · ${p.metAge}歳で出会う</span></summary>${kv([['人柄', esc(LC.TRAITS[p.trait] ? LC.TRAITS[p.trait].label : '—')], ['夢', esc(p.goal)], ['いま', esc(p.path || '—')], ['親密度', `${Math.round(p.rel)} / 100`]])}${ev.length ? `<ul class="news">${ev.map((r) => `<li><b>${r.age}歳</b><span class="${r.tone === 'good' ? 'up' : r.tone === 'bad' ? 'down' : ''}">${esc(r.title)}</span></li>`).join('')}</ul>` : '<p class="hint">まだ一緒の出来事は記録されていません。</p>'}</details>`; }).join('')}</div>`;
+    html += `<div class="box"><h4>家族の出来事<span class="hint">新しい順</span></h4>${fam.length ? `<ul class="news">${fam.map((r) => `<li><b>${r.age}歳</b><span class="${r.tone === 'good' ? 'up' : r.tone === 'bad' ? 'down' : ''}">${esc(r.title)}</span></li>`).join('')}</ul>` : '<p class="empty">家族に関する出来事はまだありません。</p>'}</div>`;
+    return html;
+  }
+
+  // ---- event text: long passages become short paragraphs (sentence boundaries only; the words are unchanged)
+  function evParas(t) {
+    t = String(t || ''); if (t.length < 70) return `<p class="ev-text">${esc(t)}</p>`;
+    const sents = t.match(/[^。！？!?]+[。！？!?」』）)]*|[^。！？!?]+$/g) || [t];
+    const paras = []; let cur = '';
+    for (const s of sents) { if (cur && (cur + s).length > 64) { paras.push(cur); cur = ''; } cur += s; }
+    if (cur) paras.push(cur);
+    return paras.map((p) => `<p class="ev-text">${esc(p.trim())}</p>`).join('');
+  }
+  const TIER = (v) => (v.special ? { k: 'special', l: '人生の転機' } : v.important ? { k: 'major', l: '大きな決断' } : { k: 'daily', l: '日々の出来事' });
+
+  // ---- keyboard on PC: 1–9 picks a choice (same one-tap path), Space plays/pauses
+  document.addEventListener('keydown', (e) => {
+    if (!S || ui.mode !== 'main' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || ''; if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    if (/^[1-9]$/.test(e.key) && S.events.active && !ui.sheet && !ui.peek) {
+      const btn = document.querySelectorAll('#eventLayer .choice')[+e.key - 1];
+      if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+    } else if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); const b = $('#btnPlay'); if (b) b.click(); }
+  });
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.sheet input[type=text], .sheet input[type=number]')) ui.typing = true; });
