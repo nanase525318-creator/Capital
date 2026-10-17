@@ -504,7 +504,7 @@ details summary { cursor: pointer; padding: 6px 0; font-size: 13px; }
 .now-alerts { margin: 8px 0 0; padding-left: 1.1em; font-size: 12.5px; color: var(--gold); }
 /* divisions */
 .div-cmp { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-.div-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 14px; gap: 6px 8px; text-align: left; background: var(--card, #161c28); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: inherit; cursor: pointer; align-items: end; }
+.div-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 14px; gap: 6px 8px; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; color: inherit; cursor: pointer; align-items: end; }
 .div-row .d-name { grid-column: 1 / -1; font-weight: 700; font-size: 15px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .div-row .d-kv { display: flex; flex-direction: column; min-width: 0; }
 .div-row .d-kv b { font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -656,14 +656,14 @@ button.bi:hover { border-color: var(--line-2); }
 :root[data-theme="light"] {
   color-scheme: light;
   --ink: #eef0f0; --panel: #fbfbfa; --panel-2: #f1f3f2; --line: #dfe3e2; --line-2: #cdd3d2;
-  --text: #24282b; --muted: #6b7377; --faint: #9aa2a5;
+  --text: #24282b; --muted: #636b6f; --faint: #848c90;
   --pink: #d65f88; --pink-deep: #a8456a;
   --health: #2f7d5b; --happy: #a87b22; --know: #2a7a74; --rel: #8e1d3d;
   --good: #2c7a5c; --bad: #c0453b; --gold: #94690f; --blue: #3b62ad; --act: #b5651d; --info: #3b62ad;
   --crimson: #8c1c3c; --teal: #2f7a6c; --teal-bg: #e2eeeb; --shadow: 0 1px 2px rgba(30, 40, 40, 0.05);
-  --map-rgb: 47, 122, 108; --map-w-rgb: 168, 123, 34;
+  --map-rgb: 47, 122, 108; --map-w-rgb: 168, 123, 34; --on-accent: #fff; --mkt-up: #cf3b4b; --mkt-down: #2f62c4;
 }
-:root[data-theme="dark"] { --crimson: #e07a98; --teal: #5bbfb2; --teal-bg: rgba(91, 191, 178, 0.12); --shadow: none; --map-rgb: 91, 191, 178; --map-w-rgb: 231, 194, 106; }
+:root[data-theme="dark"] { --on-accent: #1a0f16; --mkt-up: #ff7b86; --mkt-down: #6aa2ff; --crimson: #e07a98; --teal: #5bbfb2; --teal-bg: rgba(91, 191, 178, 0.12); --shadow: none; --map-rgb: 91, 191, 178; --map-w-rgb: 231, 194, 106; }
 :root { --f-serif: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif; --rr: 4px; }
 body { font-size: 14.5px; }
 
@@ -822,7 +822,7 @@ body { font-size: 14.5px; }
 
 /* ---------- decision dialog: white sheet, small red header line, serif title, numbered grey rows */
 .event.block { background: rgba(40, 44, 46, 0.42); }
-:root[data-theme="dark"] .event.block { background: rgba(5, 7, 12, 0.6); }
+:root[data-theme="dark"] .event.block, :root[data-theme="midnight"] .event.block { background: rgba(5, 7, 12, 0.6); }
 .ev-card { width: calc(100% - 2 * var(--gut)); max-width: 720px; padding: 0; gap: 0; border-radius: var(--rr); border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(20, 24, 26, 0.28); background: var(--panel); }
 .ev-card.important, .ev-card.tier-major { border-color: var(--line); border-top: 1px solid var(--line); }
 .ev-top { display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
@@ -869,7 +869,7 @@ body { font-size: 14.5px; }
 
 /* ---------- sheets (detail screens): the same white dialog */
 .sheet-back { background: rgba(40, 44, 46, 0.42); }
-:root[data-theme="dark"] .sheet-back { background: rgba(5, 7, 12, 0.6); }
+:root[data-theme="dark"] .sheet-back, :root[data-theme="midnight"] .sheet-back { background: rgba(5, 7, 12, 0.6); }
 .sheet-panel { background: var(--panel); border-color: var(--line); border-radius: 8px 8px 0 0; box-shadow: 0 -10px 40px rgba(20, 24, 26, 0.18); }
 @media (min-width: 1080px) { .sheet-panel { border-radius: var(--rr); border-bottom: 1px solid var(--line); } }
 .sheet-head { border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 10px; }
@@ -912,8 +912,7 @@ body { font-size: 14.5px; }
 @media (min-width: 1080px) { #secProfile, #secStats, #secNow, #mainScene, #secLife, #secBrief, #secLog, #secFamily, #secRivals, #secMap { order: 0; } }
 .ev-card.end-card { padding: 22px; gap: 10px; }
 .ev-card.end-card h3 { font-family: var(--f-serif); font-weight: 700; }
-/* the closing film stays dark, like the reference's full-screen interstitials (serif caption over the pixel scene) */
-.ending { --ink: #0e121a; --panel: #151b26; --panel-2: #1b2331; --line: #273245; --line-2: #33405a; --text: #ece6da; --muted: #8d97aa; --faint: #5d6880; color: var(--text); }
+/* the closing film follows the chosen theme (serif captions over the pixel scene) */
 .ending h2, .ending h3, .ending .film-title, .ending .ttl { font-family: var(--f-serif); }
 .pre-screen h1, .pre-screen h2 { font-family: var(--f-serif); font-weight: 700; color: var(--text); letter-spacing: 0.01em; }
 /* 同じ日に生まれた人たち: a plain list like the reference (name in bold, where/what in small type, the figure on the right) */
@@ -921,6 +920,96 @@ body { font-size: 14.5px; }
 .rivals li { background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; padding: 8px 0 !important; }
 .rivals li.me { box-shadow: inset 3px 0 0 var(--crimson); padding-left: 10px !important; }
 .rivals li.me .nm b { color: var(--crimson); }
+
+/* ---------- more themes: midnight (black & deep navy) and sepia (warm paper). Every colour in the game comes from these tokens. */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --ink: #05070d; --panel: #0b1020; --panel-2: #121a33; --line: #1c2644; --line-2: #2a3762;
+  --text: #dfe6f5; --muted: #8b96b5; --faint: #5a6484;
+  --pink: #f07aa6; --pink-deep: #b8577b; --health: #5cc488; --happy: #e2b85c; --know: #57c2c8; --rel: #e47a96;
+  --good: #74d6a0; --bad: #f2887a; --gold: #e8c46c; --blue: #7ea2ff; --act: #f0a35e; --info: #7ea2ff;
+  --crimson: #f07aa6; --teal: #57c2c8; --teal-bg: rgba(87, 194, 200, 0.12); --shadow: none; --map-rgb: 87, 194, 200; --map-w-rgb: 232, 196, 108;
+  --on-accent: #0b1020; --mkt-up: #ff7b86; --mkt-down: #6aa2ff;
+}
+:root[data-theme="sepia"] {
+  color-scheme: light;
+  --ink: #ece2d0; --panel: #f8f1e3; --panel-2: #efe4d0; --line: #dccdb4; --line-2: #c9b698;
+  --text: #3b2f22; --muted: #6e5a44; --faint: #8b7760;
+  --pink: #c8607f; --pink-deep: #9b4762; --health: #4f7d3f; --happy: #a3711d; --know: #3f7a70; --rel: #8e3a46;
+  --good: #4a7a3a; --bad: #b2442e; --gold: #8a6012; --blue: #3f5f9a; --act: #a85b16; --info: #3f5f9a;
+  --crimson: #8a3341; --teal: #3f7a70; --teal-bg: #e6e2cd; --shadow: 0 1px 2px rgba(80, 60, 30, 0.08); --map-rgb: 63, 122, 112; --map-w-rgb: 163, 113, 29;
+  --on-accent: #fff; --mkt-up: #c03a3a; --mkt-down: #2f5ea8;
+}
+/* text on accent colours, market colours and the film use tokens so each theme stays readable */
+.prof-strip, .btn.primary, .seg button.on, .chip-btn.on, .focus-box .chip-btn.on .fx { color: var(--on-accent, #fff) !important; }
+.mkt .up { color: var(--mkt-up, #ff7b86); } .mkt .down { color: var(--mkt-down, #6aa2ff); }
+.ending { background: var(--ink); color: var(--text); }
+.end-in p { color: var(--muted); }
+.snap canvas { background: var(--panel-2); }
+
+/* ---------- settings: theme picker */
+.theme-list { display: grid; gap: 8px; }
+.theme-opt { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--rr); background: var(--panel); min-height: 52px; }
+.theme-opt.on { border-color: var(--crimson); box-shadow: inset 3px 0 0 var(--crimson); }
+.th-t { display: grid; } .th-t b { font-size: 14px; } .th-t small { color: var(--muted); font-size: 12px; }
+.th-ck { font-size: 12px; color: var(--crimson); white-space: nowrap; }
+.sw { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 30px; border-radius: 4px; overflow: hidden; border: 1px solid var(--line-2); }
+.sw i { display: block; }
+.sw-light i:nth-child(1) { background: #eef0f0; } .sw-light i:nth-child(2) { background: #fbfbfa; } .sw-light i:nth-child(3) { background: #8c1c3c; }
+.sw-dark i:nth-child(1) { background: #0e121a; } .sw-dark i:nth-child(2) { background: #1b2331; } .sw-dark i:nth-child(3) { background: #ec7aa0; }
+.sw-system i:nth-child(1) { background: #eef0f0; } .sw-system i:nth-child(2) { background: linear-gradient(135deg, #fbfbfa 50%, #151b26 50%); } .sw-system i:nth-child(3) { background: #0e121a; }
+.sw-midnight i:nth-child(1) { background: #05070d; } .sw-midnight i:nth-child(2) { background: #121a33; } .sw-midnight i:nth-child(3) { background: #57c2c8; }
+.sw-sepia i:nth-child(1) { background: #ece2d0; } .sw-sepia i:nth-child(2) { background: #f8f1e3; } .sw-sepia i:nth-child(3) { background: #8a3341; }
+
+/* ---------- the epilogue page: calm, one column, the story in large serif type */
+.epi { position: fixed; inset: 0; z-index: 210; background: var(--ink); color: var(--text); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; animation: epiIn .6s ease-out; }
+@keyframes epiIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .epi { animation: none; } }
+.epi-in { max-width: 760px; margin: 0 auto; padding: max(28px, env(safe-area-inset-top, 0px)) var(--gut) max(40px, env(safe-area-inset-bottom, 0px)); display: grid; gap: 18px; }
+.epi-head { text-align: center; padding: 26px 0 8px; border-bottom: 1px solid var(--line); }
+.epi-pre { margin: 0; color: var(--muted); font-size: 12.5px; letter-spacing: 0.08em; font-family: var(--f-num); }
+.epi-head h2 { margin: 10px 0 4px; font-family: var(--f-serif); font-weight: 700; font-size: clamp(26px, 6vw, 38px); line-height: 1.3; }
+.epi-age { margin: 0; color: var(--muted); font-size: 15px; } .epi-age b { font-family: var(--f-serif); font-size: 30px; color: var(--text); margin: 0 2px; }
+.epi-close { margin: 14px auto 18px; max-width: 34em; font-family: var(--f-serif); font-size: 17px; line-height: 1.9; color: var(--text); }
+.epi-sec { background: var(--panel); border: 1px solid var(--line); border-radius: var(--rr); padding: 18px 20px; box-shadow: var(--shadow); }
+.epi-sec h3 { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+.epi-n { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-family: var(--f-num); font-size: 11px; border: 1px solid var(--line-2); color: var(--muted); }
+.epi-kv { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 8px 14px; margin: 0; font-size: 14px; }
+.epi-kv dt { color: var(--muted); font-size: 12.5px; padding-top: 2px; } .epi-kv dd { margin: 0; overflow-wrap: anywhere; line-height: 1.7; }
+.epi-kv small { color: var(--muted); font-size: 12px; }
+@media (max-width: 520px) { .epi-kv { grid-template-columns: 1fr; gap: 2px; } .epi-kv dd { margin-bottom: 8px; } }
+.epi-story p { margin: 0 0 1.05em; font-family: var(--f-serif); font-size: 17px; line-height: 2.05; letter-spacing: 0.01em; text-indent: 1em; }
+.epi-story p:last-child { margin-bottom: 0; }
+@media (max-width: 520px) { .epi-story p { font-size: 16px; line-height: 1.95; } }
+.epi-tl { list-style: none; margin: 0; padding: 0 0 0 4px; border-left: 2px solid var(--line-2); display: grid; gap: 2px; }
+.epi-tl li { display: grid; grid-template-columns: 4em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0 6px 12px; position: relative; font-size: 14px; }
+.epi-tl li::before { content: ''; position: absolute; left: -7px; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--panel); border: 2px solid var(--teal); }
+.epi-tl li.bad::before { border-color: var(--bad); } .epi-tl li.end::before { background: var(--text); border-color: var(--text); }
+.epi-tl li span { color: var(--muted); font-size: 12.5px; } .epi-tl li small { color: var(--faint); font-size: 11.5px; }
+.epi-tl li.bad b { color: var(--bad); } .epi-tl li.end b { font-family: var(--f-serif); }
+.epi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+@media (max-width: 560px) { .epi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.epi-k { border: 1px solid var(--line); border-radius: var(--rr); padding: 10px 12px; display: grid; gap: 2px; background: var(--panel-2); min-width: 0; }
+.epi-k span { font-size: 11.5px; color: var(--muted); } .epi-k b { font-size: 17px; overflow-wrap: anywhere; } .epi-k small { font-size: 11px; color: var(--muted); }
+.epi-k.gold b { color: var(--gold); } .epi-k.neg b { color: var(--bad); } .epi-k.pos b { color: var(--good); }
+.epi-rank { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.epi-rank div { display: grid; } .epi-rank b { font-family: var(--f-serif); font-size: 18px; } .epi-rank small { color: var(--muted); font-size: 12.5px; }
+.epi-tags { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.epi-tags li { border-left: 3px solid var(--crimson); padding: 6px 12px; background: var(--panel-2); display: grid; }
+.epi-tags b { font-family: var(--f-serif); font-size: 16px; } .epi-tags small { color: var(--muted); font-size: 12px; }
+.epi-scores { display: grid; gap: 6px; margin-bottom: 8px; }
+.epi-scores .sbar { grid-template-columns: 7.6em minmax(0, 1fr) 3em; }
+.epi-titles { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.epi-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.epi-actions .btn { min-height: 44px; padding: 10px 18px; }
+.epi-foot { text-align: center; color: var(--faint); font-size: 11.5px; margin: 0; }
+/* small marks that are still controls or labels keep readable contrast in every theme */
+.log .star, .rec-li .star { color: var(--muted) !important; }
+.log .star.on, .rec-li .star.on { color: var(--gold) !important; }
+.choice .c-fx b { color: var(--muted) !important; }
+
+.news li b, .kpi .k-s { color: var(--muted); }
+.ev-hold { color: var(--muted) !important; }
 </style>
 </head>
 <body>
@@ -989,6 +1078,7 @@ body { font-size: 14.5px; }
   <div id="eventLayer" class="event" hidden></div>
   <div id="outcome" class="outcome" hidden></div>
   <div id="ending" class="ending" hidden></div>
+  <div id="epilogue" class="epi" role="dialog" aria-modal="true" aria-label="人生の総評" hidden></div>
   <div id="toast" class="toast" role="status" hidden></div>
   </div>
   <nav class="dock" aria-label="メインメニュー">
@@ -8650,6 +8740,272 @@ function lifeSummary(s) {
   return { path, assets, wins, losses, people, family: fam, titles: titles.slice(-10), got, missed: missed.slice(0, 6), goals, social, key: keyChoice(s), ending: endingType(s) };
 }
 
+// ---- 08_zzepilogue.js
+// ===== Epilogue: how the life ended, the life told as a story, its highlights, final figures, character and what it leaves =====
+// Built once at the moment of death from what is in the save (records, characters, companies, portfolio, timeline) and frozen
+// in s.summary.epi, so reopening the ending always shows the same text. Phrasing varies by life (a per-life seed), never by viewing.
+// Nothing is invented: a sentence is written only when the data behind it exists.
+
+const EPI_VERSION = 1;
+function epiPick(s, key, arr) { return arr[Math.floor(hash01(s.seed || 1, strHash(key)) * arr.length) % arr.length]; }
+
+// ---- how the life ended: decided from the same things the game's mortality uses (age, health, early-childhood risk)
+function deathInfo(s) {
+  const age = playerAge(s), cal = calendar(s), h = Math.round(s.stats.health);
+  const T = s.timeline || [], past = T.filter((e) => e.a <= age - 5).slice(-1)[0];
+  const trend = past && past.h != null ? (h - past.h <= -12 ? '下がっていた' : h - past.h >= 8 ? '持ち直していた' : '大きく変わらなかった') : null;
+  const recent = lifeRecords(s).filter((r) => r.age >= age - 5 && (r.cat === 'health' || /病|入院|手術|がん|心臓|脳|ケガ|けが|故障|発作/.test(r.title))).slice(-1)[0] || null;
+  let key, cause, detail;
+  if (age < 5) { key = 'infant'; cause = '幼くしての病'; detail = '乳幼児期の病気でした。生まれた国と時代の乳幼児の死亡率が影響しています。'; }
+  // in very old age a low health value is the body ageing; it counts as illness only when a recent illness is on record
+  else if (age >= 85 && !(h < 30 && recent && recent.cat === 'health')) { key = 'old'; cause = '老衰'; detail = `${age}歳まで生き、体の自然な衰えとともに最期を迎えました${h < 40 ? `（最期の健康 ${h}）` : ''}。`; }
+  else if (h < 40) { key = 'illness'; cause = '病気（体の衰弱）'; detail = `亡くなる前の健康は${h}（0〜100）まで落ちていました。`; }
+  else { key = 'unknown'; cause = '死因不明'; detail = h < 55 || trend === '下がっていた' ? `体力は落ちていましたが（健康 ${h}）、はっきりした死因の記録はありません。` : '健康状態に大きな問題はなく、突然の別れでした。ゲーム内に詳しい原因の記録はありません。'; }
+  const live = Object.values(s.characters).filter((c) => c.alive && c.relation !== 'self' && c.residing).map((c) => relLabel(s, c));
+  return { key, cause, detail, age, year: cal.y, month: cal.m, health: h, trend, event: recent ? { age: recent.age, title: recent.title, desc: recent.desc } : null,
+    home: s.residence ? s.residence.label + (s.residence.own ? '（持ち家）' : '') : '', with: live.length ? [...new Set(live)].join('・') + 'と暮らしていました' : 'ひとりで暮らしていました' };
+}
+// the film and the history use the same cause from now on
+{ const _cod = causeOfDeath; causeOfDeath = function (s) { if (s.summary && s.summary.death) return s.summary.death.cause; if (s.over) return deathInfo(s).cause; return _cod(s); }; }
+
+// ---- the facts the story is written from
+function epiFacts(s) {
+  const P0 = P(s), L = s.lifeStats || {}, T = s.timeline || [], A = s.achievements || {}, R = lifeRecords(s);
+  const age = playerAge(s), bs = balanceSheet(s), H = holdingsList(s);
+  const tier = L.startTier != null ? L.startTier : (s.family ? s.family.birthTier : 2);
+  const parents = (s.family && s.family.parentIds ? s.family.parentIds : []).map((id) => s.characters[id]).filter(Boolean);
+  const chars = Object.values(s.characters);
+  const marriages = R.filter((r) => r.title === '結婚' || /と結婚$/.test(r.title));
+  const married = chars.some((c) => c.relation === 'spouse' || c.relation === 'exspouse') || marriages.length > 0;
+  const divorces = R.filter((r) => r.title === '離婚');
+  const sp = chars.find((c) => c.relation === 'spouse');
+  const kids = childrenOf(s), grand = chars.filter((c) => c.relation === 'grandchild');
+  const starts = R.filter((r) => r.cat === 'biz' && (r.title === '起業' || /の起業$/.test(r.title)));
+  const bizFail = R.filter((r) => r.cat === 'biz' && /が倒産$/.test(r.title));
+  const bizSold = R.filter((r) => r.cat === 'biz' && /を売却$/.test(r.title));
+  const inherited = R.filter((r) => /会社を継いだ|会社の株式を相続|家業を継いだ/.test(r.title));
+  const jobs = (s.career.path || []).filter((p) => p.cat !== 'student');
+  const lost = R.filter((r) => /失業|リストラ|解雇|戦力外/.test(r.title) && r.tone === 'bad');
+  const promos = R.filter((r) => /昇進|出世|役員に/.test(r.title) && r.tone !== 'bad');
+  const ill = R.filter((r) => r.cat === 'health' && r.tone === 'bad' && r.important);
+  const scams = R.filter((r) => /詐欺|投資トラブル/.test(r.title) && r.tone === 'bad');
+  const crashes = R.filter((r) => /暴落|金融危機|経営破綻/.test(r.title) && r.tone === 'bad' && (r.money || 0) < 0);
+  const realized = (s.portfolio.realized || 0) + (s.portfolio.dividends || 0), unreal = H.reduce((a, h) => a + h.gain, 0);
+  const ever = R.some((r) => r.cat === 'invest' || /投資を始め|積立/.test(r.title)) || H.length > 0 || Math.abs(realized) > 0;
+  return { P: P0, L, T, A, R, age, bs, H, tier, parents, married, marriages, divorces, sp, kids, grand, starts, bizFail, bizSold, inherited, jobs, lost, promos, ill, scams, crashes,
+    realized, unreal, investPL: realized + unreal, investEver: ever, sport: s.sport && s.sport.id ? s.sport : null, creator: s.creator || null,
+    companies: s.businesses.filter((b) => !b.parentId), bankrupt: !!s.finance.bankrupt, bankruptAge: s.finance.bankruptYear ? s.finance.bankruptYear - P0.birthYear : null,
+    key: typeof keyChoice === 'function' ? keyChoice(s) : null, eliteUni: !!s.flags.eliteUni, degree: s.education.degree };
+}
+
+const DEG_WORD = { middle: '中学校を出て', high: '高校を卒業し', vocational: '専門学校で学び', bachelor: '大学を卒業し', grad: '大学院まで進み' };
+function epiStory(s, F) {
+  const pick = (k, arr) => epiPick(s, k, arr);
+  const P0 = F.P, birthPlace = s.birth && s.birth.region ? s.birth.region.pref || s.birth.region.name : (s.region ? s.region.name : '');
+  const bc = (COUNTRIES[s.birthCountryId] || country(s)).name;
+  const groups = [];
+  // 1. where the life began
+  const tierWord = F.tier <= 0 ? pick('t0', ['とても貧しい家庭', '暮らしの厳しい家庭']) : F.tier === 1 ? pick('t1', ['決して裕福とはいえない家庭', '余裕の少ない家庭']) : F.tier === 2 ? pick('t2', ['ごく一般的な家庭', 'ふつうの家庭']) : F.tier === 3 ? pick('t3', ['ゆとりのある家庭', '恵まれた家庭']) : pick('t4', ['裕福な家庭', '何不自由ない家庭']);
+  const pj = F.parents.map((p) => (PJOBS[p.jobKey] ? PJOBS[p.jobKey].label : p.job)).filter((x) => x && x !== '—' && !/専業|失業/.test(x));
+  const sibs = Object.values(s.characters).filter((c) => c.relation === 'sibling').length;
+  let g1 = `${P0.birthYear}年、${bc}${birthPlace && bc === '日本' ? 'の' + birthPlace : ''}の${tierWord}に生まれた。`;
+  if (pj.length) { const jj = [...new Set(pj)].join('と'); g1 += pick('pj', [`親の仕事は${jj}だった。`, `家計を支えていたのは${jj}の親だった。`]); }
+  if (sibs) g1 += `${sibs}人のきょうだいとともに育った。`;
+  if (F.age >= 18) {
+    if (F.eliteUni) g1 += pick('elite', ['努力が実り、難関大学に進んだ。', '学業で頭角を現し、難関大学の門をくぐった。']);
+    else if (DEG_WORD[F.degree] && F.degree !== 'none') g1 += `${DEG_WORD[F.degree]}、社会に出た。`;
+  }
+  groups.push({ w: 100, t: g1 });
+  // 2. work: sport, creative work, employment, business — whichever shaped the life
+  const work = [];
+  if (F.sport && (F.sport.proYears > 0 || (F.sport.titles || []).length)) {
+    const lab = SPORTS[F.sport.id] ? SPORTS[F.sport.id].label : 'スポーツ';
+    let t = F.sport.proYears > 0 ? `${lab}のプロとして${F.sport.proYears}年間プレーした。` : `${lab}に打ち込んだ。`;
+    if ((F.sport.titles || []).length) t += `${F.sport.titles.slice(-1)[0].t}など、${F.sport.titles.length}つのタイトルを手にした。`;
+    if (F.sport.fame >= 60) t += pick('fame', ['その名は多くの人に知られた。', '多くのファンに愛された。']);
+    work.push({ w: 70 + Math.min(20, F.sport.proYears * 2), t, a: F.sport.startAge || 10 });
+  }
+  if (F.creator && (F.creator.hits || 0) > 0) work.push({ w: 55 + F.creator.hits * 5, t: `${OCC[F.creator.occ] ? OCC[F.creator.occ].label : '表現者'}として${F.creator.hits}本のヒット作を世に出した。`, a: 25 });
+  if (F.jobs.length) {
+    const first = F.jobs[0], last = F.jobs[F.jobs.length - 1];
+    let t = `${first.age}歳で${first.label}${pick('job', ['として働き始めた。', 'の道に進んだ。'])}`;
+    if (F.promos.length >= 2) t += `昇進を${F.promos.length}回重ね、`;
+    if (F.jobs.length >= 3) t += `その後も${F.jobs.length - 1}回、仕事を変えながら歩み、`;
+    if (F.jobs.length >= 2 && last.label !== first.label) t += `${last.age}歳からは${last.label}として働いた。`;
+    t = t.replace(/、$/, '。');
+    if (F.lost.length) t += `${F.lost[0].age}歳のときに職を失う${F.lost.length > 1 ? 'など、仕事の挫折も経験した' : '経験もした'}が、${pick('lost', ['そこからまた働き口を見つけた。', '立ち止まらずに次の道を探した。'])}`;
+    work.push({ w: 40 + Math.min(25, F.jobs.length * 4 + F.promos.length * 3), t, a: first.age });
+  }
+  if (F.starts.length || F.inherited.length || F.companies.length || F.bizFail.length) {
+    const parts = [];
+    if (F.inherited.length) parts.push(`${F.inherited[0].age}歳で${/株式/.test(F.inherited[0].title) ? '親の会社の株式を受け継いだ' : '親の事業を継いだ'}`);
+    if (F.starts.length) parts.push(`${F.starts[0].age}歳で${F.starts.length > 1 ? `初めて会社を起こし、生涯で${F.starts.length}回起業した` : '自分の会社を起こした'}`);
+    let t = parts.length ? parts.join('。') + '。' : '';
+    if (F.A.ipo) t += `${F.A.ipo.age}歳で会社を上場させた。`;
+    if (F.A.mna) t += 'ほかの会社を買収し、事業を広げた。';
+    if ((F.L.maxEmployees || 0) >= 10) t += `最も多いときには${F.L.maxEmployees}人の社員を抱えた。`;
+    if (F.bizFail.length) t += `${F.bizFail[0].age}歳のときには${F.bizFail[0].title.replace(/が倒産$/, '')}を倒産させ、${pick('fail', ['苦い経験も味わった。', '大きな挫折を経験した。'])}`;
+    if (F.bizSold.length) t += `${F.bizSold.slice(-1)[0].age}歳で${F.bizSold.slice(-1)[0].title.replace(/を売却$/, '')}を手放した。`;
+    if (t) work.push({ w: 60 + (F.A.ipo ? 25 : 0) + Math.min(15, Math.log2(1 + (F.L.maxEmployees || 0)) * 3) + (F.bizFail.length ? 10 : 0), t, a: Math.min(...[].concat(F.starts.map((r) => r.age), F.inherited.map((r) => r.age), [99])) });
+  }
+  work.sort((a, b) => b.w - a.w);
+  const workTop = work.slice(0, 2).sort((a, b) => a.a - b.a);
+  if (workTop.length) groups.push({ w: Math.max(...workTop.map((x) => x.w)), t: workTop.map((x) => x.t).join('') });
+  // 3. the people at home
+  let fam = '';
+  if (F.marriages.length || F.married) {
+    const m = F.marriages[0];
+    fam += m ? `${m.age}歳で結婚${F.divorces.length ? 'した。' : pick('wed', ['し、家庭を築いた。', 'した。'])}` : '結婚した。';
+    if (F.divorces.length) fam += `のちに離婚を経験した${F.marriages.length > 1 ? 'が、再び伴侶を得た' : ''}。`;
+    if (F.sp && !F.sp.alive && F.sp.deathYear) fam += `${F.sp.deathYear - P0.birthYear}歳のときに配偶者に先立たれた。`;
+  } else if (F.age >= 40) fam += pick('single', ['生涯、結婚はしなかった。', '独身のまま、自分の人生を生きた。']);
+  if (F.kids.length) fam += `${F.kids.length}人の子どもに恵まれ${F.grand.length ? `、やがて孫${F.grand.length}人の顔も見た` : 'た'}。`;
+  else if (F.married && F.age >= 50) fam += '子どもはいなかった。';
+  if (fam) groups.push({ w: 45 + F.kids.length * 5 + (F.divorces.length ? 10 : 0), t: fam });
+  // 4. money: savings, investing, bankruptcy (kept apart from the companies)
+  let mon = '';
+  const big = 3e7 * country(s).cost;
+  if (F.investEver && Math.abs(F.investPL) >= big * 0.3) mon += F.investPL >= 0 ? `投資では生涯で${yen(F.investPL)}の利益を得た。` : `投資では生涯で${yen(-F.investPL)}の損失を出した。`;
+  if (F.scams.length) mon += `${F.scams[0].age}歳のときにはお金のトラブルにも巻き込まれた。`;
+  if (F.A.fireInvest || F.A.fireBiz) mon += `${(F.A.fireInvest || F.A.fireBiz).age}歳で、働かなくても暮らせるだけの資産を築いた。`;
+  if (F.bankrupt) mon += `${F.bankruptAge != null ? F.bankruptAge + '歳で' : ''}自己破産を経験した${F.bs.net > 0 ? 'が、そこから生活を立て直した' : ''}。`;
+  if (!mon && F.L.maxNet > 0 && F.T.length > 20) { const up = F.T.filter((e, i) => i > 0 && e.net >= F.T[i - 1].net).length / (F.T.length - 1); if (up > 0.75) mon += pick('steady', ['こつこつと資産を積み上げる、堅実な暮らしぶりだった。', '大きな浮き沈みなく、少しずつ蓄えを増やしていった。']); }
+  if (mon) groups.push({ w: 35 + (F.bankrupt ? 30 : 0) + (F.A.fireInvest || F.A.fireBiz ? 15 : 0) + Math.min(20, Math.abs(F.investPL) / big * 4), t: mon });
+  // 5. the turn and the hardest time
+  let turn = '';
+  if (F.key && F.key.age >= 15 && F.key.score >= 3 && /結婚|起業|上場|プロ|移籍|転職|独立|売却|購入|買う|出馬|代表|留学|進学|就職|継|移住|入団/.test(F.key.label + F.key.title)) turn += epiPick(s, 'key', [`大きな分かれ道になったのは、${F.key.age}歳のときの「${F.key.label}」という選択だった。`, `振り返れば、${F.key.age}歳で選んだ「${F.key.label}」が、その後の歩みを形づくった。`]);
+  const hard = F.ill.concat(F.crashes).sort((a, b) => Math.abs(b.money || 0) - Math.abs(a.money || 0))[0];
+  if (hard && !turn.includes(hard.title)) turn += `${hard.age}歳の「${hard.title}」は、${pick('hard', ['特に苦しい出来事だった。', '忘れがたい試練になった。'])}`;
+  if (turn) groups.push({ w: 40, t: turn });
+  // 6. later years
+  if (F.age >= 65) {
+    const old = F.T.filter((e) => e.a >= 65), hp = old.length ? old.reduce((a, e) => a + (e.hp || 0), 0) / old.length : null;
+    const retire = lifeRecords(s).find((r) => /定年|引退/.test(r.title) && r.age >= 50 && r.cat === 'work');
+    let t = retire ? `${retire.age}歳で仕事を退き、` : '';
+    t += hp == null ? '' : hp >= 65 ? pick('oldg', ['穏やかな晩年を過ごした。', '満ち足りた老後を送った。']) : hp >= 45 ? pick('oldm', ['静かな晩年を過ごした。', '落ち着いた老後を送った。']) : pick('oldb', ['晩年は気苦労の多い日々だった。', '老後は思うようにいかないことも多かった。']);
+    if (t) groups.push({ w: 30, t: t.replace(/、$/, '。') });
+  }
+  // 7. the end (always)
+  const famAlive = Object.values(s.characters).filter((c) => c.alive && ['spouse', 'child', 'grandchild'].includes(c.relation));
+  const close = famAlive.length ? pick('endf', ['家族に見守られながら', '家族に囲まれて']) : pick('endn', ['静かに', 'ひっそりと']);
+  groups.push({ w: 100, t: `最後に残した純資産は${yen(F.bs.net)}。${close}、${F.age}年の生涯を終えた。` });
+  // keep the beginning and the end, and the most important of the rest, in the life's order
+  const first = groups[0], last = groups[groups.length - 1], mid = groups.slice(1, -1);
+  const keep = new Set(mid.slice().sort((a, b) => b.w - a.w).slice(0, 4));
+  return [first].concat(mid.filter((g) => keep.has(g)), [last]).map((g) => g.t);
+}
+
+// ---- the life in a few words: judged on health, family, people, career, social impact, challenge and recovery — not money alone
+function epiTags(s, F, ev) {
+  const sc = ev.scores, out = [];
+  const add = (w, t, why) => out.push({ w, t, why });
+  const startsN = F.starts.length + F.inherited.length;
+  if (F.T.length > 20 && !F.bankrupt) { const up = F.T.filter((e, i) => i > 0 && e.net >= F.T[i - 1].net).length / (F.T.length - 1); if (up > 0.75 && F.bs.net > 0) add(60 + up * 20, '堅実な資産形成を成し遂げた人生', `${Math.round(up * 100)}%の年で純資産を増やした`); }
+  if (sc.rel >= 68 && (F.married || F.kids.length)) add(sc.rel, '家族との絆を大切にした人生', `人間関係・家族 ${sc.rel}点`);
+  if (startsN && sc.challenge >= 55) add(sc.challenge + startsN * 3, '挑戦を続けた起業家人生', `起業・承継 ${startsN}回`);
+  const bad = F.R.filter((r) => r.tone === 'bad' && r.important).length;
+  if (bad >= 4 && F.bs.net > 0 && (F.bankrupt || F.bizFail.length || F.lost.length)) add(55 + bad * 2, '数々の失敗から立ち直った人生', `大きな挫折${bad}回のあとも前へ`);
+  if (F.sport && F.sport.proYears > 0 && F.sport.fame >= 45) add(60 + F.sport.fame / 3, 'スポーツ界に名を残した人生', `${SPORTS[F.sport.id] ? SPORTS[F.sport.id].label : ''}のプロ${F.sport.proYears}年`);
+  if (sc.econ >= 72 && sc.rel < 45) add(sc.econ - 5, '富を築いた一方で、人間関係に課題を残した人生', `経済力 ${sc.econ}点・人間関係 ${sc.rel}点`);
+  else if (sc.econ >= 78) add(sc.econ, '大きな富を築いた人生', `経済力 ${sc.econ}点`);
+  if (sc.happy >= 62 && sc.challenge < 45) add(sc.happy - 2, '平穏な暮らしを大切にした人生', `幸福 ${sc.happy}点`);
+  if (!F.married && F.age >= 45 && sc.happy >= 50) add(50 + sc.happy / 4, '独身を貫き、自分らしく生きた人生', '生涯独身・幸福を保った');
+  if (sc.career >= 75) add(sc.career - 3, '仕事に打ち込んだ人生', `キャリア ${sc.career}点`);
+  if (sc.edu >= 78) add(sc.edu - 8, '学び続けた人生', `教育・知識 ${sc.edu}点`);
+  if (F.age >= 90 && sc.health >= 60) add(55 + (F.age - 90) * 2 + sc.health / 5, '健やかに長く生きた人生', `${F.age}歳まで生きた`);
+  if (sc.social >= 65) add(sc.social, '社会に尽くした人生', `社会への影響 ${sc.social}点`);
+  if (F.creator && (F.creator.hits || 0) >= 2) add(60 + F.creator.hits * 3, '作品で人の心を動かした人生', `ヒット作${F.creator.hits}本`);
+  if (ev.total < 45) add(50, '困難の多い道を最後まで歩いた人生', `総合 ${ev.total}点`);
+  if (F.age < 40) add(70, '短くも、確かに生きた人生', `${F.age}歳で生涯を終えた`);
+  out.sort((a, b) => b.w - a.w);
+  const seen = new Set(), res = [];
+  for (const x of out) if (!seen.has(x.t)) { seen.add(x.t); res.push({ t: x.t, why: x.why }); }
+  if (!res.length) { const e = endingType(s); res.push({ t: e.label, why: e.line }); }
+  return res.slice(0, 3);
+}
+
+// ---- the closing line under the name
+function epiClosing(s, F, D, tags) {
+  const k = (n, a) => epiPick(s, 'close' + n, a);
+  if (F.age < 18) return k('y', [`${F.age}年という、あまりにも短い生涯だった。`, `わずか${F.age}年。それでも、確かにこの世界に生きていた。`]);
+  if (D.key === 'old' && F.age >= 95) return k('o', [`${F.age}年という長い歳月を生き抜き、静かに幕を閉じた。`, `一世紀近い時を生き、穏やかに旅立った。`]);
+  if (D.key === 'illness') return k('i', [`病と向き合いながら、${F.age}年の人生に幕を下ろした。`, `体の衰えと闘った末に、${F.age}年の生涯を閉じた。`]);
+  if (D.key === 'unknown' && F.age < 65) return k('u', [`${F.age}歳、思いがけず早い別れだった。`, `まだ道半ばの${F.age}歳で、人生は突然終わりを迎えた。`]);
+  if (/家族/.test(tags[0] ? tags[0].t : '')) return k('f', [`家族と歩んだ${F.age}年の人生が、ここに幕を閉じた。`, `大切な人たちに囲まれた${F.age}年だった。`]);
+  if (/起業|富/.test(tags[0] ? tags[0].t : '')) return k('b', [`挑み続けた${F.age}年の人生が、ここに幕を閉じた。`, `走り続けた${F.age}年に、静かな終わりが訪れた。`]);
+  return k('d', [`${F.age}年にわたる人生が、ここに幕を閉じた。`, `${F.age}年の歩みが、静かに終わりを迎えた。`, `${F.age}年の物語が、ここで最後のページを閉じた。`]);
+}
+
+// ---- the moments that stand for this life (5–10, from the actual records), plus the end
+function epiHighlights(s, F, D) {
+  const fav = new Set(s.favs || []);
+  const skip = /チャンス|誘い|出会い|コンテスト|の選択|候補|打診|募集|アイデア|誕生日|家計|同じ日に生まれた|^\d+歳$|目標に届かず|の目標$|方針|？|\?|を決める|分かれ道|^(父|母|祖母|兄|姉|弟|妹|配偶者)が|の話$|どうする/;
+  const W = [[/^誕生$/, 9], [/結婚|離婚/, 9], [/起業|上場|倒産|破産|会社を継いだ|家業を継いだ|株式を相続/, 9], [/就職|独立|転職|プロ|入団|デビュー|引退/, 7], [/の誕生$|出産/, 7], [/合格|卒業|入学|留学/, 5], [/購入|売却|相続|達成|優勝|全国/, 5], [/失業|リストラ|病気|詐欺|別れ/, 6]];
+  const cand = lifeRecords(s).filter((r) => !skip.test(r.title) && r.title !== '人生の終わり').map((r) => { let w = fav.has(r.id) ? 10 : 0; for (const [re, v] of W) if (re.test(r.title)) { w = Math.max(w, r.cat === 'pet' && !fav.has(r.id) ? 3 : v); break; } if (r.important) w += 1.5; return { r, w }; }).filter((x) => x.w >= 5);
+  const seen = new Set(), list = [];
+  for (const x of cand.sort((a, b) => b.w - a.w || a.r.age - b.r.age)) { const grp = W.findIndex(([re]) => re.test(x.r.title)); const k1 = x.r.title.replace(/\d+/g, '') + (x.w >= 9 ? x.r.age : ''), k2 = grp + ':' + x.r.age; if (seen.has(k1) || seen.has(k2)) continue; seen.add(k1); seen.add(k2); list.push(x); if (list.length >= 9) break; }
+  return list.sort((a, b) => a.r.age - b.r.age || a.r.id - b.r.id).map((x) => ({ age: x.r.age, year: x.r.year, title: x.r.title, tone: x.r.tone || 'neutral' }))
+    .concat([{ age: F.age, year: D.year, title: `死去（${D.cause}）`, tone: 'end' }]);
+}
+
+// ---- the final figures (only what the game keeps)
+function epiFinal(s, F) {
+  const bs = F.bs, L = F.L;
+  const companies = F.companies.map((b) => ({ id: b.id, name: b.name, ind: INDUSTRIES[b.industry] ? INDUSTRIES[b.industry].label : '', own: b.ownership, role: isExec(b) ? 'ceo' : 'holder', via: b.via || (b.acquired ? 'acquire' : 'found'), value: Math.round(b.valuation), rev: Math.round(b.revenueRun), emp: b.employees, listed: !!b.listed, successor: b.successor || null }));
+  const ACH = Object.keys(F.A).filter((k) => ACHIEVEMENTS[k]);
+  return {
+    totalAssets: Math.round(bs.totalAssets), debts: Math.round(bs.debts), net: Math.round(bs.net), cash: Math.round(bs.cash), investable: Math.round(bs.investable), realEstate: Math.round(bs.realEstate), equity: Math.round(bs.equity),
+    peakNet: Math.round(L.maxNet || 0), peakNetAge: L.maxNetAge || null,
+    income: Math.round(L.income || 0), expense: Math.round(L.expense || 0), tax: Math.round(L.tax || 0),
+    investPL: F.investEver ? Math.round(F.investPL) : null, realized: Math.round(F.realized), unreal: Math.round(F.unreal),
+    career: (s.career.path || []).filter((p) => p.cat !== 'student').map((p) => `${p.age}歳 ${p.label}`), peakSalary: Math.round(L.peakSalary || 0), licenses: Object.keys(s.licenses || {}).length,
+    sport: F.sport ? { label: SPORTS[F.sport.id] ? SPORTS[F.sport.id].label : '', pro: F.sport.proYears || 0, titles: (F.sport.titles || []).length, fame: Math.round(F.sport.fame || 0) } : null,
+    creator: F.creator && F.creator.occ ? { label: OCC[F.creator.occ] ? OCC[F.creator.occ].label : '', hits: F.creator.hits || 0, fame: Math.round(F.creator.fame || 0) } : null,
+    companies, founded: F.starts.length, failed: F.bizFail.length, sold: F.bizSold.length, maxEmployees: L.maxEmployees || 0,
+    family: { married: F.married, spouse: F.sp ? { name: F.sp.name, alive: !!F.sp.alive } : null, divorces: F.divorces.length, kids: F.kids.length, kidsAlive: F.kids.filter((c) => c.alive).length, grand: F.grand.length },
+    achievements: ACH.length, achTotal: Object.keys(ACHIEVEMENTS).length, achList: ACH.map((k) => ACHIEVEMENTS[k].label).slice(0, 8),
+    bankrupt: F.bankrupt,
+  };
+}
+
+// ---- what is left behind: heirs, the estate, shares and companies — described, never distributed here
+function epiAfter(s, F) {
+  const alive = Object.values(s.characters).filter((c) => c.alive && c.relation !== 'self');
+  const sp = alive.filter((c) => c.relation === 'spouse'), kids = alive.filter((c) => c.relation === 'child');
+  let heirs = sp.concat(kids), basis = sp.length && kids.length ? '配偶者と子ども' : sp.length ? '配偶者' : '子ども';
+  if (!heirs.length) { heirs = alive.filter((c) => c.relation === 'father' || c.relation === 'mother'); basis = '親'; }
+  if (!heirs.length) { heirs = alive.filter((c) => c.relation === 'sibling'); basis = 'きょうだい'; }
+  const st = (s.flags && s.flags.story) || {};
+  const companies = F.companies.map((b) => ({ name: b.name, own: b.ownership, role: isExec(b) ? 'ceo' : 'holder', value: Math.round(b.ownership * b.valuation),
+    successor: b.successor === 'kid' ? '子どもが社長を継ぎました' : b.successor === 'inside' ? '社内で育てた人材が社長を継ぎました' : b.successor === 'external' ? '外部から招いた経営者が率いています' : st.successor === 'child' ? '子どもを後継者に決めていました' : st.successor === 'staff' ? '社員の中から後継者を選ぶ準備をしていました' : isExec(b) ? '後継者は決まっていません' : (b.ceo ? `${b.ceo.name}が経営を続けます` : '') }));
+  const shares = F.H.filter((h) => assetDef(h.id)).map((h) => ({ name: assetDef(h.id).name, value: Math.round(h.value) })).sort((a, b) => b.value - a.value).slice(0, 6);
+  const net = Math.max(0, Math.round(F.bs.net));
+  const split = !s.flags.will && !sp.length && kids.length ? Math.round(net / kids.length) : null;
+  return { heirs: heirs.map((c) => ({ rel: relLabel(s, c), name: c.name })), basis: heirs.length ? basis : null, estate: Math.round(F.bs.net), shares, companies,
+    will: !!s.flags.will, legacyPlan: !!s.flags.legacyPlan, perChild: split,
+    note: !heirs.length ? '相続人となる家族がいません。' : s.flags.will ? '遺言書に沿って分けられます。' : split != null ? `子ども${kids.length}人で均等に分けると、1人あたり約${yen(split)}です（遺言書はありません）。` : '遺産の分け方は、ゲームの中では決まっていません（遺言書はありません）。' };
+}
+
+function buildEpilogue(s) {
+  const F = epiFacts(s), D = (s.summary && s.summary.death) || deathInfo(s), ev = (s.summary && s.summary.eval) || evaluateLife(s);
+  const tags = epiTags(s, F, ev);
+  return {
+    v: EPI_VERSION, id: `${s.seed}-${F.P.birthYear}-${D.year}`, name: F.P.name, gender: F.P.gender, birthYear: F.P.birthYear, country: country(s).name, age: F.age,
+    closing: epiClosing(s, F, D, tags), death: D, story: epiStory(s, F), highlights: epiHighlights(s, F, D), final: epiFinal(s, F),
+    eval: { rank: ev.rank.rank, label: ev.rank.label, total: ev.total, scores: ev.scores, titles: (ev.titles || []).slice(0, 6), tags, ending: endingType(s).label },
+    after: epiAfter(s, F),
+  };
+}
+// frozen at the moment of death; an old save that ended before this existed gets it once, on first opening
+function ensureEpilogue(s) {
+  if (!s.over) return null;
+  s.summary = s.summary || {};
+  if (!s.summary.death) s.summary.death = deathInfo(s);
+  if (!s.summary.epi || s.summary.epi.v !== EPI_VERSION) s.summary.epi = buildEpilogue(s);
+  return s.summary.epi;
+}
+{ const _dies = playerDies; playerDies = function (s) { _dies(s); s.summary = s.summary || {}; s.summary.death = deathInfo(s); s.summary.epi = buildEpilogue(s); bump(s); }; }
+
 // ---- 09_scenemodel.js
 // ===== scene model: pure description of what the animation must draw, derived from game state =====
 function heightFor(age) {
@@ -8826,7 +9182,7 @@ const LC = {
   NAMES, TIERS, GENDER_LABEL, JP_PREFS, AREA, PJOBS, POLICIES, LESSONS, LOOKS, tierProbabilities, familyBudget, familyNet, familyParents, familyNarrative, calendar, regionFromStyle, giftTax, takeFromFamily, setLook, tierFromIncome, makeBusiness,
   fireStatus, checkAchievements, sceneModel, heightFor, greyness, dayPhase, weatherAt, addChildChar, marry, makeSpouseCandidate, startJob, jobOffers, retire, record, addStats, queueEvent, serialize, deserialize, bump,
 };
-Object.assign(LC, { isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
+Object.assign(LC, { bizBankrupt, playerDies, deathInfo, buildEpilogue, ensureEpilogue, EPI_VERSION, isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
 if (typeof module !== 'undefined' && module.exports) module.exports = LC;
 else root.LC = LC;
 
@@ -9998,7 +10354,13 @@ const Scene = (function () {
     const out = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(v);
     return out;
   }
+  // grid, axis and label colours follow the screen theme (CSS variables); candle colours stay fixed (labelled 陽線/陰線 in the legend)
+  function themeCols() {
+    try { const cs = getComputedStyle(document.documentElement), v = (k) => cs.getPropertyValue(k).trim();
+      if (v('--text')) { COL.text = v('--text'); COL.axis = v('--muted') || COL.axis; COL.grid = v('--line') || COL.grid; } } catch (e) { /* keep defaults */ }
+  }
   function draw(canvas, model) {
+    themeCols();
     const { bars, all, offset, unit, cur, ind, events, hover, TA } = model;
     const dpr = Math.min(3, root.devicePixelRatio || 1);
     const W = Math.max(260, canvas.parentElement ? canvas.parentElement.clientWidth : 320);
@@ -10064,7 +10426,7 @@ const Scene = (function () {
         // last price tag
         const last = bars[n - 1], ly = yOf(last.c);
         g.fillStyle = last.c >= last.o ? COL.up : COL.down; g.fillRect(padL + plotW + 1, ly - 8, padR - 2, 16);
-        g.fillStyle = '#fff'; g.fillText(fmtPrice(last.c, cur), padL + plotW + 5, ly);
+        g.fillStyle = COL.text; g.fillText(fmtPrice(last.c, cur), padL + plotW + 5, ly);
       } else if (p.k === 'vol') {
         let mx = 0; for (const b of bars) if (b.v != null) mx = Math.max(mx, b.v);
         for (let i = 0; i < n; i++) { const b = bars[i]; if (b.v == null) continue; const h = (b.v / (mx || 1)) * (p.h - 4); g.fillStyle = b.c >= b.o ? 'rgba(255,91,107,0.55)' : 'rgba(76,141,255,0.55)'; g.fillRect(Math.round(xOf(i) - bw / 2), p.y + p.h - h, Math.max(1, Math.round(bw)), h); }
@@ -10315,7 +10677,7 @@ const Scene = (function () {
         <p class="ev-text">${LC.P(S).birthYear}年に生まれ、${sm.year || S.time.year}年に${sm.age != null ? sm.age : LC.playerAge(S)}歳で人生を終えました。</p>
         <dl class="kv"><dt>最後の純資産</dt><dd>${Y(sm.net)}</dd><dt>達成した目標</dt><dd>${Object.keys(S.achievements).length} / ${Object.keys(LC.ACHIEVEMENTS).length}</dd><dt>子ども</dt><dd>${sm.kids || 0}人</dd><dt>記録の数</dt><dd>${S.history.length}件</dd></dl>
         ${sm.eval ? `<div class="end-rank"><span class="rank-big r-${sm.eval.rank.rank}">${sm.eval.rank.rank}</span><span>総合 ${sm.eval.total}点 · ${esc(sm.eval.rank.label)}</span></div>` : ''}
-        <div class="btn-row"><button class="btn primary" data-act="history">人生ヒストリーを見る</button><button class="btn" data-act="ending">最後の瞬間をもう一度見る</button><button class="btn" data-act="newgame">新しい人生を始める</button><button class="btn" data-act="hideEnd">記録を読み返す</button></div></div>`;
+        <div class="btn-row"><button class="btn primary" data-act="epiOpen">人生の総評を読む</button><button class="btn" data-act="history">人生ヒストリーを見る</button><button class="btn" data-act="ending">最後の瞬間をもう一度見る</button><button class="btn" data-act="newgame">新しい人生を始める</button><button class="btn" data-act="hideEnd">記録を読み返す</button></div></div>`;
       return;
     }
     const v = LC.activeView(S);
@@ -10731,13 +11093,13 @@ const Scene = (function () {
       const slots = ['1', '2', '3'].map((k) => { const m = slotMeta(k); return `<div class="box opt"><span class="name">スロット${k}</span><span class="sub">${m ? `${esc(m.name)} · ${m.age}歳 · ${m.year}年${m.savedAt ? ' · ' + new Date(m.savedAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}` : '空き'}</span><span style="grid-row:1/span 2;grid-column:2;display:flex;gap:6px"><button class="btn sm" data-act="save" data-v="${k}">セーブ</button><button class="btn sm" data-act="load" data-v="${k}" ${m ? '' : 'disabled'}>ロード</button></span></div>`; }).join('');
       const am = slotMeta('auto');
       return `<div class="list">${slots}<div class="box opt"><span class="name">オートセーブ</span><span class="sub">${am ? `${esc(am.name)} · ${am.age}歳 · ${am.year}年` : 'まだありません'} · 毎年自動で保存</span><button class="btn sm" data-act="load" data-v="auto" ${am ? '' : 'disabled'}>ロード</button></div></div>
-        <p class="hint">セーブはこの端末のブラウザに保存されます。プライベートブラウズでは残らないことがあります。</p>`;
+        <p class="hint">セーブはこの端末のブラウザに保存されます。プライベートブラウズでは残らないことがあります。</p>` + archiveBox();
     }
     if (ui.tab === 'settings') {
-      return `<div class="box"><h4>1年の長さ（1倍速）</h4><div class="form"><label>秒数（5〜300）<input id="setSec" type="number" inputmode="numeric" min="5" max="300" value="${S.time.baseSeconds}"></label><div class="btn-row"><button class="btn" data-act="setSec">変更する</button></div></div><p class="hint" style="margin-top:6px">速度ボタンはこの長さを割ります。例：26秒なら2倍速は13秒、4倍速は6.5秒。</p></div>
+      return themeBox() + `<div class="box"><h4>1年の長さ（1倍速）</h4><div class="form"><label>秒数（5〜300）<input id="setSec" type="number" inputmode="numeric" min="5" max="300" value="${S.time.baseSeconds}"></label><div class="btn-row"><button class="btn" data-act="setSec">変更する</button></div></div><p class="hint" style="margin-top:6px">速度ボタンはこの長さを割ります。例：26秒なら2倍速は13秒、4倍速は6.5秒。</p></div>
         <div class="box"><h4>見た目を変える</h4>${lookControls(LC.P(S).look, 'myLook')}</div>
         <div class="box"><h4>決断のおまかせ</h4><p>選んだ方針で、これからの決断をゲームが代わりに選びます（いつでも自分で選ぶに戻せます）。</p><div class="btn-row">${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm ${S.flags.auto === k ? 'on' : ''}" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}<button class="btn sm ${!S.flags.auto ? 'on' : ''}" data-act="auto" data-v="">自分で選ぶ</button></div></div>
-        <div class="box"><h4>選択イベント</h4><p>選択が必要な出来事が起きると、その瞬間に時間が止まります。選ぶと結果が反映され、少し間をおいて自動で再開します。⏸ で止めていた場合は、選んだあとも止まったままです。</p></div>`;
+        <div class="box"><h4>選択イベント</h4><p>選択が必要な出来事が起きると、その瞬間に時間が止まります。選んだ瞬間に結果が反映され、そのまま自動で再開します。⏸ で止めていた場合は、選んだあとも止まったままです。</p></div>`;
     }
     if (ui.tab === 'new') {
       return `<div class="box"><h4>新しい人生</h4><p>キャラクター作成からやり直します。いまの人生を残したい場合は、先にスロットへセーブしてください。</p><div class="btn-row">${confirmBtn('newgame', '', 'キャラクター作成へ', '本当にやり直す（確認）')}</div></div>
@@ -10784,6 +11146,12 @@ const Scene = (function () {
       }
       case 'sheet': { const tb = el.dataset.tab || null; if (ui.sheet === v && !tb) closeSheet(); else if (ui.sheet === v) { ui.tab = tb; ui.asset = null; renderSheet(); $('#sheetBody').scrollTop = 0; } else openSheet(v, tb); break; }
       case 'theme': toggleTheme(); break;
+      case 'themeSet': setTheme(v); break;
+      case 'epiOpen': endingFinish(); openEpilogue(); break;
+      case 'epiClose': closeEpilogue(); break;
+      case 'epiArchive': { const E = archiveList()[+v]; if (E) openEpilogue(E, true); break; }
+      case 'epiHistory': closeEpilogue(); $('#eventLayer').hidden = true; openSheet('history', 'eval'); break;
+      case 'epiReplay': closeEpilogue(); startEnding(true); break;
       case 'coHelm': result(LC.bizTakeHelm(S, v)); break;
       case 'coStepDown': result(LC.bizStepDown(S, v)); break;
       case 'coBuyFam': result(LC.bizBuyFamilyStake(S, v)); break;
@@ -10862,7 +11230,7 @@ const Scene = (function () {
       case 'ending': startEnding(true); break;
       case 'endHistory': endingFinish(); $('#eventLayer').hidden = true; openSheet('history'); break;
       case 'endNext': endingNext(); break;
-      case 'endSkip': endingFinish(); break;
+      case 'endSkip': endingFinish(); if (S && S.over && !ui.epiSeen) openEpilogue(); break;
       case 'history': $('#eventLayer').hidden = true; openSheet('history', 'eval'); break;
       case 'propOpen': ui.prop = v; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'propBack': ui.prop = null; renderSheet(); break;
@@ -10899,7 +11267,7 @@ const Scene = (function () {
       case 'save': { const ok = saveTo(v); result({ ok, msg: ok ? `スロット${v}にセーブしました。` : 'この環境ではセーブできませんでした。' }); break; }
       case 'load': if (loadFrom(v)) { toast(v === 'auto' ? 'オートセーブを読み込みました。' : `スロット${v}を読み込みました。`); } break;
       case 'setSec': { LC.setBaseSeconds(S, num('setSec', 26)); result({ ok: true, msg: `1年の長さを${S.time.baseSeconds}秒にしました。` }); break; }
-      case 'newgame': ui.confirm = null; ui.form = null; openSetup(!S.over); break;
+      case 'newgame': if (S && S.over) archiveSave(LC.ensureEpilogue(S)); closeEpilogue(); ui.epiSeen = false; ui.confirm = null; ui.form = null; openSetup(!S.over); break;
       case 'randName': ui.form.given = randomGiven(ui.form.gender); if (Math.random() < 0.5) ui.form.sur = LC.NAMES.jp.sur[Math.floor(Math.random() * LC.NAMES.jp.sur.length)]; ui.form.err = {}; renderSetup(); break;
       case 'fGender': ui.form.gender = v; renderSetup(); break;
       case 'fMode': ui.form.mode = v; ui.form.err = {}; renderSetup(); break;
@@ -11711,7 +12079,7 @@ const Scene = (function () {
         { k: 'epitaph', html: `<h2 class="e-name">${esc(P.name)}</h2><p class="e-years">${P.birthYear} – ${S.time.year}</p><p>${esc(LC.country(S).name)}に生まれ、${F.age}年、日数にすると約${days.toLocaleString('ja-JP')}日を生きました。</p><p>同じ年に生まれた人の約${F.outlived}%より長く生きました（ゲーム内の推計）。</p>
           <div class="end-rank"><span class="rank-big r-${ev.rank.rank}">${ev.rank.rank}</span><span>総合 ${ev.total}点 · ${esc(ev.rank.label)}</span></div>
           <p class="e-one">ただ一度きりの、あなただけの人生でした。</p>
-          <div class="btn-row"><button class="btn primary" data-act="endHistory">人生ヒストリーを見る</button><button class="btn" data-act="endSkip">閉じる</button></div>`, dur: 0 }]);
+          <div class="btn-row"><button class="btn primary" data-act="epiOpen">人生の総評を読む</button><button class="btn" data-act="endHistory">人生ヒストリーを見る</button></div>`, dur: 0 }]);
     END.i = 0; const el = $('#ending'); el.hidden = false; showEndStep(); void replay;
   }
   function showEndStep() {
@@ -11960,10 +12328,70 @@ const Scene = (function () {
       ${P.rows.length ? `<ul class="people">${P.rows.join('')}</ul>` : '<p class="empty">まだ家族以外の大切な人はいません。友だち・恩師・仕事仲間は、出来事を通じて増えていきます。</p>'}`;
   }
 
-  // ---- light (reference) / dark theme
-  function applyTheme(t) { document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light'; const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t === 'dark' ? '#0e121a' : '#eef0f0'; }
-  applyTheme(load('lifecapital.theme') || 'light');
-  function toggleTheme() { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); store('lifecapital.theme', t); if (typeof Scene !== 'undefined') renderAll(); }
+  // ---- screen themes: light (default), dark, follow the device, midnight, sepia. Stored with the other device settings (localStorage),
+  // never inside the save file, so a save stays the same whatever the look. Applied at once by swapping the CSS tokens.
+  const THEMES = { light: { label: 'ライト', note: '明るい背景に暗い文字（標準）', meta: '#eef0f0' }, dark: { label: 'ダーク', note: '暗い背景に明るい文字', meta: '#0e121a' }, system: { label: 'システム設定に合わせる', note: '端末やブラウザの外観に合わせて自動で切り替え' }, midnight: { label: 'ミッドナイト', note: '黒と濃紺の落ち着いた画面', meta: '#05070d' }, sepia: { label: 'セピア', note: '暖色の紙のような画面', meta: '#ece2d0' } };
+  const darkMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+  function themePref() { const v = load('lifecapital.theme'); return THEMES[v] ? v : 'light'; }
+  function resolvedTheme(pref) { return pref === 'system' ? (darkMQ && darkMQ.matches ? 'dark' : 'light') : pref; }
+  function applyTheme(pref) {
+    const t = resolvedTheme(pref || themePref());
+    document.documentElement.dataset.theme = t; document.documentElement.dataset.themePref = pref || themePref();
+    const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = THEMES[t].meta;
+  }
+  function setTheme(pref) { if (!THEMES[pref]) return; store('lifecapital.theme', pref); applyTheme(pref); if (S && ui.mode === 'main') { lastRev = -1; if (ui.sheet) renderSheet(); if (typeof mountChart === 'function') mountChart(); } }
+  if (darkMQ) { const on = () => { if (themePref() === 'system') { applyTheme('system'); if (S && ui.sheet) renderSheet(); } }; if (darkMQ.addEventListener) darkMQ.addEventListener('change', on); else if (darkMQ.addListener) darkMQ.addListener(on); }
+  applyTheme();
+  function toggleTheme() { setTheme(resolvedTheme(themePref()) === 'light' || resolvedTheme(themePref()) === 'sepia' ? 'dark' : 'light'); }
+  function themeBox() {
+    const cur = themePref();
+    return `<div class="box"><h4>画面テーマ<span class="hint">いま：${esc(THEMES[cur].label)}${cur === 'system' ? `（${THEMES[resolvedTheme(cur)].label}）` : ''}</span></h4>
+      <div class="theme-list" role="radiogroup" aria-label="画面テーマ">${Object.keys(THEMES).map((k) => `<button class="theme-opt ${k === cur ? 'on' : ''}" role="radio" aria-checked="${k === cur}" data-act="themeSet" data-v="${k}"><span class="sw sw-${k}" aria-hidden="true"><i></i><i></i><i></i></span><span class="th-t"><b>${esc(THEMES[k].label)}</b><small>${esc(THEMES[k].note)}</small></span>${k === cur ? '<span class="th-ck">✓ 選択中</span>' : ''}</button>`).join('')}</div>
+      <p class="hint">この端末に保存され、次に開いたときも同じテーマになります。セーブデータには影響しません。</p></div>`;
+  }
+
+  // ======================= the epilogue: one quiet, scrollable page per finished life =======================
+  const ARCH = 'lifecapital.v1.archive';
+  function archiveList() { try { const a = JSON.parse(load(ARCH) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function archiveSave(E) { if (!E || !E.id) return; const a = archiveList().filter((x) => x.id !== E.id); a.unshift(E); store(ARCH, JSON.stringify(a.slice(0, 20))); }
+  function archiveBox() {
+    const a = archiveList();
+    return `<div class="box"><h4>これまでの人生<span class="hint">${a.length}人</span></h4>${a.length ? `<div class="list">${a.map((E, i) => `<div class="opt"><span class="name">${esc(E.name)} <span class="tag">${esc(E.eval.rank)}</span></span><span class="sub">${E.birthYear}–${E.death.year} · 享年${E.age}歳 · ${esc(E.eval.tags[0] ? E.eval.tags[0].t : E.eval.label)}</span><button class="btn sm" data-act="epiArchive" data-v="${i}">総評を読む</button></div>`).join('')}</div>` : '<p class="empty">人生を最後まで生きると、ここに総評が残ります。新しい人生を始めても消えません。</p>'}</div>`;
+  }
+  const VIA_L = { found: '設立', acquire: '買収', family: '家業', inherit: '相続' };
+  function epiHTML(E, archived) {
+    const D = E.death, Fn = E.final, Ev = E.eval, Af = E.after;
+    const card = (l, v, sub, cls) => `<div class="epi-k ${cls || ''}"><span>${l}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    const sec = (n, title, body) => `<section class="epi-sec"><h3><span class="epi-n">${n}</span>${title}</h3>${body}</section>`;
+    const kvs = (rows) => `<dl class="epi-kv">${rows.filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    const fam = Fn.family;
+    const famText = [fam.married ? (fam.spouse ? `配偶者 ${esc(fam.spouse.name)}${fam.spouse.alive ? '' : '（先に他界）'}` : '結婚歴あり') : '生涯独身', fam.divorces ? `離婚${fam.divorces}回` : '', fam.kids ? `子ども${fam.kids}人${fam.kidsAlive !== fam.kids ? `（存命${fam.kidsAlive}人）` : ''}` : '子どもなし', fam.grand ? `孫${fam.grand}人` : ''].filter(Boolean).join(' · ');
+    const fame = [Fn.sport && (Fn.sport.pro || Fn.sport.titles || Fn.sport.fame >= 20) ? `${esc(Fn.sport.label)}${Fn.sport.pro ? ` プロ${Fn.sport.pro}年` : ''}${Fn.sport.titles ? ` · タイトル${Fn.sport.titles}` : ''} · 知名度${Fn.sport.fame}` : '', Fn.creator && (Fn.creator.hits || Fn.creator.fame >= 20) ? `${esc(Fn.creator.label)} · ヒット${Fn.creator.hits}本 · 知名度${Fn.creator.fame}` : ''].filter(Boolean);
+    return `<div class="epi-in">
+      <header class="epi-head"><p class="epi-pre">${esc(E.country)} · ${E.birthYear} – ${D.year}</p><h2>${esc(E.name)}の人生</h2><p class="epi-age">享年 <b>${E.age}</b> 歳</p><p class="epi-close">${esc(E.closing)}</p></header>
+      ${sec('1', '最期のとき', kvs([['亡くなった日', `${D.year}年${D.month}月（${D.age}歳）`], ['死因', `<b>${esc(D.cause)}</b><br><small>${esc(D.detail)}</small>`], ['最期の健康', `${D.health} / 100${D.trend ? `（5年前より${esc(D.trend)}）` : ''}`], ['最期の暮らし', `${esc(D.home)} · ${esc(D.with)}`], D.event && ['亡くなる前の健康に関わる出来事', `${D.event.age}歳「${esc(D.event.title)}」`]]))}
+      ${sec('2', '人生総評', `<div class="epi-story">${E.story.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`)}
+      ${sec('3', '人生のハイライト', `<ol class="epi-tl">${E.highlights.map((h) => `<li class="${h.tone}"><span class="num">${h.age}歳</span><b>${esc(h.title)}</b><small class="num">${h.year}</small></li>`).join('')}</ol>`)}
+      ${sec('4', '最終成績', `<div class="epi-grid">${card('総資産', Y(Fn.totalAssets), '現金・投資・不動産・会社の持分')}${card('負債', Y(Fn.debts), '', Fn.debts > 0 ? 'neg' : '')}${card('純資産', Y(Fn.net), `最高 ${Y(Fn.peakNet)}${Fn.peakNetAge != null ? `（${Fn.peakNetAge}歳）` : ''}`, Fn.net < 0 ? 'neg' : 'gold')}
+          ${card('生涯の収入', Y(Fn.income), '税引前・ゲーム内の記録')}${card('生涯の支出', Y(Fn.expense), `税・社会保険 ${Y(Fn.tax)}は別`)}${Fn.investPL != null ? card('生涯の投資損益', LC.signedYen(Fn.investPL), `確定 ${LC.signedYen(Fn.realized)} · 含み ${LC.signedYen(Fn.unreal)}`, Fn.investPL < 0 ? 'neg' : 'pos') : ''}</div>
+        ${kvs([Fn.career.length && ['キャリア', esc(Fn.career.join(' → '))], Fn.peakSalary > 0 && ['最高年収（給与）', Y(Fn.peakSalary)], Fn.licenses && ['資格', `${Fn.licenses}つ`],
+          (Fn.companies.length || Fn.founded || Fn.failed || Fn.sold) && ['経営した会社', `${Fn.companies.length ? Fn.companies.map((c) => `${esc(c.name)}（${esc(c.ind)} · ${VIA_L[c.via] || '設立'} · 持株${Math.round(c.own * 100)}% · ${c.role === 'ceo' ? '代表' : '株主'}）`).join('<br>') + '<br>' : ''}<small>起業${Fn.founded}回 · 倒産${Fn.failed}回 · 売却${Fn.sold}回${Fn.maxEmployees ? ` · 最大${Fn.maxEmployees}人を雇用` : ''}（会社の売上・資産は個人の資産とは別）</small>`],
+          ['家族', famText], fame.length && ['名声', fame.join('<br>')], ['実績', `${Fn.achievements} / ${Fn.achTotal}${Fn.achList.length ? `<br><small>${Fn.achList.map(esc).join('・')}</small>` : ''}`], Fn.bankrupt && ['自己破産', 'あり']])}`)}
+      ${sec('5', '人生の評価', `<div class="epi-rank"><span class="rank-big r-${Ev.rank}">${Ev.rank}</span><div><b>${esc(Ev.label)}</b><small>総合 ${Ev.total}点 · 人生のタイプ：${esc(Ev.ending)}</small></div></div>
+        <ul class="epi-tags">${Ev.tags.map((x) => `<li><b>${esc(x.t)}</b><small>${esc(x.why)}</small></li>`).join('')}</ul>
+        <div class="epi-scores">${Object.keys(Ev.scores).map((k) => `<div class="sbar"><span class="sb-l">${esc(LC.EVAL_LABEL ? LC.EVAL_LABEL[k] || k : k)}</span><span class="sb-m"><i style="width:${Ev.scores[k]}%;background:var(--teal)"></i></span><span class="sb-v num">${Ev.scores[k]}</span></div>`).join('')}</div>
+        ${Ev.titles.length ? `<p class="epi-titles">${Ev.titles.map((x) => `<span class="tag" title="${esc(x.why)}">${esc(x.t)}</span>`).join('')}</p>` : ''}`)}
+      ${sec('6', 'その後に残されたもの', kvs([['相続人', Af.heirs.length ? `${Af.heirs.map((h) => `${esc(h.rel)} ${esc(h.name)}`).join('、')}<br><small>${esc(Af.basis || '')}</small>` : 'いません'], ['遺産（純資産）', Y(Af.estate)], Af.shares.length && ['保有していた株式など', Af.shares.map((x) => `${esc(x.name)} ${Y(x.value)}`).join('<br>')],
+          Af.companies.length && ['会社', Af.companies.map((c) => `${esc(c.name)}（持株${Math.round(c.own * 100)}%・評価 ${Y(c.value)}）<br><small>${esc(c.successor || '')}</small>`).join('<br>')], ['分け方', esc(Af.note)], Af.legacyPlan && ['生前の準備', '財産を家族に遺す準備をしていました']]))}
+      <div class="epi-actions">${archived ? '<button class="btn" data-act="epiClose">閉じる</button>' : `<button class="btn primary" data-act="newgame">次の人生を始める</button><button class="btn" data-act="epiHistory">人生ヒストリー・実績を見る</button><button class="btn" data-act="epiReplay">最後の瞬間をもう一度見る</button><button class="btn" data-act="epiClose">閉じる</button>`}</div>
+      <p class="epi-foot">この総評は亡くなった時点の記録から作られ、何度開いても同じ内容です。「これまでの人生」（メニュー → セーブ）にも残ります。</p></div>`;
+  }
+  function openEpilogue(E, archived) {
+    if (!E) { if (!S || !S.over) return; E = LC.ensureEpilogue(S); archiveSave(E); ui.epiSeen = true; }
+    const el = $('#epilogue'); if (!el) return;
+    el.innerHTML = epiHTML(E, archived); el.hidden = false; el.scrollTop = 0; document.documentElement.classList.add('lock');
+  }
+  function closeEpilogue() { const el = $('#epilogue'); if (!el) return; el.hidden = true; el.innerHTML = ''; if (!ui.sheet) document.documentElement.classList.remove('lock'); }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.sheet input[type=text], .sheet input[type=number]')) ui.typing = true; });
