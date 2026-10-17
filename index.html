@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e121a">
+<meta name="theme-color" content="#eef0f0">
 <meta name="format-detection" content="telephone=no">
 <title>LIFE CAPITAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;600&family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>/* LIFE CAPITAL — night-sky ledger: one dark world, pixel display face for the clock, warm paper text, pink time bar. */
 :root {
   color-scheme: dark;
@@ -630,49 +630,297 @@ button.bi:hover { border-color: var(--line-2); }
 #secFamily { order: 6; } #secStats { order: 7; } #secMoney { order: 8; } #secMap { order: 9; } #secRivals { order: 10; } .home .foot-note { order: 11; }
 
 /* ---------- wide screens (PC / landscape tablet): 3 columns + a side rail for the menu */
+/* wide screens: the reference layout — a full-width header with the controls and menu in one toolbar row, then three columns */
 @media (min-width: 1080px) {
-  #app { display: grid; grid-template-columns: 92px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
-  .clock { grid-column: 1 / -1; grid-row: 1; }
-  .clock-in { max-width: 1320px; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 24px; padding: 10px 24px; }
-  .clock-row { grid-column: 1; grid-row: 1 / span 2; }
-  .clock .bar { grid-column: 2; grid-row: 1; }
-  .clock .ctrl { grid-column: 2; grid-row: 2; }
-  #ageNum { font-size: 52px; }
-  .meta { min-width: 15em; }
-  .stage { grid-column: 2; grid-row: 2; }
-  .dock { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; gap: 4px; padding: 12px 8px; border-top: 0; border-right: 1px solid var(--line); overflow-y: auto; }
-  .dock button { padding: 10px 2px; }
-  .dock button span { font-size: 12px; white-space: normal; text-align: center; line-height: 1.25; }
-  .dock .dock-set { display: grid; margin-top: auto; }
-  .dock button[aria-current="true"] { box-shadow: inset 3px 0 0 var(--pink); }
-  .wrap.home { padding: 18px 24px 28px; grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(280px, 330px); max-width: 1320px; margin: 0 auto; align-items: start; gap: 16px; }
-  .home .col { display: grid; gap: 14px; align-content: start; min-width: 0; }
+  .dock { display: none; }
+  .wrap.home { padding: 22px 24px 32px; grid-template-columns: minmax(270px, 330px) minmax(0, 1fr) minmax(270px, 350px); max-width: 1380px; margin: 0 auto; align-items: start; gap: 20px; }
+  .home .col { display: grid; gap: 18px; align-content: start; min-width: 0; }
   .home .col-a { grid-column: 1; } .home .col-b { grid-column: 2; } .home .col-c { grid-column: 3; }
   .home .col > * { order: 0; }
-  .home .col-a, .home .col-c { position: sticky; top: 0; }
   .home .foot-note { grid-column: 1 / -1; }
-  .now-grid { grid-template-columns: 1fr; }
-  .now-cell { min-height: 0; }
-  .col-a .stat4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .col-a .money-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sheet { align-items: center; padding: 16px; }
-  .sheet-panel { max-width: 920px; max-height: calc(100% - 8px); border-radius: 16px; border-bottom: 1px solid var(--line-2); }
+  .sheet { align-items: center; padding: 20px; }
+  .sheet-panel { max-width: 940px; max-height: calc(100% - 8px); }
   .event { align-items: center; }
-  .ev-card { max-width: 640px; margin-bottom: 0; padding: 20px 22px; }
+  .ev-card { margin-bottom: 0; }
   .outcome { top: 12px; }
-}
-@media (min-width: 1500px) { .wrap.home { grid-template-columns: 320px minmax(0, 1fr) 360px; } }
-/* 1080–1359px: two columns (the pixel scene keeps a useful width), numbers and people on the right */
-@media (min-width: 1080px) and (max-width: 1359px) {
-  .wrap.home { grid-template-columns: minmax(0, 1fr) minmax(290px, 340px); }
-  .home .col-b { grid-column: 1; grid-row: 1 / span 2; }
-  .home .col-a { grid-column: 2; grid-row: 1; position: static; }
-  .home .col-c { grid-column: 2; grid-row: 2; position: static; }
 }
 .choice .c-fx b { font-size: 11.5px; }
 @media (max-width: 480px) { .choice .c-fx, .choice .c-why { margin-left: 0; grid-template-columns: 4.9em minmax(0, 1fr); } }
 /* a result notice and a new decision can be on screen together: the card starts below the notice */
 .event.block.with-note { padding-top: 58px; }
+
+/* ===== LIFE CAPITAL — reference layout (light paper theme by default; ◐ switches to the original night theme) =====
+   Structure taken from the reference video: a quiet light-grey page, white cards with hairline borders, a serif for names and titles,
+   a toolbar of small square buttons, three columns (profile & state · scene, this year, the record · family, peers, life map),
+   and a centred white decision dialog with numbered rows. Logos, illustrations and texts are LIFE CAPITAL's own. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ink: #eef0f0; --panel: #fbfbfa; --panel-2: #f1f3f2; --line: #dfe3e2; --line-2: #cdd3d2;
+  --text: #24282b; --muted: #6b7377; --faint: #9aa2a5;
+  --pink: #d65f88; --pink-deep: #a8456a;
+  --health: #2f7d5b; --happy: #a87b22; --know: #2a7a74; --rel: #8e1d3d;
+  --good: #2c7a5c; --bad: #c0453b; --gold: #94690f; --blue: #3b62ad; --act: #b5651d; --info: #3b62ad;
+  --crimson: #8c1c3c; --teal: #2f7a6c; --teal-bg: #e2eeeb; --shadow: 0 1px 2px rgba(30, 40, 40, 0.05);
+  --map-rgb: 47, 122, 108; --map-w-rgb: 168, 123, 34;
+}
+:root[data-theme="dark"] { --crimson: #e07a98; --teal: #5bbfb2; --teal-bg: rgba(91, 191, 178, 0.12); --shadow: none; --map-rgb: 91, 191, 178; --map-w-rgb: 231, 194, 106; }
+:root { --f-serif: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif; --rr: 4px; }
+body { font-size: 14.5px; }
+
+/* ---------- header: brand · age · meta · thin bar / toolbar of small square buttons */
+.clock { background: var(--panel); backdrop-filter: none; border-bottom: 1px solid var(--line); }
+.clock-in { max-width: 1380px; padding: 10px var(--gut); gap: 8px; }
+.brand { display: none; font-family: var(--f-serif); font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: 0.02em; align-self: center; white-space: nowrap; }
+.age { font-family: var(--f-serif); font-weight: 700; }
+#ageNum { font-size: 40px; letter-spacing: 0; }
+.age-u { font-size: 17px; }
+.meta { font-size: 12.5px; }
+.meta-l2 { font-size: 12.5px; }
+.ms-cash { background: transparent; border: 0; padding: 0; color: var(--text); font-weight: 600; border-radius: 0; }
+.ms-l { margin-right: 4px; }
+.bar { height: 3px; border-radius: 0; background: var(--line); }
+.bar-fill { border-radius: 0; }
+.bar-ticks { display: none; }
+.bar.held .bar-fill { background: repeating-linear-gradient(90deg, var(--pink) 0 5px, var(--pink-deep) 5px 10px); }
+.ctrl { gap: 5px; flex-wrap: nowrap; }
+.btn-play { width: auto; min-width: 44px; height: 34px; padding: 0 10px; border-radius: var(--rr); background: var(--panel); color: var(--text); border: 1px solid var(--line-2); gap: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; }
+.btn-play svg { width: 10px; height: 10px; }
+.btn-play.on { background: var(--panel); color: var(--text); }
+.btn-play .pl-t { display: none; }
+.speeds { border: 0; gap: 4px; display: flex; overflow: visible; }
+.speeds button { flex: 1 1 0; min-width: 0; height: 34px; border: 1px solid var(--line-2) !important; border-radius: var(--rr); background: var(--panel); color: var(--text); font-size: 12px; }
+.speeds button.on { background: var(--text); color: var(--panel); box-shadow: none; border-color: var(--text) !important; }
+.btn-ghost { height: 34px; border-radius: var(--rr); border-color: var(--line-2); background: var(--panel); color: var(--text); font-size: 12.5px; padding: 0 10px; }
+.btn-ghost:hover, .speeds button:hover, .btn-play:hover { border-color: var(--faint) !important; }
+.btn-next { padding: 0 9px; }
+.topnav { display: none; gap: 5px; }
+.topnav .btn-ghost[aria-current="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+.btn-theme { padding: 0 9px; }
+@media (max-width: 520px) { .btn-next { font-size: 0; padding: 0 10px; } .btn-next span { font-size: 13px; } .btn-theme { display: none; } }
+@media (min-width: 1080px) {
+  .clock-in { display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; column-gap: 14px; row-gap: 10px; padding: 12px 24px; }
+  .clock-row { grid-column: 1 / 4; grid-row: 1; align-items: baseline; gap: 14px; }
+  .brand { display: inline; }
+  .meta { flex-direction: row; flex-wrap: wrap; gap: 0 10px; align-items: baseline; }
+  .clock .bar { grid-column: 4; grid-row: 1; align-self: center; }
+  .clock .ctrl { grid-column: 1 / -1; grid-row: 2; }
+  .btn-play .pl-t { display: inline; }
+  .speeds { flex: 0 0 auto; }
+  .speeds button { flex: 0 0 auto; width: 42px; }
+  .topnav { display: flex; margin-left: 10px; padding-left: 12px; border-left: 1px solid var(--line); }
+  .btn-theme { margin-left: auto; }
+  #ageNum { font-size: 42px; }
+}
+
+/* ---------- cards */
+.wrap { padding-block: 16px 28px; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--rr); padding: 18px 20px; box-shadow: var(--shadow); }
+.card h3 { font-size: 17px; font-weight: 700; letter-spacing: 0.01em; }
+.card-head { margin-bottom: 12px; align-items: baseline; }
+.card-head .hint { font-size: 11.5px; letter-spacing: 0.02em; }
+.hint { color: var(--muted); }
+.sub-h { color: var(--muted); font-size: 12px; margin: 14px 0 6px; border-top: 1px dashed var(--line-2); padding-top: 12px; }
+.empty { border-style: dashed; border-color: var(--line-2); background: transparent; border-radius: var(--rr); }
+.btn { border-radius: var(--rr); background: var(--panel); border-color: var(--line-2); color: var(--text); font-size: 13px; }
+.btn:hover:not([disabled]) { border-color: var(--faint); }
+.btn.primary { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+.btn.warn { background: transparent; }
+.chip-btn, .seg button { border-color: var(--line-2); color: var(--text); background: var(--panel); }
+.seg button.on, .chip-btn.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+.link-btn { color: var(--muted); }
+.foot-note { color: var(--faint); }
+
+/* profile card: a coloured strip, the avatar, the name in serif and a quiet list */
+.prof-card { padding: 0; overflow: hidden; }
+.prof-strip { display: flex; justify-content: space-between; align-items: center; padding: 7px 14px; background: var(--crimson); color: #fff; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; }
+.prof-body { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 14px 16px 16px; }
+.prof-av { width: 64px; height: 72px; image-rendering: pixelated; border: 1px solid var(--line-2); background: var(--panel-2); object-fit: contain; padding: 4px 6px; }
+.prof-name { font-family: var(--f-serif); font-size: 21px !important; font-weight: 700; margin: 0 0 6px !important; line-height: 1.25; }
+.prof-kv { display: grid; grid-template-columns: 6.2em minmax(0, 1fr); gap: 3px 10px; margin: 0; font-size: 12.5px; }
+.prof-kv dt { color: var(--muted); } .prof-kv dd { margin: 0; overflow-wrap: anywhere; }
+.tier-dots { letter-spacing: 2px; font-size: 11px; }
+
+/* state bars */
+.sbars { display: grid; gap: 9px; }
+.sbar { display: grid; grid-template-columns: 4.6em minmax(0, 1fr) 3.6em; gap: 10px; align-items: center; font-size: 13px; }
+.sb-l { color: var(--text); }
+.sb-m { height: 9px; background: var(--panel-2); border: 0; display: block; position: relative; }
+.sb-m i { position: absolute; inset: 0 auto 0 0; display: block; transition: width .4s ease; }
+.sb-v { text-align: right; font-size: 13px; display: flex; justify-content: flex-end; gap: 4px; align-items: baseline; }
+.sb-v .delta { font-size: 10.5px; }
+.mini-d { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.mini-d summary { cursor: pointer; list-style: none; min-height: 28px; display: flex; align-items: center; gap: 6px; }
+.mini-d summary::-webkit-details-marker { display: none; }
+.mini-d summary::before { content: '▸'; font-size: 10px; transition: transform .15s; }
+.mini-d[open] summary::before { transform: rotate(90deg); }
+.mini-d .sbars { margin: 6px 0 4px; }
+.sb-foot { display: flex; align-items: baseline; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line-2); font-size: 13px; }
+.sb-foot .link-btn { margin-left: auto; padding: 0; min-height: 0; }
+
+/* money */
+.m2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.m2c { text-align: left; background: none; border: 0; padding: 0; display: grid; gap: 2px; min-width: 0; }
+.m2l { font-size: 11.5px; color: var(--muted); }
+.m2c b { font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
+.m2s { font-size: 11.5px; color: var(--muted); }
+.mlines { list-style: none; margin: 0; padding: 0; display: grid; }
+.mlines li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.mlines li span { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.mlines li b { font-weight: 600; white-space: nowrap; }
+.m-sum { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+/* 今年の重点 */
+.focus-sub { margin: -4px 0 10px; color: var(--muted); font-size: 13px; }
+.focus-box { margin: 0; padding: 0; border: 0; }
+.focus-box p { color: var(--muted); }
+.focus-box .chip-btn { border-radius: 999px; display: inline-grid; justify-items: center; padding: 5px 14px; line-height: 1.35; }
+.focus-box .chip-btn .fx { font-size: 10.5px; color: var(--muted); }
+.focus-box .chip-btn.on .fx { color: rgba(255, 255, 255, 0.85); }
+.life-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.life-row .seg button { padding: 3px 11px; font-size: 12.5px; border-radius: var(--rr); }
+
+/* 人生の記録: age column + sentence; bad news in red; milestones in bold; scrolls inside the card on wide screens */
+.log-lead { margin: -4px 0 10px; color: var(--teal); font-size: 13px; line-height: 1.7; }
+#secLog .log-tools { display: flex; gap: 6px; margin-bottom: 8px; }
+#secLog .log-tools .chip-btn { border-radius: var(--rr); padding: 3px 10px; font-size: 12px; }
+.log { gap: 0; }
+.log .rec-li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; border-bottom: 1px solid var(--line); }
+.log .rec { display: grid; grid-template-columns: 3.8em minmax(0, 1fr); gap: 2px 12px; padding: 10px 0; background: none; border: 0; border-radius: 0; text-align: left; width: 100%; }
+.log .rec .when { font-family: var(--f-num); font-size: 12px; color: var(--muted); padding-top: 2px; display: block; }
+.log .rec .desc { font-size: 14px; line-height: 1.7; color: var(--text); }
+.log .rec.bad .desc { color: var(--bad); }
+.log .rec.imp .desc { font-weight: 700; }
+.log .rec .detail { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--teal); margin-top: 2px; }
+.log .rec .detail span { font-family: var(--f-body); }
+.log .rec .detail .up { color: var(--good); } .log .rec .detail .down { color: var(--bad); }
+.log .star { background: none; border: 0; color: var(--faint); font-size: 14px; padding: 10px 2px 0 8px; }
+.log .star.on { color: var(--gold); }
+@media (min-width: 1080px) { .log-scroll { max-height: 640px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; } }
+
+/* いま知っておくこと: a quiet list */
+.brief .bi { background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 0; border-left: 0 !important; }
+.bi-ic { background: var(--panel-2); border-radius: var(--rr); }
+
+/* right column: 家族と暮らし */
+.kvr { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.kvr.gone { opacity: 0.55; }
+.kvk { color: var(--muted); display: grid; } .kvk small { color: var(--faint); font-size: 11px; }
+.kvv { text-align: right; display: grid; justify-items: end; } .kvv b { font-weight: 500; font-size: 13px; } .kvv small { color: var(--muted); font-size: 11.5px; }
+.people .pp { border-top: 0; border-bottom: 1px solid var(--line); }
+.pp-ic { border-radius: var(--rr); font-family: var(--f-body); font-size: 12px; }
+/* 同じ日に生まれた人たち */
+.rivals .rk { color: var(--faint); }
+/* 人生地図 */
+.lifemap .mc { border-radius: 0; }
+.lifemap .mc.cur { outline: 2px solid var(--crimson); outline-offset: -2px; }
+
+/* scene: the pixel picture sits in the card, the caption under it */
+.scene-card { border-radius: var(--rr); border-color: var(--line); box-shadow: var(--shadow); }
+.scene-cap { padding: 10px 16px 12px; }
+.cap-main { font-size: 14px; font-weight: 400; }
+.cap-sub { font-size: 12px; }
+
+/* ---------- decision dialog: white sheet, small red header line, serif title, numbered grey rows */
+.event.block { background: rgba(40, 44, 46, 0.42); }
+:root[data-theme="dark"] .event.block { background: rgba(5, 7, 12, 0.6); }
+.ev-card { width: calc(100% - 2 * var(--gut)); max-width: 720px; padding: 0; gap: 0; border-radius: var(--rr); border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(20, 24, 26, 0.28); background: var(--panel); }
+.ev-card.important, .ev-card.tier-major { border-color: var(--line); border-top: 1px solid var(--line); }
+.ev-top { display: flex; align-items: center; gap: 10px; padding: 12px 22px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
+.ev-tier { border: 0 !important; background: none !important; padding: 0 !important; color: var(--crimson) !important; font-size: 13px !important; font-weight: 500 !important; }
+.ev-tier.daily { color: var(--muted) !important; }
+.ev-cat { font-size: 12px; color: var(--muted); }
+.ev-cat::before { content: '· '; }
+.ev-top .when { margin-left: auto; order: 0; color: var(--crimson); font-size: 12.5px; white-space: nowrap; }
+.ev-top .ev-peek { order: 0; margin-left: 4px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 4px 12px; font-size: 12px; }
+.ev-main { padding: 16px 22px 18px; display: grid; gap: 12px; }
+.ev-title { margin: 0; font-family: var(--f-serif); font-size: 27px; font-weight: 700; line-height: 1.35; text-wrap: balance; }
+.ev-card.tier-daily .ev-title { font-size: 23px; }
+.ev-body .ev-text { color: var(--muted); font-size: 15px; line-height: 1.85; margin: 0; }
+.ev-prev { margin: 0; padding: 10px 14px; background: var(--teal-bg); border-left: 3px solid var(--teal); color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+.choices { gap: 10px; }
+.choice { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 12px; align-items: start; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 2px; padding: 15px 18px; min-height: 56px; }
+.choice:hover:not([disabled]) { border-color: var(--crimson); background: var(--panel-2); }
+.choice:focus-visible { outline: 2px solid var(--crimson); }
+.choice.risky { border-left: 1px solid var(--line-2); }
+.c-no { width: auto; height: auto; background: none; border: 0; font-family: var(--f-num); font-size: 12px; color: var(--muted); transform: none; padding-top: 2px; display: block; }
+.choice:hover:not([disabled]) .c-no { color: var(--crimson); }
+.c-main { display: grid; gap: 3px; min-width: 0; }
+.choice .c-l { font-size: 15.5px; font-weight: 700; display: block; }
+.choice .c-fx { margin-left: 0 !important; display: grid; grid-template-columns: 4.4em minmax(0, 1fr) !important; font-size: 12.5px; color: var(--muted); }
+.choice .c-fx b { font-weight: 400; color: var(--faint); font-size: 11.5px; }
+.choice .c-fx.now b::before, .choice .c-fx.fut b::before { content: none; }
+.choice .c-fx.risk b, .choice .c-fx.risk span { color: var(--bad); }
+.choice .c-why { margin-left: 0 !important; color: var(--bad); font-size: 12px; }
+.ev-hold { text-align: center; color: var(--faint); font-size: 11.5px; margin: 0; }
+.auto-d { text-align: center; }
+.auto-open { display: inline-block; list-style: none; cursor: pointer; border: 1px solid var(--line-2); border-radius: var(--rr); padding: 8px 18px; font-size: 13px; color: var(--text); background: var(--panel); }
+.auto-open::-webkit-details-marker { display: none; }
+.auto-d[open] .auto-open { border-color: var(--faint); }
+.auto-d .auto-bar, .ev-main > .auto-bar { justify-content: center; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ev-note textarea { background: var(--panel); }
+@media (max-width: 560px) {
+  .ev-top { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .ev-main { padding: 12px 14px 14px; }
+  .ev-title { font-size: 22px; }
+  .ev-card.tier-daily .ev-title { font-size: 20px; }
+  .choice { padding: 12px 12px; grid-template-columns: 18px minmax(0, 1fr); gap: 0 8px; }
+  .event.block .ev-card { width: calc(100% - 16px); }
+}
+
+/* ---------- sheets (detail screens): the same white dialog */
+.sheet-back { background: rgba(40, 44, 46, 0.42); }
+:root[data-theme="dark"] .sheet-back { background: rgba(5, 7, 12, 0.6); }
+.sheet-panel { background: var(--panel); border-color: var(--line); border-radius: 8px 8px 0 0; box-shadow: 0 -10px 40px rgba(20, 24, 26, 0.18); }
+@media (min-width: 1080px) { .sheet-panel { border-radius: var(--rr); border-bottom: 1px solid var(--line); } }
+.sheet-head { border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 10px; }
+.sheet-head h2 { font-family: var(--f-serif); font-weight: 700; font-size: 21px; }
+.btn-close { border-radius: var(--rr) !important; background: var(--panel) !important; border: 1px solid var(--line-2) !important; color: var(--text) !important; }
+.sheet-tabs .chip-btn { border-radius: var(--rr); }
+.sheet-tabs .chip-btn.on { background: var(--text); border-color: var(--text); color: var(--panel); }
+.box { background: var(--panel); border-color: var(--line); border-radius: var(--rr); }
+.box h4 { font-weight: 700; }
+
+/* ---------- notices and the dock (phones) */
+.oc-toast { background: var(--panel); border-radius: var(--rr); box-shadow: 0 6px 20px rgba(20, 24, 26, 0.18); }
+.toast { border-radius: var(--rr); }
+.dock { background: var(--panel); backdrop-filter: none; }
+.dock button { color: var(--muted); border-radius: var(--rr); }
+.dock button[aria-current="true"] { background: var(--panel-2); color: var(--text); box-shadow: inset 0 -2px 0 var(--crimson); }
+
+/* ---------- company list (会社タブ) */
+.co-list { display: grid; gap: 8px; }
+.co-row { text-align: left; display: grid; gap: 4px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--rr); width: 100%; }
+.co-row.on { border-color: var(--crimson); box-shadow: inset 3px 0 0 var(--crimson); }
+.co-row .co-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.co-row .co-h b { font-size: 15px; }
+.co-row .co-k { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px 10px; font-size: 12px; color: var(--muted); }
+.co-row .co-k span b { display: block; color: var(--text); font-family: var(--f-num); font-size: 13px; font-weight: 600; }
+@media (max-width: 520px) { .co-row .co-k { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tag.via { border: 1px solid currentColor; background: transparent; }
+.tag.via.inherit { color: var(--crimson); } .tag.via.family { color: var(--teal); } .tag.via.found { color: var(--muted); } .tag.via.acquire { color: var(--blue); }
+.role-box { border-left: 3px solid var(--crimson) !important; }
+.co-st.ok { color: var(--good); } .co-st.bad { color: var(--bad); } .co-st.pre { color: var(--muted); }
+
+/* phones: one column — what is happening first, then this year, the numbers, the record, then who you are and who is around */
+#mainScene { order: 1; } #secBrief { order: 2; } #secLife { order: 3; } #secStats { order: 4; } #secNow { order: 5; } #secLog { order: 6; }
+#secProfile { order: 7; } #secFamily { order: 8; } #secRivals { order: 9; } #secMap { order: 10; } .home .foot-note { order: 11; }
+/* the room picture keeps its pixel scale (whole multiples); on wide screens it stays at a calm size in the middle of the card */
+.scene-stage { background: var(--panel-2); }
+@media (min-width: 1080px) { #sceneStage { max-width: 420px; margin: 0 auto; background: transparent; } #mainScene { background: var(--panel-2); } }
+.log .rec-li .rec { padding-right: 0; }
+.log .rec-li .star { position: static; width: 28px; height: 28px; padding: 8px 0 0; text-align: right; }
+@media (min-width: 1080px) { #secProfile, #secStats, #secNow, #mainScene, #secLife, #secBrief, #secLog, #secFamily, #secRivals, #secMap { order: 0; } }
+.ev-card.end-card { padding: 22px; gap: 10px; }
+.ev-card.end-card h3 { font-family: var(--f-serif); font-weight: 700; }
+/* the closing film stays dark, like the reference's full-screen interstitials (serif caption over the pixel scene) */
+.ending { --ink: #0e121a; --panel: #151b26; --panel-2: #1b2331; --line: #273245; --line-2: #33405a; --text: #ece6da; --muted: #8d97aa; --faint: #5d6880; color: var(--text); }
+.ending h2, .ending h3, .ending .film-title, .ending .ttl { font-family: var(--f-serif); }
+.pre-screen h1, .pre-screen h2 { font-family: var(--f-serif); font-weight: 700; color: var(--text); letter-spacing: 0.01em; }
+/* 同じ日に生まれた人たち: a plain list like the reference (name in bold, where/what in small type, the figure on the right) */
+.rivals { gap: 0 !important; }
+.rivals li { background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; padding: 8px 0 !important; }
+.rivals li.me { box-shadow: inset 3px 0 0 var(--crimson); padding-left: 10px !important; }
+.rivals li.me .nm b { color: var(--crimson); }
 </style>
 </head>
 <body>
@@ -682,6 +930,7 @@ button.bi:hover { border-color: var(--line-2); }
   <header class="clock" id="clock">
     <div class="clock-in">
       <div class="clock-row">
+        <span class="brand" aria-hidden="true">LIFE CAPITAL</span>
         <div class="age"><span id="ageNum">0</span><span class="age-u">歳</span></div>
         <div class="meta"><div class="meta-l1"><span id="metaName" class="meta-name"></span><span class="dot">·</span><span id="metaYear">2026年</span><span class="dot">·</span><span id="metaSpeed">1年 ≈ 26秒</span></div>
           <div class="meta-l2" id="metaStatus"></div></div>
@@ -690,17 +939,27 @@ button.bi:hover { border-color: var(--line-2); }
       <div class="ctrl">
         <button id="btnPlay" class="btn-play" data-act="play" aria-label="再生"></button>
         <div class="speeds" id="speeds" role="group" aria-label="進行速度"></div>
-        <button class="btn-ghost btn-next" data-act="next">次へ <span aria-hidden="true">»</span></button>
-        <button class="btn-ghost btn-more" data-act="sheet" data-v="menu" aria-label="メニュー">⋯</button>
+        <button class="btn-ghost btn-next" data-act="next">次の決断まで <span aria-hidden="true">▸</span></button>
+        <nav class="topnav" aria-label="メインメニュー（PC）">
+          <button class="btn-ghost" data-act="home" data-v="home">ホーム</button>
+          <button class="btn-ghost" data-act="sheet" data-v="life">人生・暮らし</button>
+          <button class="btn-ghost" data-act="sheet" data-v="biz">仕事・会社</button>
+          <button class="btn-ghost" data-act="sheet" data-v="market">投資</button>
+          <button class="btn-ghost" data-act="sheet" data-v="money">資産</button>
+          <button class="btn-ghost" data-act="sheet" data-v="history">記録</button>
+        </nav>
+        <button class="btn-ghost btn-theme" data-act="theme" aria-label="明るい表示と暗い表示を切り替え" title="表示の明るさ">◐</button>
+        <button class="btn-ghost btn-more" data-act="sheet" data-v="menu" aria-label="メニュー（セーブ・設定）">⋯</button>
       </div>
     </div>
   </header>
   <div class="stage" id="stage">
   <main class="wrap home" id="scroller">
     <div class="col col-a">
-      <section class="card now-card" id="secNow"></section>
+      <section class="card prof-card" id="secProfile"></section>
       <section class="card" id="secStats"></section>
-      <section class="card" id="secMoney"></section>
+      <section class="card now-card" id="secNow"></section>
+      <section class="card" id="secMoney" hidden></section>
     </div>
     <div class="col col-b">
       <section class="scene-card" id="mainScene">
@@ -708,14 +967,14 @@ button.bi:hover { border-color: var(--line-2); }
           <button id="viewToggle" class="scene-toggle" data-act="viewToggle" hidden></button><div id="sceneTip" class="scene-tip" hidden></div><div id="ageFx" class="age-fx" hidden></div></div>
         <div class="scene-cap"><p id="sceneCap" class="cap-main"></p><p id="sceneSub" class="cap-sub"></p><p id="sceneStore" class="cap-sub"></p></div>
       </section>
-      <section class="card brief-card" id="secBrief"></section>
       <section class="card" id="secLife"></section>
+      <section class="card brief-card" id="secBrief"></section>
       <section class="card" id="secLog"></section>
     </div>
     <div class="col col-c">
       <section class="card" id="secFamily"></section>
-      <section class="card" id="secMap"></section>
       <section class="card" id="secRivals"></section>
+      <section class="card" id="secMap"></section>
     </div>
     <p class="foot-note">金額・税・年金・相続などはゲーム用の近似モデルです。実際の制度や投資判断の参考にはしないでください。</p>
   </main>
@@ -2141,7 +2400,7 @@ function budget(s) {
   const car = s.career;
   let wages = 0;
   if (car.status === 'employed' && car.job) { income.push({ k: 'salary', label: '給与・賞与', v: car.job.salary }); wages += car.job.salary; }
-  const pay = playerBusinesses(s).reduce((a, b) => a + (b.ownerPay || 0), 0);
+  const pay = playerBusinesses(s).reduce((a, b) => a + (isExec(b) ? b.ownerPay || 0 : 0), 0); // a company run by someone else pays its own manager
   if (pay > 0) { income.push({ k: 'ownerpay', label: '役員報酬', v: pay }); wages += pay; }
   if (car.sideIncome > 0) { income.push({ k: 'side', label: '副業', v: car.sideIncome }); wages += car.sideIncome; }
   const ath = athleteIncome(s); if (ath > 0) { income.push({ k: 'athlete', label: `年俸・賞金（${SPORTS[s.sport.id].st[s.sport.stage]}）`, v: ath }); wages += ath; }
@@ -5077,7 +5336,7 @@ EV.family_business = { title: '家業を継ぐ話', cat: 'biz', blocking: true, 
       if (s.career.status === 'employed') { s.career.lastSalary = s.career.job.salary; s.career.job = null; }
       s.career.status = 'founder';
       const I = INDUSTRIES[c.ind];
-      const b = makeBusiness(s, { name: s.surname.replace(/・.*/, '') + BIZ_SUFFIX[c.ind], industry: c.ind, cash: Math.min(s.family.business * 0.3, c.rev * 0.2), equipment: c.rev * 0.25, debt: c.rev * rfloat(s, 0, 0.4), employees: Math.max(1, Math.round(c.rev / (I.prod * country(s).wage) * 0.9)), demand: c.rev, revenueRun: c.rev, quality: 50, foundedYear: s.time.year - rint(s, 15, 50), ownerPay: Math.round(p.income * 0.5 / 1e5) * 1e5 });
+      const b = makeBusiness(s, { via: 'family', name: s.surname.replace(/・.*/, '') + BIZ_SUFFIX[c.ind], industry: c.ind, cash: Math.min(s.family.business * 0.3, c.rev * 0.2), equipment: c.rev * 0.25, debt: c.rev * rfloat(s, 0, 0.4), employees: Math.max(1, Math.round(c.rev / (I.prod * country(s).wage) * 0.9)), demand: c.rev, revenueRun: c.rev, quality: 50, foundedYear: s.time.year - rint(s, 15, 50), ownerPay: Math.round(p.income * 0.5 / 1e5) * 1e5 });
       s.family.business = 0; p.retired = true; p.job = `引退（元${p.job}）`; p.income = Math.round(p.income * 0.25 / 1e4) * 1e4;
       addStats(s, { workSkill: 4, stress: 8, relations: 6 });
       return { title: '家業を継いだ', desc: `${relLabel(s, p)}から${b.name}を引き継ぎ、代表になりました。`, tone: 'good' }; } },
@@ -5953,6 +6212,193 @@ EV.parents_need = { title: '親の生活費', cat: 'family', random: true, minAg
     opt('今回だけまとまったお金を渡す', `現金 −${yen(c.amt * 0.6)}`, '', (s) => { s.finance.cash -= c.amt * 0.6; s.family.savings += c.amt * 0.6; addStats(s, { relations: 2 }); return { desc: `${yen(c.amt * 0.6)}を親に渡しました。`, tone: 'neutral' }; }),
     opt('公的な支援の申請を手伝う', '人間関係 +1', '自分の負担は少ないが、親の生活は厳しいまま', (s) => { s.family.support = (s.family.support || 0) + money(s, 1.5e5); addStats(s, { relations: 1 }); return { desc: '親と一緒に役所へ行き、支援制度を申請しました。', tone: 'neutral' }; }),
   ] }) };
+
+// ---- 07_zinherit.js
+// ===== Inherited companies: the parents' company becomes a real company in the player's company list =====
+// Before: the family business was only a number in the family's wealth (s.family.business). At inheritance it was turned into
+// cash and zeroed, so the company never appeared in the 会社 tab. Now the inheritance offers to take over the actual company:
+// it is created once (keyed by the parent's id, never twice), shares follow the number of heirs, and owning shares is kept
+// separate from running the company (b.role: 'ceo' = you are the representative, 'holder' = shareholder, someone else runs it).
+
+// who runs a top-level company: the player unless the company says otherwise (founded/acquired companies have no role → the player)
+function isExec(b) { return !b.role || b.role === 'ceo'; }
+function inheritedBiz(s) { return s.businesses.filter((b) => b.via === 'inherit'); }
+
+// the parents' companies (one per parent who ran a business), with their share of the family's business value
+function familyCompanies(s) {
+  const F = s.family; if (!F || !(F.business > 0)) return [];
+  const ps = familyParents(s);
+  let execs = ps.filter((p) => PJOBS[p.jobKey] && PJOBS[p.jobKey].biz);
+  if (!execs.length) execs = ps.filter((p) => /経営/.test(p.job || '')).slice(0, 1);
+  if (!execs.length && ps.length) execs = [ps[0]];
+  const inc = execs.reduce((a, p) => a + Math.max(1, p.income || 0), 0);
+  const IND = ['mfg', 'retail', 'estate', 'logi'];
+  F.bizNames = F.bizNames || {};
+  return execs.map((p, i) => {
+    let info = F.bizNames[p.id];
+    if (!info) { // fixed the first time it is needed, so the same company keeps the same name and industry
+      const ind = IND[Math.floor(hash01(s.seed, strHash(p.id)) * IND.length + i) % IND.length];
+      info = F.bizNames[p.id] = { ind, name: s.surname.replace(/・.*/, '') + BIZ_SUFFIX[ind] + (i ? 'ホールディングス' : ''), founded: s.time.year - 15 - Math.floor(hash01(s.seed, i + 7) * 30) };
+    }
+    return { pid: p.id, parent: p, ind: info.ind, name: info.name, founded: info.founded, value: F.business * Math.max(1, p.income || 0) / inc };
+  });
+}
+function strHash(str) { let h = 0; for (const ch of String(str)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; }
+
+// create (or update) the inherited companies. mode: 'ceo' | 'holder'. Never creates the same company twice.
+function inheritCompanies(s, mode, heirs) {
+  const list = familyCompanies(s); const made = [];
+  const share = 1 / Math.max(1, heirs || 1);
+  const sibs = Object.values(s.characters).filter((x) => x.relation === 'sibling' && x.alive);
+  for (const fc of list) {
+    const key = 'inh:' + fc.pid;
+    let b = s.businesses.find((x) => x.inhKey === key);
+    if (b) { b.ownership = Math.max(b.ownership, share); made.push(b); continue; }
+    const I = INDUSTRIES[fc.ind], C = country(s), rev = Math.max(5e6, fc.value * 1.2);
+    b = makeBusiness(s, { name: fc.name, industry: fc.ind, inhKey: key, via: 'inherit', role: mode === 'ceo' ? 'ceo' : 'holder', ownership: share,
+      cash: fc.value * 0.25, ar: rev * (I.dso || 30) / 365, equipment: rev * 0.25, debt: rev * 0.15, employees: Math.max(2, Math.round(rev / (I.prod * C.wage) * 0.9)), demand: rev, revenueRun: rev, quality: 52,
+      foundedYear: fc.founded, fullTime: s.career.status !== 'employed', ownerPay: Math.round(Math.max(3e6, (fc.parent.income || 6e6) * 0.5) / 1e5) * 1e5 });
+    b.inh = { from: relLabel(s, fc.parent), fromName: fc.parent.name, year: s.time.year, value: Math.round(fc.value), heirs: heirs || 1, divs: 0 };
+    // the rest of the shares stay with the brothers and sisters (they inherit the same share)
+    b.holders = sibs.slice(0, Math.max(0, (heirs || 1) - 1)).map((x) => ({ name: x.name, rel: relLabel(s, x), stake: share }));
+    if (mode !== 'ceo') b.ceo = { name: mgrName(s), since: s.time.year, note: '先代を支えてきた役員' };
+    // a going concern: staff sized to what the company actually sells (capacity a little above demand), not an empty shell
+    ensureDivs(s, b); const cap = bizCapacity(s, b); if (cap > 0) b.employees = Math.max(2, Math.round(b.employees * rev * 1.08 / cap));
+    b.valuation = bizValuation(s, b);
+    made.push(b);
+  }
+  if (mode === 'ceo' && made.length) {
+    if (s.career.status === 'employed') { s.career.lastSalary = s.career.job.salary; s.career.job = null; }
+    s.career.status = 'founder';
+    for (const b of made) b.fullTime = true;
+  }
+  return made;
+}
+function mgrName(s) { const cid = s.country, N = NAMES[cid] || NAMES.jp, g = rnd(s) < 0.5 ? 'm' : 'f'; return fullName(cid, pick(s, N.sur), givenName(s, cid, g)); }
+
+// ---- the inheritance event: when the family owns a company, taking it over is a real choice
+const _inhBuild = EV.inheritance.build;
+EV.inheritance.build = function (s, c) {
+  const base = _inhBuild(s, c);
+  const cos = familyCompanies(s);
+  if (!cos.length || !(c.heirs >= 1)) return base;
+  const bizShare = cos.reduce((a, x) => a + x.value, 0) / c.heirs;
+  // the tax on the company shares is deferred while the heir keeps them (a simplified version of business-succession relief);
+  // the tax on the rest is paid now
+  const cashTax = c.gross > 0 ? c.tax * Math.max(0, c.gross - bizShare) / c.gross : c.tax, deferred = c.tax - cashTax;
+  const cashPart = c.gross - bizShare - cashTax;
+  const names = cos.map((x) => x.name).join('・'), pct = Math.round(100 / c.heirs);
+  const tail = `${cos.length > 1 ? `${cos.length}社` : '会社'}の株式${pct}%（評価 約${yen(bizShare)}）`;
+  const ceoOk = c.heirs === 1 || pct >= 50;
+  base.text += ` ${c.who}が経営していた${names}の株式も遺産に含まれます。`;
+  const take = (mode) => (s2) => {
+    const made = inheritCompanies(s2, mode, c.heirs);
+    const vt = made.reduce((x, b) => x + ((b.inh && b.inh.value) || 0), 0) || 1;
+    for (const b of made) if (b.inh && !b.inh.taxDeferred) b.inh.taxDeferred = Math.round(deferred * (b.inh.value || 0) / vt);
+    s2.finance.cash += cashPart; settleFamily(s2);
+    if (mode === 'ceo') addStats(s2, { workSkill: 3, stress: 8 });
+    return { title: mode === 'ceo' ? '会社を継いだ' : '会社の株式を相続', desc: `${c.who}の遺産を相続しました。${made.map((b) => b.name).join('・')}の株式${pct}%を引き継ぎ、${mode === 'ceo' ? '代表取締役に就任しました' : `経営は${made.map((b) => b.ceo ? b.ceo.name : '').filter(Boolean).join('・')}に任せ、株主として見守ります`}。現金は相続税${yen(cashTax)}を払って${cashPart >= 0 ? yen(cashPart) + 'を受け取りました' : yen(-cashPart) + '不足しました'}${deferred > 0 ? `（会社の株式にかかる${yen(deferred)}は、株式を持ち続ける間は猶予）` : ''}。`, tone: 'neutral', money: cashPart };
+  };
+  const ch = base.choices;
+  // the old "法定どおり" choice (everything as cash) stays, described as selling the company shares
+  ch[0] = Object.assign({}, ch[0], { label: '会社の株式も売って、すべて現金で受け取る', future: '会社は他の人の手に渡る' });
+  ch.unshift(
+    { label: `会社を継いで代表に就く（${tail}）`, now: `現金 ${cashPart >= 0 ? yen(cashPart) : '−' + yen(-cashPart)}（相続税 ${yen(cashTax)}・株式分は猶予）${s.career.status === 'employed' ? '・今の仕事は辞める' : ''}`, future: c.heirs > 1 ? `残りの株はきょうだいが持つ（あなたの持株${pct}%）` : '会社の経営をすべて自分で決める', risk: cashPart < 0 ? '相続税で現金が足りなくなる' : '', disabled: !ceoOk, reason: '持株が過半数に届かないため、代表には就けません（株式だけ相続して、あとで買い増すことはできます）', run: take('ceo') },
+    { label: `株式だけ相続し、経営は役員に任せる（${tail}）`, now: `現金 ${cashPart >= 0 ? yen(cashPart) : '−' + yen(-cashPart)}（相続税 ${yen(cashTax)}・株式分は猶予）`, future: '株主として配当を受け取る。持株が過半数なら、あとで代表にもなれる', risk: cashPart < 0 ? '相続税で現金が足りなくなる' : '', run: take('holder') });
+  return base;
+};
+
+// ---- control: shares and the representative's seat are separate
+const _ctrlLevel = ctrlLevel, _canDo = canDo;
+ctrlLevel = function (s, b) {
+  if (!b.parentId && b.via === 'inherit') {
+    if (b.role === 'holder') return b.ownership >= 0.5 ? 'owner' : 'holder';
+    return b.ownership >= 0.5 ? 'own' : 'ceoMin';
+  }
+  return _ctrlLevel(s, b);
+};
+Object.assign(CTRL_LABEL, { owner: '大株主（経営は役員）', holder: '株主（経営権なし）', ceoMin: '代表（持株は過半数未満）' });
+Object.assign(CTRL_NOTE, {
+  owner: '持株は過半数ですが、代表ではありません。経営は役員が行います。いつでも代表に就任できます。',
+  holder: '株主として業績と配当を確認できます。経営の判断はできません。',
+  ceoMin: '代表として日常の経営判断ができます。事業の新設・撤退・売却や大きな資金調達は、ほかの株主の賛成が必要です。',
+});
+canDo = function (s, b, act) {
+  const L = ctrlLevel(s, b);
+  if (L === 'owner' || L === 'holder') return { ok: false, msg: L === 'owner' ? '代表ではないため、経営の操作はできません。「代表に就任する」で経営を引き継げます。' : '持株が過半数に届かず代表でもないため、経営には関われません（株主として確認のみ）。' };
+  if (L === 'ceoMin') return ['newDiv', 'closeDiv', 'sellDiv', 'mgmt', 'restructure', 'acquire', 'ipo', 'equity', 'sell'].includes(act) ? { ok: true, approval: 0.6 } : { ok: true };
+  return _canDo(s, b, act);
+};
+// every management action on a top-level company goes through the same check (subsidiaries already did)
+function topGuard(fn, act) {
+  return function (s, id, ...rest) {
+    const b = bizById(s, id);
+    if (b && !b.parentId && b.via === 'inherit') { const g = guard(s, b, act); if (!g.ok) return g; }
+    return fn(s, id, ...rest);
+  };
+}
+bizHire = topGuard(bizHire, 'hire'); bizSetAds = topGuard(bizSetAds, 'ads'); bizSetPay = topGuard(bizSetPay, 'pay'); bizCapex = topGuard(bizCapex, 'capex');
+bizLoan = topGuard(bizLoan, 'loan'); bizSetRnd = topGuard(bizSetRnd, 'rnd'); bizRaiseEquity = topGuard(bizRaiseEquity, 'equity'); bizIPO = topGuard(bizIPO, 'ipo');
+bizDividend = topGuard(bizDividend, 'dividend'); bizInject = topGuard(bizInject, 'inject'); bizSellCompany = topGuard(bizSellCompany, 'sell');
+{ const _sell = bizSellCompany; bizSellCompany = function (s, id) { const b = bizById(s, id), due = b && b.inh ? b.inh.taxDeferred || 0 : 0; const r = _sell(s, id); if (r && r.ok && due > 0) { s.finance.cash -= due; r.msg = (r.msg || '') + `（猶予されていた相続税${yen(due)}を納付）`; } return r; }; }
+{ const _acq = bizAcquire; bizAcquire = function (s, id, targetId, stake) { const b = bizById(s, id); if (b && !b.parentId && b.via === 'inherit') { const g = guard(s, b, 'acquire'); if (!g.ok) return g; } return _acq(s, id, targetId, stake); }; }
+
+// ---- actions only an inherited company has
+function bizTakeHelm(s, id) {
+  const b = bizById(s, id); if (!b || b.parentId) return { ok: false, msg: '会社が見つかりません。' };
+  if (isExec(b)) return { ok: false, msg: 'すでに代表です。' };
+  if (b.ownership < 0.5) {
+    const fam = (b.holders || []).length, p = clamp(0.3 + (s.stats.relations - 50) / 150, 0.1, 0.7);
+    if (!fam || (s.flags.helmAsk || {})[b.id] === s.time.year) return { ok: false, msg: '持株が過半数に届かないため、代表には就けません。きょうだいの株を買い取ると就任できます。' };
+    s.flags.helmAsk = s.flags.helmAsk || {}; s.flags.helmAsk[b.id] = s.time.year;
+    if (rnd(s) > p) { addStats(s, { relations: -2 }); bump(s); return { ok: false, msg: '株主総会で、ほかの株主（きょうだい）の賛成を得られませんでした（来年また提案できます）。' }; }
+  }
+  const prev = b.ceo; b.role = 'ceo'; b.ceo = null;
+  if (s.career.status !== 'employed') s.career.status = 'founder';
+  b.fullTime = s.career.status !== 'employed';
+  record(s, { cat: 'biz', title: `${b.name}の代表に就任`, desc: `${prev ? prev.name + 'から' : ''}${b.name}の経営を引き継ぎ、代表取締役に就任しました（持株${Math.round(b.ownership * 100)}%）。`, tone: 'good', important: true, stats: addStats(s, { workSkill: 2, stress: 5 }) });
+  bump(s);
+  return { ok: true, msg: `${b.name}の代表に就任しました。` };
+}
+function bizStepDown(s, id) {
+  const b = bizById(s, id); if (!b || b.parentId || b.via !== 'inherit') return { ok: false, msg: 'この会社では使えません。' };
+  if (!isExec(b)) return { ok: false, msg: '代表ではありません。' };
+  b.role = 'holder'; b.ceo = { name: mgrName(s), since: s.time.year, note: '社内から選ばれた役員' };
+  record(s, { cat: 'biz', title: `${b.name}の経営を任せる`, desc: `${b.name}の代表を退き、経営を${b.ceo.name}に任せました。株主として持株${Math.round(b.ownership * 100)}%を保ちます。`, tone: 'neutral', stats: addStats(s, { stress: -4 }) });
+  bump(s);
+  return { ok: true, msg: `経営を${b.ceo.name}に任せました。` };
+}
+function familyStakeCost(s, b) { return (b.holders || []).reduce((a, h) => a + h.stake, 0) * b.valuation; }
+function bizBuyFamilyStake(s, id) {
+  const b = bizById(s, id); if (!b || !(b.holders || []).length) return { ok: false, msg: '買い取れる株はありません。' };
+  const cost = familyStakeCost(s, b);
+  if (s.finance.cash < cost) return { ok: false, msg: `買い取りに${yen(cost)}必要です（手元 ${yen(s.finance.cash)}）。` };
+  const st = b.holders.reduce((a, h) => a + h.stake, 0), who = b.holders.map((h) => h.rel).join('・');
+  s.finance.cash -= cost; b.ownership = Math.min(1, b.ownership + st); b.holders = [];
+  record(s, { cat: 'biz', title: `${b.name}の株を買い取り`, desc: `${who}が持っていた${b.name}の株式${Math.round(st * 100)}%を${yen(cost)}で買い取り、持株は${Math.round(b.ownership * 100)}%になりました。`, money: -cost, tone: 'neutral', stats: addStats(s, { relations: 2 }) });
+  bump(s);
+  return { ok: true, msg: `持株が${Math.round(b.ownership * 100)}%になりました。` };
+}
+
+// ---- the yearly close: a company run by someone else pays dividends to its shareholders, and grows by the manager's hand
+const _yearClose = bizYearClose;
+bizYearClose = function (s, b) {
+  _yearClose(s, b);
+  if (b.parentId || b.via !== 'inherit' || isExec(b) || !b.last) return;
+  if (b.last.net > 0 && b.cash > b.last.net) {
+    const pay = b.last.net * 0.3; b.cash -= pay;
+    const mine = pay * b.ownership; s.finance.cash += mine; b.inh.divs = (b.inh.divs || 0) + mine; b.inh.lastDiv = { year: s.time.year, amount: mine };
+  }
+};
+// a company run by someone else does not take its quality from the player's skills
+const _bizMonth = bizMonth;
+bizMonth = function (s, b) {
+  _bizMonth(s, b);
+  if (b.parentId || isExec(b)) return;
+  // undo the player's own skill term (applied to every top-level company) and use the manager's steady hand instead
+  const own = (s.stats.workSkill - 50) / 600 + ((s.abil ? s.abil.business : 30) - 40) / 1500;
+  b.quality = clamp(b.quality - own + 0.01, 10, 100);
+};
 
 // ---- 07_zlife.js
 // ===== data-driven life events =====
@@ -7923,7 +8369,7 @@ function yearEnd(s) {
     if (!car.reemploy) j.salary = Math.round(j.salary * (1 + clamp(r2, -0.08, 0.12)) / 1000) * 1000;
   }
   if (['athlete', 'creator', 'freelance'].includes(car.status)) { car.contribYears += 0.5; car.salarySum += Math.min(budget(s).wages, 6e6) * 0.5; }
-  if (playerBusinesses(s).some((b) => b.ownerPay > 0)) { car.contribYears++; car.salarySum += playerBusinesses(s).reduce((a, b) => a + b.ownerPay, 0); }
+  if (playerBusinesses(s).some((b) => isExec(b) && b.ownerPay > 0)) { car.contribYears++; car.salarySum += playerBusinesses(s).reduce((a, b) => a + (isExec(b) ? b.ownerPay : 0), 0); }
   car.sideIncome = ['employed', 'founder', 'unemployed', 'freelance'].includes(car.status) ? sideIncomeFor(s) : 0;
   if (hasRealJob(s)) bonusAdjust(s);
   // yearly stats
@@ -8380,6 +8826,7 @@ const LC = {
   NAMES, TIERS, GENDER_LABEL, JP_PREFS, AREA, PJOBS, POLICIES, LESSONS, LOOKS, tierProbabilities, familyBudget, familyNet, familyParents, familyNarrative, calendar, regionFromStyle, giftTax, takeFromFamily, setLook, tierFromIncome, makeBusiness,
   fireStatus, checkAchievements, sceneModel, heightFor, greyness, dayPhase, weatherAt, addChildChar, marry, makeSpouseCandidate, startJob, jobOffers, retire, record, addStats, queueEvent, serialize, deserialize, bump,
 };
+Object.assign(LC, { isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
 if (typeof module !== 'undefined' && module.exports) module.exports = LC;
 else root.LC = LC;
 
@@ -9730,7 +10177,7 @@ const Scene = (function () {
   }
 
   // ---------- A: clock
-  const PLAY = '<svg viewBox="0 0 14 14"><path d="M3 1.5v11l9-5.5z"/></svg>', PAUSE = '<svg viewBox="0 0 14 14"><path d="M2.5 1.5h3.2v11H2.5zm5.8 0h3.2v11H8.3z"/></svg>';
+  const PLAY = '<svg viewBox="0 0 14 14"><path d="M3 1.5v11l9-5.5z"/></svg><span class="pl-t">再生</span>', PAUSE = '<svg viewBox="0 0 14 14"><path d="M2.5 1.5h3.2v11H2.5zm5.8 0h3.2v11H8.3z"/></svg><span class="pl-t">一時停止</span>';
   function buildSpeeds() { $('#speeds').innerHTML = LC.CONFIG.SPEEDS.map((v) => `<button data-act="speed" data-v="${v}" aria-pressed="false">${v}×</button>`).join(''); }
   let clockCache = {};
   function updateClock() {
@@ -9754,7 +10201,7 @@ const Scene = (function () {
 
   // ---------- main render
   function renderAll() {
-    renderScene(); renderStatusLine(); renderNow(); renderBrief(); renderLife(); renderFamily(); renderStats(); renderMoney(); renderMap(); renderRivals(); renderLog(); renderEvent(); updateBarNext();
+    renderScene(); renderStatusLine(); renderProfile(); renderMoneyRef(); renderBrief(); renderLife(); renderFamily(); renderStatsRef(); renderMap(); renderRivals(); renderLog(); renderEvent(); updateBarNext();
     if (ui.sheet && !ui.typing) renderSheet();
   }
   function renderScene() {
@@ -9795,16 +10242,11 @@ const Scene = (function () {
       focus = `<div class="seg">${avail.map((k) => { const on = S.focus.includes(k); const dis = !on && S.focus.length >= LC.CONFIG.MAX_FOCUS; return `<button class="chip-btn ${on ? 'on' : ''}" data-act="focus" data-v="${k}" ${dis ? 'disabled' : ''} aria-pressed="${on}">${LC.FOCUS[k].label}<small class="fx">${focusHint(k)}</small></button>`; }).join('')}</div>
         <p>${S.focus.length === 2 ? '2つ選ぶと時間を分け合うため、それぞれの効果は6割になります。' : S.focus.length ? '1つに絞ると効果は最大です。もう1つ選ぶと時間を分け合います。' : '重点を選ぶと、その年の成長や収入が変わります。'}${focusEffectText()}</p>`;
     }
-    $('#secLife').innerHTML = `
-      <div class="card-head"><h3>プロフィールと今年の重点</h3><span class="hint">${esc(LC.STAGE_LABEL[LC.stageOf(age)])}${S.temper ? ' · ' + esc(S.temper) + '性格' : ''}</span></div>
-      <dl class="rows">
-        <div class="row"><dt>住まい</dt><dd>${esc(C.name)}・${esc(S.region.name)}<br><span class="hint">${esc(S.residence.label)}${S.residence.own ? '（持ち家）' : S.residence.rent ? `（家賃 月${Y(S.residence.rent)}）` : ''}</span></dd></div>
-        <div class="row"><dt>実家</dt><dd>${esc(LC.TIERS[S.family.birthTier].label)}に生まれる<br><span class="hint">いまの実家：${S.family.settled ? '相続済み' : esc(LC.TIERS[S.family.wealth].short) + '・' + esc(S.family.home.label)} · 出生地 ${esc(S.birth.region.pref)}（${esc(S.birth.region.area)}）</span></dd></div>
-        <div class="row"><dt>立場</dt><dd>${esc(LC.statusLabel(S))}<br><span class="hint">家族は「家族と人間関係」へ</span></dd></div>
-        <div class="row"><dt>学校・会社</dt><dd>${esc(school || '—')}${biz ? `<br><span class="hint">経営：${esc(biz)}</span>` : ''}</dd></div>
-        <div class="row"><dt>生活水準</dt><dd>${lifestyle}</dd></div>
-      </dl>
-      <div class="focus-box"><div class="card-head" style="margin:0"><h3>今年の重点</h3><span class="hint">いつでも変えられます</span></div>${focus}</div>`;
+    $('#secLife').innerHTML = `<div class="card-head"><h3>今年の重点</h3><span class="hint">いつでも変えられます</span></div>
+      <p class="focus-sub">${esc(LC.STAGE_LABEL[LC.stageOf(age)])} · ${esc(S.region.name)} · ${esc(C.name)}${school && school !== '—' && !S.career.job ? ' · ' + esc(school) : ''}${biz ? ' · 経営：' + esc(biz) : ''}</p>
+      <div class="focus-box">${focus}</div>
+      <div class="life-row"><span class="lr-l">暮らしの水準</span>${lifestyle}</div>
+      <div class="btn-row"><button class="btn sm" data-act="sheet" data-v="market">お金を使う・投資</button><button class="btn sm" data-act="sheet" data-v="life" data-tab="home">住まい・車・ペット</button><button class="btn sm" data-act="sheet" data-v="biz">仕事・会社</button></div>`;
   }
   function focusEffectText() {
     if (!S.focus.length) return '';
@@ -9828,11 +10270,12 @@ const Scene = (function () {
     $('#secMoney').innerHTML = `<div class="card-head"><h3>お金</h3><span class="hint">${LC.country(S).name}の物価・${curName()}で表示</span></div>${moneyDetailHTML()}
       <div class="btn-row"><button class="btn sm" data-act="sheet" data-v="money">総資産・内訳</button><button class="btn sm" data-act="sheet" data-v="market">投資・不動産</button><button class="btn sm" data-act="sheet" data-v="life">住まい・車・ペット</button></div>`;
   }
+  // 人生の記録 — one line per event: age on the left, the sentence on the right (bad news in red, milestones in bold), newest first
   function renderLog() {
     let list = S.history.slice().reverse();
     if (ui.logImp) list = list.filter((r) => r.important);
     const total = list.length;
-    const shown = ui.logAll ? total : Math.min(total, ui.logN || 8); list = list.slice(0, shown); let lastAge = null;
+    const shown = ui.logAll ? total : Math.min(total, ui.logN || 40); list = list.slice(0, shown);
     const items = list.map((r) => {
       const open = ui.open[r.id];
       let detail = '';
@@ -9841,19 +10284,20 @@ const Scene = (function () {
         const mo = r.money != null ? `<span class="${r.money >= 0 ? 'up' : 'down'}">お金 ${LC.signedYen(r.money)}</span>` : '';
         const ab = r.abil ? Object.keys(r.abil).filter((k) => LC.ABIL[k]).map((k) => `<span class="${r.abil[k] > 0 ? 'up' : 'down'}">${LC.ABIL[k].label} ${r.abil[k] > 0 ? '+' : ''}${r.abil[k]}</span>`).join('') : '';
         const nt = r.notes && r.notes.length ? `<span class="note">今後：${r.notes.map(esc).join('／')}</span>` : '';
-        detail = `<div class="detail"><span>${r.year}年${r.month}月・${r.age}歳</span>${st}${ab}${mo}${nt}${!st && !mo && !ab ? '<span>数値の変化なし</span>' : ''}</div>`;
+        detail = `<div class="detail"><span>${r.year}年${r.month}月 · ${esc(LC.CAT[r.cat] ? LC.CAT[r.cat].label : '')} · ${esc(locYen(r.title))}</span>${st}${ab}${mo}${nt}${!st && !mo && !ab ? '<span>数値の変化なし</span>' : ''}</div>`;
       }
-      const fav = (S.favs || []).includes(r.id);
-      const sep = r.age !== lastAge ? `<li class="age-sep"><b>${r.age}歳</b><span>${r.year}年</span></li>` : ''; lastAge = r.age;
-      return sep + `<li class="rec-li"><button class="star ${fav ? 'on' : ''}" data-act="fav" data-v="${r.id}" aria-label="${fav ? '☆を外す' : '☆を付ける（大切な思い出）'}" aria-pressed="${fav}">${fav ? '★' : '☆'}</button><button class="rec ${r.important ? 'imp' : ''} ${r.tone} ${fav ? 'faved' : ''}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
-        <span class="when"><b>${r.age}歳</b>${r.year}</span>
-        <span class="ttl"><span class="tag ${LC.CAT[r.cat] ? LC.CAT[r.cat].color : ''}">${LC.CAT[r.cat] ? LC.CAT[r.cat].label : ''}</span><span class="t">${esc(locYen(r.title))}</span></span>
-        <span class="desc">${esc(locYen(r.desc))}</span>${detail}</button></li>`;
+      const fav = (S.favs || []).includes(r.id), line = r.desc ? locYen(r.desc) : locYen(r.title);
+      return `<li class="rec-li"><button class="rec ${r.important ? 'imp' : ''} ${r.tone} ${fav ? 'faved' : ''}" data-act="rec" data-v="${r.id}" aria-expanded="${!!open}">
+        <span class="when">${r.age}歳</span><span class="desc">${esc(line)}</span>${detail}</button><button class="star ${fav ? 'on' : ''}" data-act="fav" data-v="${r.id}" aria-label="${fav ? '☆を外す' : '☆を付ける（大切な思い出）'}" aria-pressed="${fav}">${fav ? '★' : '☆'}</button></li>`;
     }).join('');
-    $('#secLog').innerHTML = `<div class="card-head"><h3>直近の出来事</h3><div class="log-tools"><button class="chip-btn ${ui.logImp ? '' : 'on'}" data-act="logImp" data-v="0">すべて</button><button class="chip-btn ${ui.logImp ? 'on' : ''}" data-act="logImp" data-v="1">重要のみ</button></div></div>
-      <p class="hint" style="margin:-6px 0 10px">新しい順 · タップで数値の変化 · ☆で大切な思い出に</p><ol class="log">${items}</ol>
+    const R = S.rivals ? LC.cohortRanking(S) : null, alive = R ? R.filter((x) => x.alive).length : 0;
+    $('#secLog').innerHTML = `<div class="card-head"><h3>人生の記録</h3><span class="hint">新しい順 · 行をタップで詳細 · ☆で思い出に</span></div>
+      ${R ? `<p class="log-lead">いま${LC.playerAge(S)}歳 · あなたを含めて同じ日に生まれた${R.length}人のうち、いまも${alive}人が生きています · これまでの出来事 ${S.history.length}件</p>` : ''}
+      <div class="log-tools"><button class="chip-btn ${ui.logImp ? '' : 'on'}" data-act="logImp" data-v="0">すべて</button><button class="chip-btn ${ui.logImp ? 'on' : ''}" data-act="logImp" data-v="1">重要な出来事</button></div>
+      <div class="log-scroll"><ol class="log">${items}</ol>
       ${!total ? '<p class="empty">まだ記録はありません。時間を進めると、出来事がここに新しい順で並びます。</p>' : ''}
-      <div class="btn-row">${shown < total ? `<button class="btn sm" data-act="logMore">もっと見る（残り${total - shown}件）</button>` : ''}${shown > 8 ? `<button class="btn sm" data-act="logLess">最新8件に戻す</button>` : ''}<button class="btn sm" data-act="sheet" data-v="history" data-tab="time">年表で振り返る ›</button></div>`;
+      ${shown < total ? `<div class="btn-row"><button class="btn sm" data-act="logMore">もっと見る（残り${total - shown}件）</button></div>` : ''}</div>
+      <div class="btn-row">${shown > 40 ? `<button class="btn sm" data-act="logLess">最新40件に戻す</button>` : ''}<button class="btn sm" data-act="sheet" data-v="history" data-tab="time">年表で振り返る ›</button></div>`;
   }
 
   // ---------- events
@@ -9886,16 +10330,18 @@ const Scene = (function () {
     layer.hidden = false;
     const cat = LC.CAT[v.cat] || LC.CAT.life;
     const tier = TIER(v);
+    const cal = LC.calendar(S);
     layer.innerHTML = `<div class="ev-card tier-${tier.k} ${v.important ? 'important' : ''} ${v.special ? 'special' : ''}" role="dialog" aria-label="${esc(v.title)}">${v.special ? `<div class="ev-banner"><span>★</span>${esc(v.banner)}<span>★</span></div>` : ''}
-      <div class="ev-top"><span class="tag ${cat.color}">${cat.label}</span><span class="ev-tier ${tier.k}">${tier.l}</span><h3>${esc(v.title)}</h3><span class="when">${LC.playerAge(S)}歳 · ${LC.calendar(S).y}年${LC.calendar(S).m}月</span><button class="ev-peek" data-act="peek" aria-label="いったん下ろして画面を見る">いったん下ろす ▾</button></div>
+      <div class="ev-top"><span class="ev-tier ${tier.k}">${tier.l}</span><span class="ev-cat">${cat.label}</span><span class="when">${LC.playerAge(S)}歳 · ${cal.y}年${cal.m}月</span><button class="ev-peek" data-act="peek" aria-label="いったん下ろして画面を見る">いったん下ろす ▾</button></div>
+      <div class="ev-main"><h3 class="ev-title">${esc(v.title)}</h3>
       <div class="ev-body">${evParas(locYen(v.text))}</div>${v.prev ? `<p class="ev-prev">${esc(v.prev)}</p>` : ''}
-      <p class="ev-hold">${S.time.playing ? '時間は止まっています。選んだ瞬間に結果を反映して、そのまま再開します。' : '一時停止中です。選んだあとも止まったままです（▶ で再開）。'}</p>
       <div class="choices" role="group" aria-label="選択肢（1回タップで決定）">${v.choices.map((c, i) => `<button class="choice ${c.risk ? 'risky' : ''}" data-act="choose" data-v="${i}" data-n="${v.n}" ${c.disabled ? 'disabled' : ''}>
-        <span class="c-l"><span class="c-no" aria-hidden="true">${i + 1}</span>${esc(locYen(c.label))}</span>
+        <span class="c-no" aria-hidden="true">${i + 1}</span><span class="c-main"><span class="c-l">${esc(locYen(c.label))}</span>
         ${c.now ? `<span class="c-fx now"><b>いま</b><span>${esc(locYen(c.now))}</span></span>` : ''}${c.future ? `<span class="c-fx fut"><b>この先</b><span>${esc(locYen(c.future))}</span></span>` : ''}${c.risk ? `<span class="c-fx risk"><b>リスク</b><span>${esc(locYen(c.risk))}</span></span>` : ''}
-        ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</button>`).join('')}</div>
+        ${c.disabled && c.reason ? `<span class="c-why">${esc(c.reason)}</span>` : ''}</span></button>`).join('')}</div>
       ${v.id === 'milestone' ? `<label class="ev-note">思いを書き残す（任意・120字まで。人生の年表に残ります）<textarea id="evNote" maxlength="120" rows="2" placeholder="例）この10年でいちばん大事だったこと"></textarea></label>` : ''}
-      ${autoBar()}</div>`;
+      ${autoBar()}
+      <p class="ev-hold">${S.time.playing ? '時間は止まっています。選んだ瞬間に結果を反映して、そのまま再開します。' : '一時停止中です。選んだあとも止まったままです（▶ で再開）。'}</p></div></div>`;
     if (ui.peek) peekLayer(v);
   }
 
@@ -9915,7 +10361,7 @@ const Scene = (function () {
     if (!silent && ui.wasPlaying && !(S.events.active && S.events.active.blocking) && !S.over) { S.time.playing = true; LC.bump(S); }
     ui.wasPlaying = false;
   }
-  function markDock() { document.querySelectorAll('.dock [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === 'home' ? !ui.sheet : b.dataset.v === ui.sheet))); }
+  function markDock() { document.querySelectorAll('.dock [data-v], .topnav [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === 'home' ? !ui.sheet : b.dataset.v === ui.sheet))); }
   function defaultTab(n) { return { life: 'fam', market: 'overview', menu: 'save', biz: 'jobs', money: 'total', history: 'time' }[n] || null; }
   const TABS = { life: [['fam', '家族・人間関係'], ['abil', 'プロフィール・能力'], ['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '株式・投信'], ['realty', '不動産'], ['crypto', '仮想通貨'], ['world', '世界経済']], money: [['total', '総資産'], ['flow', '収支の内訳'], ['family', '実家']], history: [['time', '年表'], ['goals', '目標・実績'], ['eval', '評価'], ['money', 'お金の推移'], ['room', '部屋']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
   function renderSheet() {
@@ -10337,9 +10783,13 @@ const Scene = (function () {
         shownEvent = null; renderEvent(); break;
       }
       case 'sheet': { const tb = el.dataset.tab || null; if (ui.sheet === v && !tb) closeSheet(); else if (ui.sheet === v) { ui.tab = tb; ui.asset = null; renderSheet(); $('#sheetBody').scrollTop = 0; } else openSheet(v, tb); break; }
+      case 'theme': toggleTheme(); break;
+      case 'coHelm': result(LC.bizTakeHelm(S, v)); break;
+      case 'coStepDown': result(LC.bizStepDown(S, v)); break;
+      case 'coBuyFam': result(LC.bizBuyFamilyStake(S, v)); break;
       case 'home': closeSheet(); { const sc = $('#scroller'); if (sc) sc.scrollTo({ top: 0, behavior: 'smooth' }); } markDock(); break;
-      case 'logMore': ui.logN = (ui.logN || 8) + 20; renderLog(); break;
-      case 'logLess': ui.logN = 8; ui.logAll = false; renderLog(); break;
+      case 'logMore': ui.logN = (ui.logN || 40) + 40; renderLog(); break;
+      case 'logLess': ui.logN = 40; ui.logAll = false; renderLog(); break;
       case 'close': closeSheet(); break;
       case 'viewToggle': Scene.setView(Scene.getView() === 'office' ? 'home' : 'office'); renderScene(); break;
       case 'buyFurn': result(LC.buyFurniture(S, v)); break;
@@ -10349,6 +10799,8 @@ const Scene = (function () {
       case 'focus': { const cur = S.focus.slice(); const i = cur.indexOf(v); if (i >= 0) cur.splice(i, 1); else cur.push(v); LC.setFocus(S, cur); break; }
       case 'lifestyle': { const r = LC.setLifestyle(S, v); if (ui.sheet) result(r); break; }
       case 'statsMore': ui.statsMore = !ui.statsMore; renderStats(); break;
+      case 'statsMoreD': ui.statsMore = !el.parentElement.open; break; // <details> keeps its own state; remember it across re-renders
+      case 'statsHelpD': ui.statsHelp = !el.parentElement.open; break;
       case 'rec': ui.open[v] = !ui.open[v]; renderLog(); break;
       case 'logAll': ui.logAll = !ui.logAll; renderLog(); break;
       case 'logImp': ui.logImp = v === '1'; renderLog(); break;
@@ -10921,13 +11373,39 @@ const Scene = (function () {
 
   // ---------- company dashboard
   const CTABS = [['ov', '概要'], ['div', '事業部'], ['fin', '財務・連結'], ['bud', '予算'], ['emp', '従業員'], ['sh', '株主'], ['ma', '子会社・買収'], ['act', '経営施策'], ['news', 'ニュース']];
+  // ---- the company list: every company you own, however it came to you (founded, bought, family, inherited), one shared system
+  const VIA = { found: '設立', acquire: '買収', family: '家業', inherit: '相続' };
+  const coSize = (b) => (b.employees >= 1000 ? '大企業' : b.employees >= 300 ? '中堅企業' : b.employees >= 20 ? '中小企業' : '小規模');
+  function coList(mine, sel) {
+    return `<div class="box"><h4>保有している会社<span class="hint">${mine.length}社 · 選ぶと下に詳細</span></h4><div class="co-list">${mine.map((x) => {
+      const op = LC.bizOperatingProfit(x), via = x.via || (x.acquired ? 'acquire' : 'found');
+      const st = !x.last ? ['pre', '最初の決算前'] : x.cash < 0 ? ['bad', '資金不足'] : op != null && op < 0 ? ['bad', '赤字'] : ['ok', '黒字'];
+      const boss = LC.isExec(x) ? 'あなた' : (x.ceo ? x.ceo.name : '—');
+      return `<button class="co-row ${x.id === sel.id ? 'on' : ''}" data-act="bizSel" data-v="${x.id}" aria-pressed="${x.id === sel.id}">
+        <span class="co-h"><b>${esc(x.name)}</b><span class="tag via ${via}">${VIA[via] || '設立'}</span><span class="hint">${esc(LC.INDUSTRIES[x.industry].label)} · ${coSize(x)}${x.listed ? ' · 上場' : ''}</span><span class="co-st ${st[0]}">${st[1]}</span></span>
+        <span class="co-k"><span>持株<b>${Math.round(x.ownership * 1000) / 10}%</b></span><span>代表<b>${esc(boss)}</b></span><span>売上（年換算）<b>${Y(x.revenueRun)}</b></span><span>営業利益（前期）<b class="${op != null && op < 0 ? 'down' : ''}">${op != null ? LC.signedYen(op) : '—'}</b></span><span>現金<b class="${x.cash < 0 ? 'down' : ''}">${Y(x.cash)}</b></span><span>社員<b>${x.employees}人</b></span><span>企業価値<b>${Y(x.valuation)}</b></span><span>子会社<b>${LC.subsidiaries(S, x).length}社</b></span></span></button>`;
+    }).join('')}</div></div>`;
+  }
+  // ownership and the representative's seat are separate: say which one you hold and what you can do
+  function roleBox(b) {
+    if (b.via !== 'inherit' && !b.inh) return '';
+    const L = LC.ctrlLevel(S, b), I = b.inh || {};
+    const holders = (b.holders || []).map((h) => `${h.rel} ${h.name}（${Math.round(h.stake * 100)}%）`).join('、');
+    const cost = LC.familyStakeCost(S, b);
+    return `<div class="box role-box"><h4>${LC.isExec(b) ? 'あなたが代表です' : '経営は役員に任せています'}<span class="tag">${esc(LC.CTRL_LABEL[L] || '')}</span></h4>
+      <p>${esc(LC.CTRL_NOTE[L] || '')}</p>
+      ${kv([['取得', `${I.year || ''}年に${esc(I.from || '親')}（${esc(I.fromName || '')}）から相続`], ['相続時の評価', I.value ? Y(I.value) : '—'], ['あなたの持株', `${Math.round(b.ownership * 1000) / 10}%`], ['代表取締役', LC.isExec(b) ? 'あなた' : `${esc(b.ceo ? b.ceo.name : '—')}${b.ceo && b.ceo.note ? `（${esc(b.ceo.note)}）` : ''}`], holders && ['ほかの株主', esc(holders)], I.taxDeferred > 0 && ['猶予中の相続税', `${Y(I.taxDeferred)}（会社を売却すると納付）`], !LC.isExec(b) && ['受け取った配当（累計）', Y(I.divs || 0)]])}
+      <div class="btn-row">${LC.isExec(b) ? `<button class="btn sm" data-act="coStepDown" data-v="${b.id}">経営を役員に任せる</button>` : `<button class="btn sm primary" data-act="coHelm" data-v="${b.id}">代表に就任する</button>`}${(b.holders || []).length ? `<button class="btn sm" data-act="coBuyFam" data-v="${b.id}" ${S.finance.cash < cost ? 'disabled' : ''}>きょうだいの株を買い取る（約${Y(cost)}）</button>` : ''}</div>
+      ${!LC.isExec(b) ? '<p class="hint">代表でない間は、業績・事業部・株主構成を確認できます。採用・広告・設備投資・買収などの操作は、代表に就任すると行えます。</p>' : ''}</div>`;
+  }
   function sheetCompanyX() {
     const mine = S.businesses.filter((b) => !b.parentId);
     if (!mine.length) return sheetCompany();
     if (ui.sub) { const sub = S.businesses.find((x) => x.id === ui.sub); if (sub) return subDetail(sub); ui.sub = null; }
     let b = mine.find((x) => x.id === ui.bizSel) || mine[0]; ui.bizSel = b.id;
     const ct = ui.ctab || 'ov';
-    let html = mine.length > 1 ? `<div class="chip-row">${mine.map((x) => `<button class="chip-btn ${x.id === b.id ? 'on' : ''}" data-act="bizSel" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '';
+    let html = ct === 'ov' ? coList(mine, b) : (mine.length > 1 ? `<div class="chip-row">${mine.map((x) => `<button class="chip-btn ${x.id === b.id ? 'on' : ''}" data-act="bizSel" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '');
+    html += roleBox(b);
     LC.ensureDivs(S, b);
     const L = b.last, op = LC.bizOperatingProfit(b), g = LC.groupSummary(S);
     const growth = L && L.prevRevenue ? L.revenue / L.prevRevenue - 1 : null;
@@ -10988,7 +11466,9 @@ const Scene = (function () {
       <p class="hint">需要に対して社員が少ないと売上を取りこぼし、多すぎると人件費で赤字になります。</p></div>`;
   }
   function bizShareholders(b) {
-    return `<div class="box"><h4>株主構成</h4>${compBar([{ l: 'あなた', v: b.ownership, c: 'var(--gold)' }, { l: b.listed ? '市場の株主' : '外部の投資家', v: 1 - b.ownership, c: 'var(--blue)' }])}
+    const fam = (b.holders || []).reduce((x, h) => x + h.stake, 0);
+    return `<div class="box"><h4>株主構成</h4>${compBar([{ l: 'あなた', v: b.ownership, c: 'var(--gold)' }].concat(fam > 0 ? [{ l: 'きょうだい', v: fam, c: 'var(--teal)' }] : [], [{ l: b.listed ? '市場の株主' : '外部の投資家', v: Math.max(0, 1 - b.ownership - fam), c: 'var(--blue)' }]))}
+      ${(b.holders || []).length ? kv(b.holders.map((h) => [`${esc(h.rel)} ${esc(h.name)}`, `${Math.round(h.stake * 1000) / 10}%`])) : ''}
       ${kv([['あなたの持株', `${Math.round(b.ownership * 1000) / 10}%（${Y(b.ownership * b.valuation)}）`], ['企業価値', Y(b.valuation)], ['上場', b.listed ? '上場済み' : '未上場']])}
       ${ipoBlock(b)}</div>
       <div class="box"><h4>株主への還元</h4><div class="form"><div class="two"><label>金額（${curName()}）<input id="amt_${b.id}" type="number" inputmode="numeric" step="any" min="0" value="${ui.bizAmt && ui.bizAmt[b.id] || niceBase(5000000)}"></label><span></span></div>
@@ -11174,7 +11654,7 @@ const Scene = (function () {
       for (let a = d; a < d + 10; a++) {
         const c = byAge[a], past = c && (a < M.current || S.over && a <= M.current), cur = a === M.current && !S.over;
         const v = c ? (mode === 'w' ? c.w : c.hp) : null, alpha = v == null ? 0 : 0.15 + 0.85 * Math.max(0, Math.min(100, v)) / 100;
-        const bg = past && v != null ? `background:rgba(${mode === 'w' ? '231,194,106' : '91,191,178'},${alpha.toFixed(2)})` : '';
+        const bg = past && v != null ? `background:rgba(var(${mode === 'w' ? '--map-w-rgb' : '--map-rgb'}),${alpha.toFixed(2)})` : '';
         const icon = c && c.icons.length ? c.icons[0] : '';
         cells += `<i class="mc ${past ? 'past' : ''} ${cur ? 'cur' : ''} ${a === M.expect ? 'exp' : ''} ${c && c.fav ? 'fav' : ''}" style="${bg}" title="${a}歳${c && c.icons.length ? '・' + c.icons.join('') : ''}">${esc(icon)}</i>`;
       }
@@ -11202,7 +11682,8 @@ const Scene = (function () {
   // ---- decisions: peek and auto
   function autoBar() {
     const cur = S.flags.auto;
-    return `<div class="auto-bar">${cur ? `<span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button>` : `<span class="hint">これからの決断をおまかせ：</span>${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}`}</div>`;
+    return cur ? `<div class="auto-bar"><span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button></div>`
+      : `<details class="auto-d"><summary class="auto-open">これからの決断をおまかせにする</summary><div class="auto-bar"><span class="hint">選び方：</span>${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}</div></details>`;
   }
   function peekLayer(v) {
     const layer = $('#eventLayer');
@@ -11383,15 +11864,6 @@ const Scene = (function () {
     const ps = (S.people || []).filter((p) => !p.gone).slice().sort((a, b) => b.rel - a.rel);
     return { rows: ps.slice(0, limit || 99).map((p) => `<li class="pp"><span class="pp-ic friend" aria-hidden="true">${esc((LC.PEOPLE_ROLE[p.role] || '人').slice(0, 1))}</span><span class="pp-tx"><b>${esc(p.name)}</b><span>${esc(LC.PEOPLE_ROLE[p.role] || p.role)}${p.age ? ` · ${p.age}歳` : ''}${p.path ? ` · いまは${esc(p.path)}` : ''}</span></span><span class="pp-m" title="親密度 ${Math.round(p.rel)}"><span class="pp-ml">親密度 <b class="num">${Math.round(p.rel)}</b></span><span class="meter"><i style="width:${Math.round(p.rel)}%;background:var(--rel)"></i></span></span></li>`), total: ps.length };
   }
-  function renderFamily() {
-    const el = $('#secFamily'); if (!el || !S) return;
-    const F = famRows(6), P = peopleRows(4);
-    el.innerHTML = `<div class="card-head"><h3>家族と人間関係</h3><button class="link-btn" data-act="sheet" data-v="life" data-tab="fam">すべて見る ›</button></div>
-      ${F.rows.length ? `<ul class="people">${F.rows.join('')}</ul>` : '<p class="empty">家族の情報はまだありません。</p>'}
-      ${F.total > 6 ? `<p class="hint">ほか${F.total - 6}人</p>` : ''}
-      <p class="sub-h">大切な人<span class="hint">親密度 0〜100</span></p>
-      ${P.rows.length ? `<ul class="people">${P.rows.join('')}</ul>` : '<p class="empty">まだ家族以外の大切な人はいません。友だち・恩師・仕事仲間は、出来事を通じて増えていきます。</p>'}`;
-  }
   // the 人生 → 家族・人間関係 tab: everyone, with what happened between you
   function sheetFamily() {
     const F = famRows(), P = peopleRows();
@@ -11426,6 +11898,72 @@ const Scene = (function () {
       if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
     } else if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); const b = $('#btnPlay'); if (b) b.click(); }
   });
+
+  // ======================= reference layout: profile (left), state bars, money, family & life (right) =======================
+  const EDU = { none: '', middle: '中学卒', high: '高校卒', vocational: '専門学校卒', bachelor: '大学卒', grad: '大学院卒' };
+  function renderProfile() {
+    const el = $('#secProfile'); if (!el || !S) return;
+    const P = LC.P(S), C = LC.country(S), bc = (LC.COUNTRIES[S.birthCountryId] || C), tier = S.family.birthTier, cal = LC.calendar(S);
+    const dots = [0, 1, 2, 3, 4].map((i) => (i <= tier ? '●' : '○')).join('');
+    const school = S.career.status === 'student' || S.career.status === 'child' ? (S.education.school || (LC.playerAge(S) < 6 ? '就学前' : '—')) : (EDU[S.education.degree] || '—');
+    const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+    const html = `<div class="prof-strip"><span>プロフィール · ${esc(C.name)}</span><span class="num">${cal.y}</span></div>
+      <div class="prof-body"><canvas id="profAvatar" class="prof-av" width="24" height="24" aria-hidden="true"></canvas>
+        <div class="prof-main"><h3 class="prof-name">${esc(P.name)}</h3>
+        <dl class="prof-kv">${row('性別', esc(LC.GENDER_LABEL[P.gender] || ''))}${row('出生', `${esc(bc.name)} · ${P.birthYear}年${S.birthMonth ? S.birthMonth + '月' : ''}`)}${row('居住地', `${esc(S.region.name)}, ${esc(C.name)}`)}
+          ${row('生まれた家庭', `<span class="tier-dots" title="${esc(LC.TIERS[tier].label)}">${dots}</span>`)}${row('学歴', esc(school))}${row('仕事', esc(jobLine()))}${S.temper ? row('性格', esc(S.temper)) : ''}</dl></div></div>`;
+    if (el._h !== html) { el.innerHTML = html; el._h = html; const cv = $('#profAvatar'); if (cv) Scene.preview(cv, P.look, P.gender); }
+  }
+  const BAR_COL = { health: 'var(--health)', happiness: 'var(--happy)', knowledge: 'var(--know)', relations: 'var(--rel)' };
+  function renderStatsRef() {
+    const el = $('#secStats'); if (!el || !S) return;
+    const st = S.stats, last = S.lastYearStats || {};
+    const d = (k) => { const v = last[k]; return v && Math.abs(v) >= 0.5 ? `<span class="delta ${v * (k === 'stress' ? -1 : 1) > 0 ? 'up' : 'down'}">${v > 0 ? '+' : ''}${Math.round(v)}</span>` : ''; };
+    const bar = (k, col) => `<div class="sbar"><span class="sb-l">${LC.STAT_LABELS[k]}</span><span class="sb-m"><i style="width:${Math.max(0, Math.min(100, st[k]))}%;background:${col}"></i></span><span class="sb-v num">${Math.round(st[k])}${d(k)}</span></div>`;
+    const w = S.stats.wealth != null ? S.stats.wealth : LC.wealthIndex(S);
+    el.innerHTML = `<div class="card-head"><h3>状態</h3><span class="hint num">0–100</span></div>
+      <div class="sbars">${['health', 'happiness', 'knowledge', 'relations'].map((k) => bar(k, BAR_COL[k])).join('')}</div>
+      <details class="mini-d" ${ui.statsMore ? 'open' : ''}><summary data-act="statsMoreD">詳細ステータス（金融・仕事・ストレス・信用）</summary><div class="sbars">${['finLit', 'workSkill', 'stress', 'credit'].map((k) => bar(k, k === 'stress' ? 'var(--bad)' : 'var(--blue)')).join('')}</div></details>
+      <details class="mini-d" ${ui.statsHelp ? 'open' : ''}><summary data-act="statsHelpD">状態は何を表していますか？</summary><p class="hint">健康・幸福・知識・人間関係は0〜100で、毎年の重点や出来事で上下します。数字の横は前の年からの変化です。健康が低いと病気になりやすく、人間関係は家族や仕事の縁に影響します。</p></details>
+      <div class="sb-foot"><span class="sb-l">財産</span><span class="num">${Math.round(w)}</span><span class="hint">${esc(LC.wealthLabel(w))}</span><button class="link-btn" data-act="sheet" data-v="abil">能力・適性 ›</button></div>`;
+  }
+  function renderMoneyRef() {
+    const el = $('#secNow'); if (!el || !S) return;
+    const bs = LC.balanceSheet(S), b = LC.budget(S), indep = LC.isIndependent(S);
+    const line = (l, v, sign) => `<li><span>${esc(l)}</span><b class="num ${sign > 0 ? 'up' : sign < 0 ? 'down' : ''}">${sign > 0 ? '+' : sign < 0 ? '−' : ''}${Y(Math.abs(v))}</b></li>`;
+    let rows = '';
+    if (indep) {
+      rows = (b.income || []).filter((x) => x.v > 0).map((x) => line(x.label, x.v, 1)).join('') + (b.totalTax > 0 ? line('税・社会保険', b.totalTax, -1) : '') + (b.expense || []).filter((x) => x.v > 0).sort((a, c) => c.v - a.v).slice(0, 6).map((x) => line(x.label, x.v, -1)).join('');
+    } else { const fb = LC.familyBudget(S); rows = line('世帯年収', fb.parentsIncome + (fb.welfare || 0), 0) + line('生活費（年）', (fb.living + fb.housing) * 12, 0) + line('家族の年間貯蓄', fb.annualSaving, fb.annualSaving >= 0 ? 1 : -1); }
+    const yearNet = indep ? b.totalIncome - b.totalExpense - b.totalTax : null;
+    el.innerHTML = `<div class="card-head"><h3>お金</h3><span class="hint">すべて円</span></div>
+      <div class="m2"><button class="m2c" data-act="sheet" data-v="money" data-tab="total"><span class="m2l">純資産</span><b class="num ${bs.net < 0 ? 'down' : ''}">${Y(bs.net)}</b><span class="m2s">総資産 ${Y(bs.totalAssets)} · 負債 ${Y(bs.debts)}</span></button>
+        <button class="m2c" data-act="sheet" data-v="money" data-tab="flow"><span class="m2l">${indep ? '年収（税引前）' : '世帯の暮らし向き'}</span><b class="num">${indep ? Y(b.totalIncome) : esc(LC.TIERS[S.family.wealth].short)}</b><span class="m2s">${indep ? `毎月の収支 ${LC.signedYen(yearNet / 12)}` : 'まだ親の家計で暮らしています'}</span></button></div>
+      <p class="sub-h">${indep ? '1年のお金の出入り' : '家族の家計'}</p><ul class="mlines">${rows || '<li><span>まだ収入はありません</span><b></b></li>'}</ul>
+      ${indep ? `<p class="m-sum">年間の収支 <b class="num ${yearNet < 0 ? 'down' : 'up'}">${LC.signedYen(yearNet)}</b> · 所持金 <b class="num">${Y(S.finance.cash)}</b></p>` : ''}
+      <div class="btn-row"><button class="btn sm" data-act="sheet" data-v="money">資産の内訳</button><button class="btn sm" data-act="sheet" data-v="market">投資・不動産</button></div>`;
+  }
+  // 家族と暮らし: relation on the left, age and what they do on the right; then the home, pets, cars; then the people met
+  function renderFamily() {
+    const el = $('#secFamily'); if (!el || !S) return;
+    const list = S.order.map((id) => S.characters[id]).filter((c) => c.relation !== 'self' && (c.alive || c.relation !== 'grandchild'));
+    const ORD = ['spouse', 'child', 'father', 'mother', 'sibling', 'grandparent', 'grandchild'];
+    list.sort((a, b) => (b.alive - a.alive) || (ORD.indexOf(a.relation) - ORD.indexOf(b.relation)));
+    const fam = list.slice(0, 8).map((c) => { const age = LC.ageOfChar(S, c), st = !c.alive ? `${c.deathYear || ''}年に他界` : (c.job || (age < 6 ? '未就学' : c.relation === 'child' && age < 23 ? '学生' : '')) + (c.alive && !c.residing ? '・別居' : '');
+      return `<div class="kvr ${c.alive ? '' : 'gone'}"><span class="kvk">${esc(LC.relLabel(S, c))}<small>${esc(c.name)}</small></span><span class="kvv">${c.alive ? `<b class="num">${age}歳</b>` : ''}<small>${esc(st)}</small></span></div>`; }).join('');
+    const pets = LC.visiblePets(S).map((p) => `${LC.PETS[p.kind].label}の${p.name}`), cars = S.vehicles.map((v) => v.label);
+    const life = `<div class="kvr"><span class="kvk">住まい</span><span class="kvv"><small>${esc(S.residence.label)}${S.residence.own ? '（持ち家）' : ''}</small></span></div>${pets.length ? `<div class="kvr"><span class="kvk">ペット</span><span class="kvv"><small>${esc(pets.join('・'))}</small></span></div>` : ''}${cars.length ? `<div class="kvr"><span class="kvk">車</span><span class="kvv"><small>${esc(cars.join('・'))}</small></span></div>` : ''}`;
+    const P = peopleRows(4);
+    el.innerHTML = `<div class="card-head"><h3>家族と暮らし</h3><button class="link-btn" data-act="sheet" data-v="life" data-tab="fam">すべて ›</button></div>
+      ${fam || '<p class="empty">家族の情報はまだありません。</p>'}${list.length > 8 ? `<p class="hint">ほか${list.length - 8}人</p>` : ''}${life}
+      <p class="sub-h">大切な人<span class="hint">親密度 0〜100</span></p>
+      ${P.rows.length ? `<ul class="people">${P.rows.join('')}</ul>` : '<p class="empty">まだ家族以外の大切な人はいません。友だち・恩師・仕事仲間は、出来事を通じて増えていきます。</p>'}`;
+  }
+
+  // ---- light (reference) / dark theme
+  function applyTheme(t) { document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light'; const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = t === 'dark' ? '#0e121a' : '#eef0f0'; }
+  applyTheme(load('lifecapital.theme') || 'light');
+  function toggleTheme() { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; applyTheme(t); store('lifecapital.theme', t); if (typeof Scene !== 'undefined') renderAll(); }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.sheet input[type=text], .sheet input[type=number]')) ui.typing = true; });
