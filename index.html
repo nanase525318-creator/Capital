@@ -1010,6 +1010,35 @@ body { font-size: 14.5px; }
 
 .news li b, .kpi .k-s { color: var(--muted); }
 .ev-hold { color: var(--muted) !important; }
+/* company: いまやること and grouped sections */
+.ad-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ad { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-left: 3px solid var(--info); border-radius: var(--rr); background: var(--panel-2); }
+.ad.bad { border-left-color: var(--bad); } .ad.act { border-left-color: var(--act); } .ad.good { border-left-color: var(--good); }
+.ad b { font-size: 14px; } .ad span { font-size: 12.5px; color: var(--muted); } .ad .btn { justify-self: start; margin-top: 4px; }
+.co-sec { border: 1px solid var(--line); border-radius: var(--rr); background: var(--panel); padding: 0 12px; }
+.co-sec > summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: 14px; list-style: none; display: flex; justify-content: space-between; }
+.co-sec > summary::after { content: '▾'; color: var(--muted); } .co-sec[open] > summary::after { content: '▴'; }
+.co-sec > summary::-webkit-details-marker { display: none; }
+.co-sec[open] { padding-bottom: 12px; }
+/* investing */
+.pf-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pf-k { display: grid; gap: 2px; min-width: 0; } .pf-k span { font-size: 11.5px; color: var(--muted); } .pf-k b { font-size: 17px; overflow-wrap: anywhere; } .pf-k small { font-size: 11.5px; color: var(--muted); }
+@media (max-width: 380px) { .pf-k b { font-size: 15px; } }
+.q2 .q-main { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.own-line { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line-2); font-size: 13px; color: var(--muted); }
+.own-line b { color: var(--text); }
+.trade2 .tmode { margin-bottom: 10px; } .trade2 .tmode button { flex: 1 1 0; border-radius: var(--rr); }
+.trade2 .tmode button[disabled] { opacity: 0.4; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; } .quick .chip-btn { border-radius: var(--rr); padding: 6px 10px; }
+.btn.big { min-height: 46px; font-size: 15px; padding: 10px 26px; width: 100%; }
+.sflt { display: flex; flex-wrap: wrap; gap: 6px; } .sflt .chip-btn { white-space: nowrap; }
+.ssort { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .ssort .seg button { padding: 3px 10px; border-radius: var(--rr); font-size: 12px; }
+.asset-row.s2 .sub, .asset-row.pf-row .sub { font-size: 11.5px; }
+.box.baito.on { border-color: var(--crimson); box-shadow: inset 3px 0 0 var(--crimson); }
+.trade2 .order-sum { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 4px 10px; margin: 6px 0; font-size: 13px; }
+.trade2 .order-sum dt { white-space: nowrap; color: var(--muted); } .trade2 .order-sum dd { margin: 0; text-align: right; }
+.section-title .hint { margin-left: 8px; font-weight: 400; }
+.co-sec { min-width: 0; max-width: 100%; overflow-x: auto; }
 </style>
 </head>
 <body>
@@ -7592,6 +7621,7 @@ const L_EVENTS = [
       { label: (s) => `子どもの${heirKid(s) ? heirKid(s).name : ''}に継がせる`, when: (s) => !!heirKid(s), now: '家族経営を続ける', future: '経験しだいで会社が伸びも傾きもする', p: (s) => clamp(0.35 + s.stats.relations / 250, 0.25, 0.75), ok: { fn: (s) => { const b = myCo(s); b.successor = 'kid'; b.quality = clamp(b.quality + 3, 0, 100); }, stats: { happiness: 8 }, desc: '子どもが社長を継ぎ、会社は新しい時代に入りました。', tone: 'good' }, ng: { fn: (s) => { const b = myCo(s); b.successor = 'kid'; b.quality = clamp(b.quality - 6, 0, 100); }, stats: { stress: 4 }, desc: '子どもが継ぎましたが、古参社員との関係に苦労しています。', tone: 'bad' } },
       { label: (s) => `育ててきた${protege(s) ? protege(s).name : '幹部'}に任せる`, when: (s) => !!protege(s) || ensureDivs(s, myCo(s)).some((d) => d.talent >= 65), now: '社内から昇格', future: '社員の士気が上がる', do: { fn: (s) => { const b = myCo(s), p = protege(s); b.successor = 'inside'; for (const d of ensureDivs(s, b)) d.ret = clamp((d.ret || 70) + 6, 0, 100); if (p) { p.path = `${b.name}の社長`; p.rel = clamp(p.rel + 10, 0, 100); } }, stats: { happiness: 6 }, desc: '社内で育てた人材にバトンを渡しました。人材育成の成果です。', tone: 'good' } },
       { label: '外部からプロ経営者を招く', now: (s) => `報酬 年${yen(money(s, 3e7))}`, future: '経営は安定しやすいが社風が変わる', do: { fn: (s) => { const b = myCo(s); b.successor = 'external'; b.ownerPay = Math.max(b.ownerPay, money(s, 3e7)); for (const d of ensureDivs(s, b)) d.costEff = (d.costEff || 1) * 0.97; }, desc: '外部から経営のプロを招きました。', tone: 'neutral' } },
+      { label: 'まだ自分で経営を続ける', now: '変化なし', future: '後継者はあとで考える', do: { stats: { stress: 2 }, desc: '後継者はまだ決めず、自分で経営を続けることにしました。', tone: 'neutral' } },
       { label: '会社を売って引退する', now: (s) => `売却額 約${yen(myCo(s).valuation * myCo(s).ownership)}`, future: '', do: { fn: (s) => { const r = bizSellCompany(s, myCo(s).id); return r.msg; }, stats: { stress: -10 }, desc: '会社を売却し、経営から退きました。', tone: 'good' } }] },
   { id: 'e_sell_or_grow', title: '守るか、攻めるか', cat: 'biz', age: [50, 80], cooldown: 12, weight: 1.5, when: (s) => { const b = myCo(s); return !!b && b.valuation > money(s, 5e8); }, text: (s) => `${myCo(s).name}の企業価値は${yen(myCo(s).valuation)}。買い手がいるいまのうちに売って資産を守るか、さらに成長を狙うか。`,
     choices: [
@@ -8677,6 +8707,80 @@ function sportSchedule(s, fixed) {
   }
 }
 
+// ---- 08_zbaito.js
+// ===== Students: part-time jobs (アルバイト) instead of full-time positions =====
+// While at school (high school, vocational school, university) the job board offers part-time work only. Full-time jobs are chosen
+// at graduation (the job-hunting decision) or after leaving school. A part-time job pays by the hour, gives a little experience,
+// costs some study time, and ends by itself at graduation.
+
+const BAITO = {
+  conveni: { label: 'コンビニ店員', hourly: 1100, hours: 12, minAge: 15, fx: { relations: 0.5, workSkill: 1, stress: 1.5 }, note: '週3日・夕方中心。接客の基本が身につく' },
+  super: { label: 'スーパーの品出し', hourly: 1080, hours: 10, minAge: 15, fx: { workSkill: 1, health: 0.5, stress: 1 }, note: '週末中心。体を動かす仕事' },
+  cafe: { label: 'カフェ・飲食店のホール', hourly: 1150, hours: 12, minAge: 16, fx: { relations: 1.5, workSkill: 1, stress: 2 }, note: '仲間ができやすい。忙しい日は大変' },
+  event: { label: 'イベントスタッフ（単発）', hourly: 1250, hours: 4, minAge: 16, fx: { relations: 0.5, happiness: 0.5, stress: 0.5 }, note: '好きな日だけ働ける。収入は少なめ' },
+  souko: { label: '倉庫・引っ越し作業', hourly: 1350, hours: 10, minAge: 18, fx: { health: 0.5, workSkill: 0.5, stress: 2.5 }, note: '体力勝負。時給は高め' },
+  office: { label: '事務・データ入力', hourly: 1200, hours: 10, minAge: 18, fx: { workSkill: 2, stress: 1 }, note: 'パソコン作業。社会人の仕事に近い' },
+  juku: { label: '塾講師', hourly: 1800, hours: 8, minAge: 18, univ: true, k: 60, fx: { knowledge: 1, workSkill: 1.5, stress: 2 }, note: '大学生向け。教えることで自分の学力も保てる' },
+  katei: { label: '家庭教師', hourly: 2200, hours: 4, minAge: 18, univ: true, k: 65, fx: { knowledge: 0.5, relations: 0.5, stress: 1 }, note: '大学生向け。短時間で時給が高い' },
+  dev: { label: 'プログラミングのアルバイト', hourly: 1700, hours: 10, minAge: 18, univ: true, k: 55, fx: { knowledge: 1, workSkill: 2.5, stress: 2 }, note: '大学生向け。IT職の経験になる' },
+};
+function inSchool(s) { return s.career.status === 'student' && ['high', 'vocational', 'university', 'grad'].includes(s.education.stage); }
+function baitoPay(s, id) { const B = BAITO[id], C = country(s); return Math.round(B.hourly * B.hours * 50 * C.wage * (s.region.wage || 1) * priceIdx(s) / 1000) * 1000; }
+function baitoEligibility(s, id) {
+  const B = BAITO[id], age = playerAge(s), why = [];
+  if (!B) return { ok: false, why: ['見つかりません'] };
+  if (!inSchool(s)) why.push('在学中の人向けです');
+  if (age < B.minAge) why.push(`${B.minAge}歳以上`);
+  if (B.univ && !['vocational', 'university', 'grad'].includes(s.education.stage)) why.push('大学・専門学校の学生');
+  if (B.k && s.stats.knowledge < B.k) why.push(`知識 ${B.k}以上（いま${Math.round(s.stats.knowledge)}）`);
+  if (s.career.baito && s.career.baito.id === id) why.push('いまのアルバイトです');
+  return { ok: !why.length, why };
+}
+function baitoChance(s, id) { const B = BAITO[id]; return clamp((B.k ? 0.55 + (s.stats.knowledge - B.k) / 60 : 0.85) + (s.stats.relations - 50) / 300, 0.2, 0.97); }
+function applyBaito(s, id) {
+  const el = baitoEligibility(s, id); if (!el.ok) return { ok: false, msg: '条件を満たしていません：' + el.why.join('、') };
+  s.flags.applied = s.flags.applied || {}; const key = 'baito:' + id;
+  if (s.flags.applied[key] === s.time.year) return { ok: false, msg: '今年はすでに応募しました。' };
+  s.flags.applied[key] = s.time.year;
+  const B = BAITO[id];
+  if (!chance(s, baitoChance(s, id))) { addStats(s, { stress: 1 }); bump(s); return { ok: false, msg: `${B.label}は今回は不採用でした。ほかのアルバイトにも応募できます。` }; }
+  const prev = s.career.baito;
+  s.career.baito = { id, label: B.label, pay: baitoPay(s, id), since: s.time.year };
+  record(s, { cat: 'work', title: 'アルバイトを始めた', desc: `${prev ? prev.label + 'を辞め、' : ''}${B.label}のアルバイトを始めました（週${B.hours}時間・年${yen(s.career.baito.pay)}ほど）。`, tone: 'good', stats: addStats(s, { happiness: 1, stress: 1 }) });
+  bump(s);
+  return { ok: true, msg: `${B.label}として採用されました（年${yen(s.career.baito.pay)}ほど）。` };
+}
+function quitBaito(s) {
+  const b = s.career.baito; if (!b) return { ok: false, msg: 'アルバイトはしていません。' };
+  s.career.baito = null;
+  record(s, { cat: 'work', title: 'アルバイトを辞めた', desc: `${b.label}のアルバイトを辞めました。`, tone: 'neutral' });
+  bump(s);
+  return { ok: true, msg: `${b.label}を辞めました。` };
+}
+
+// full-time positions wait until school is over (creative work and starting a company stay open to students)
+{ const _occEl = occEligibility; occEligibility = function (s, id) {
+  const r = _occEl(s, id), d = OCC[id];
+  if (d && inSchool(s) && (d.mode === 'job' || d.mode === 'freelance' || d.mode === 'investor')) { r.why.unshift('在学中は応募できません（卒業時の就職活動で選べます。いまはアルバイトに応募できます）'); r.ok = false; r.student = true; }
+  return r;
+}; }
+// the pay comes in every month like any income
+{ const _budget = budget; budget = function (s) {
+  const b = _budget(s), j = s.career && s.career.baito;
+  if (!j || !inSchool(s)) return b;
+  b.income.push({ k: 'baito', label: `アルバイト（${j.label}）`, v: j.pay }); b.totalIncome += j.pay; b.net += j.pay;
+  if (!b.indep) { const spend = j.pay * 0.45; b.expense.push({ k: 'baitoSpend', label: 'バイト代から使ったお金', v: spend }); b.totalExpense += spend; b.net -= spend; } else b.wages = (b.wages || 0) + j.pay;
+  return b;
+}; }
+// once a year: a little experience, a little less study time; it ends with school
+{ const _ny = newYearOf; newYearOf = function (s) {
+  _ny(s);
+  const j = s.career && s.career.baito; if (!j || s.over) return;
+  if (!inSchool(s)) { s.career.baito = null; record(s, { cat: 'work', title: 'アルバイトを卒業', desc: `学校を終え、${j.label}のアルバイトを卒業しました（${s.time.year - j.since}年間）。`, tone: 'neutral' }); return; }
+  const B = BAITO[j.id]; if (B) addStats(s, Object.assign({ knowledge: -0.8 }, B.fx));
+  j.pay = baitoPay(s, j.id); j.years = (j.years || 0) + 1;
+}; }
+
 // ---- 08_zsummary.js
 // ===== the whole life at the end: career path, money over time, people, titles, the choice that mattered most,
 // goals reached and missed, social impact and the kind of ending =====
@@ -8738,6 +8842,42 @@ function lifeSummary(s) {
   const goals = (s.goalLog || []).map((g) => `${g.label}（${g.done ? '達成' : '未達'}）`);
   const social = []; if (s.flags.social) social.push(`社会貢献の行動 ${Math.round(s.flags.social)}`); if (s.flags.donated) social.push(`寄付 ${yen(s.flags.donated)}`); if (s.lifeStats && s.lifeStats.maxEmployees) social.push(`最大${s.lifeStats.maxEmployees}人を雇用`); if (sp && sp.fame > 50) social.push(`${SPORTS[sp.id].label}で多くの人に勇気を与えた`);
   return { path, assets, wins, losses, people, family: fam, titles: titles.slice(-10), got, missed: missed.slice(0, 6), goals, social, key: keyChoice(s), ending: endingType(s) };
+}
+
+// ---- 08_ztrade.js
+// ===== Simple trading: "おまかせ" account choice =====
+// Buying: NISA first (tax-free) as far as this year's allowance goes, the rest in the taxable account — one tap, no error about limits.
+// Selling: the taxable account first (keeps the tax-free NISA growing), then NISA.
+function nisaRoom(s) {
+  if (s.country !== 'jp') return 0;
+  const N = s.finance.nisa, J = CONFIG.JP, annual = J.nisaAnnual * ((s.policy && s.policy.nisaMul) || 1);
+  return Math.max(0, Math.min(annual - N.annualUsed, J.nisaLifetime - N.lifetimeUsed));
+}
+function buySmart(s, id, qty, acct) {
+  const d = assetDef(id); if (!d) return { ok: false, msg: '銘柄が見つかりません。' };
+  if (acct && acct !== 'auto') return buyAsset(s, id, qty, acct);
+  if (d.kind === 'stock') qty = Math.floor(qty);
+  if (!(qty > 0)) return { ok: false, msg: '数量を入力してください。' };
+  const px = assetPriceJPY(s, id), cost = px * qty + tradeFee(d, px * qty);
+  if (cost > s.finance.cash + 1e-6) return { ok: false, msg: `現金が足りません（必要 ${yen(cost)}・手元 ${yen(Math.max(0, s.finance.cash))}）。` };
+  const room = d.kind === 'crypto' ? 0 : nisaRoom(s);
+  let qN = room > 0 ? Math.min(qty, room / px) : 0; if (d.kind === 'stock') qN = Math.floor(qN);
+  const qT = qty - qN, parts = [];
+  if (qN > 0) { const r = buyAsset(s, id, qN, 'nisa'); if (!r.ok) return r; parts.push(`NISA ${fmtQty(d, qN)}`); }
+  if (qT > 1e-9) { const r = buyAsset(s, id, qT, 'taxable'); if (!r.ok) return parts.length ? { ok: true, msg: `${d.name}を${parts.join('・')}購入しました（残りは${r.msg}）` } : r; parts.push(`課税口座 ${fmtQty(d, qT)}`); }
+  return { ok: true, msg: `${d.name}を購入しました（${parts.join('・')}・約${yen(cost)}）。` };
+}
+function sellSmart(s, id, qty, acct) {
+  const d = assetDef(id); if (!d) return { ok: false, msg: '銘柄が見つかりません。' };
+  if (acct && acct !== 'auto') return sellAsset(s, id, qty, acct);
+  if (d.kind === 'stock') qty = Math.floor(qty);
+  const order = ['taxable', 'nisa', 'founder'].filter((a) => s.portfolio.holdings[holdingKey(id, a)]);
+  const have = order.reduce((x, a) => x + s.portfolio.holdings[holdingKey(id, a)].qty, 0);
+  if (!(qty > 0)) return { ok: false, msg: '数量を入力してください。' };
+  if (!have) return { ok: false, msg: 'この銘柄は持っていません。' };
+  qty = Math.min(qty, have); let left = qty; const msgs = [];
+  for (const a of order) { if (left <= 1e-9) break; const h = s.portfolio.holdings[holdingKey(id, a)]; const q = Math.min(left, h.qty); const r = sellAsset(s, id, q, a); if (!r.ok) return msgs.length ? { ok: true, msg: msgs.join(' ') } : r; msgs.push(r.msg); left -= q; }
+  return { ok: true, msg: msgs.join(' ') };
 }
 
 // ---- 08_zzepilogue.js
@@ -9182,7 +9322,7 @@ const LC = {
   NAMES, TIERS, GENDER_LABEL, JP_PREFS, AREA, PJOBS, POLICIES, LESSONS, LOOKS, tierProbabilities, familyBudget, familyNet, familyParents, familyNarrative, calendar, regionFromStyle, giftTax, takeFromFamily, setLook, tierFromIncome, makeBusiness,
   fireStatus, checkAchievements, sceneModel, heightFor, greyness, dayPhase, weatherAt, addChildChar, marry, makeSpouseCandidate, startJob, jobOffers, retire, record, addStats, queueEvent, serialize, deserialize, bump,
 };
-Object.assign(LC, { bizBankrupt, playerDies, deathInfo, buildEpilogue, ensureEpilogue, EPI_VERSION, isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
+Object.assign(LC, { nisaRoom, buySmart, sellSmart, BAITO, inSchool, baitoPay, baitoEligibility, baitoChance, applyBaito, quitBaito, bizBankrupt, playerDies, deathInfo, buildEpilogue, ensureEpilogue, EPI_VERSION, isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
 if (typeof module !== 'undefined' && module.exports) module.exports = LC;
 else root.LC = LC;
 
@@ -10712,7 +10852,7 @@ const Scene = (function () {
   function openSheet(name, tab) {
     if (!ui.sheet) ui.wasPlaying = S.time.playing;
     if (S.time.playing) { S.time.playing = false; LC.bump(S); }
-    ui.sheet = name; ui.tab = tab || defaultTab(name); ui.msg = null; ui.confirm = null; ui.asset = null; ui.buyType = null; ui.div = null;
+    ui.sheet = name; ui.tab = tab || defaultTab(name); ui.msg = null; ui.confirm = null; ui.asset = null; ui.buyType = null; ui.div = null; ui.ctab = 'ov'; ui.sub = null; // a fresh visit starts at the overview (where 「いまやること」 is)
     $('#sheet').hidden = false; document.documentElement.classList.add('lock'); markDock();
     renderSheet();
     $('#sheetBody').scrollTop = 0;
@@ -10725,7 +10865,7 @@ const Scene = (function () {
   }
   function markDock() { document.querySelectorAll('.dock [data-v], .topnav [data-v]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.v === 'home' ? !ui.sheet : b.dataset.v === ui.sheet))); }
   function defaultTab(n) { return { life: 'fam', market: 'overview', menu: 'save', biz: 'jobs', money: 'total', history: 'time' }[n] || null; }
-  const TABS = { life: [['fam', '家族・人間関係'], ['abil', 'プロフィール・能力'], ['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', '概要'], ['list', '株式・投信'], ['realty', '不動産'], ['crypto', '仮想通貨'], ['world', '世界経済']], money: [['total', '総資産'], ['flow', '収支の内訳'], ['family', '実家']], history: [['time', '年表'], ['goals', '目標・実績'], ['eval', '評価'], ['money', 'お金の推移'], ['room', '部屋']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
+  const TABS = { life: [['fam', '家族・人間関係'], ['abil', 'プロフィール・能力'], ['home', '住まい'], ['furn', '家具・家電'], ['car', '車'], ['pet', 'ペット'], ['style', '生活・移住']], market: [['overview', 'ポートフォリオ'], ['list', '銘柄を探す'], ['realty', '不動産'], ['crypto', '仮想通貨'], ['world', '世界経済']], money: [['total', '総資産'], ['flow', '収支の内訳'], ['family', '実家']], history: [['time', '年表'], ['goals', '目標・実績'], ['eval', '評価'], ['money', 'お金の推移'], ['room', '部屋']], biz: [['jobs', '求人'], ['career', 'キャリア'], ['license', '資格'], ['company', '会社']], menu: [['save', 'セーブ'], ['settings', '設定'], ['new', '新しい人生'], ['about', 'このゲーム']] };
   function renderSheet() {
     if (!ui.sheet) return;
     $('#sheetTitle').textContent = SHEETS[ui.sheet];
@@ -10822,9 +10962,10 @@ const Scene = (function () {
 
   // ---- market
   function sheetMarket() {
-    if (ui.asset) return assetDetail(ui.asset);
+    if (ui.asset) return assetDetail2(ui.asset);
     const bs = LC.balanceSheet(S);
-    if (ui.tab === 'overview') {
+    if (ui.tab === 'overview') return marketOverview2();
+    if (ui.tab === 'overview_old') {
       const hs = LC.holdingsList(S);
       const gain = hs.reduce((a, h) => a + h.gain, 0);
       let html = adultOnly();
@@ -10839,7 +10980,7 @@ const Scene = (function () {
       html += `<p class="section-title">ニュース</p><div class="box"><ul class="news">${S.world.news.slice(0, 6).map((n) => `<li><b>${n.y}.${String(Math.max(1, n.m)).padStart(2, '0')}</b><span class="${n.tone === 'good' ? 'up' : n.tone === 'bad' ? 'down' : ''}">${esc(n.text)}</span></li>`).join('') || '<li>大きなニュースはまだありません。</li>'}</ul></div>`;
       return html;
     }
-    if (ui.tab === 'list') return stockList();
+    if (ui.tab === 'list') return stockList2();
     if (ui.tab === 'realty') return realtyTab();
     if (ui.tab === 'crypto') return cryptoTab();
     if (ui.tab === 'list_old') {
@@ -10977,6 +11118,7 @@ const Scene = (function () {
   function sheetJobs() {
     const cat = ui.jobCat || 'corp', onlyOk = !!ui.jobOk;
     const ids = Object.keys(LC.OCC).filter((id) => (cat === 'all' || LC.OCC[id].cat === cat) && (!onlyOk || LC.occEligibility(S, id).ok));
+    if (LC.inSchool(S)) return baitoBoard() + `<details class="box"><summary>将来の職業を見る（正社員の応募は卒業後）</summary><div class="chip-row" style="margin-top:8px">${[['all', 'すべて']].concat(Object.entries(LC.CAREER_CATS)).map(([k, l]) => `<button class="chip-btn ${cat === k ? 'on' : ''}" data-act="jobCat" data-v="${k}">${l}</button>`).join('')}</div><div class="list">${ids.map(occCard).join('')}</div></details>`;
     let html = `<div class="box"><p>職業ごとの条件・収入・安定性・将来性を比べて応募できます。採用率は幅で表示され、知識と金融リテラシーが高いほど正確に見えます。応募は職業ごとに1年に1回です。</p></div>
       <div class="chip-row">${[['all', 'すべて']].concat(Object.entries(LC.CAREER_CATS)).map(([k, l]) => `<button class="chip-btn ${cat === k ? 'on' : ''}" data-act="jobCat" data-v="${k}">${l}</button>`).join('')}<button class="chip-btn ${onlyOk ? 'on' : ''}" data-act="jobOk">応募できる職業だけ</button></div>`;
     if (cat === 'sports' || cat === 'all') html += `<div class="box"><h4>プロスポーツ選手</h4><p>プロ選手になるには、子どもの頃から競技を続け、学校・社会人での成績でスカウトやドラフトを受ける必要があります。競技の開始・状況は「キャリア」タブで確認できます。</p></div>`;
@@ -11117,7 +11259,7 @@ const Scene = (function () {
     const el = e.target;
     if (el.dataset.act === 'homeForm') { ui.homeForm = { down: parseFloat($('#hfDown').value), years: parseInt($('#hfYears').value, 10), rate: $('#hfRate').value }; renderSheet(); }
     if (el.dataset.act === 'petForm') { ui.petForm = { kind: $('#pfKind').value, method: $('#pfMethod').value, name: $('#pfName').value }; renderSheet(); }
-    if (el.dataset.act === 'tradeForm') { ui.tradeForm = { qty: Math.max(0, num('tfQty', 0)), acct: $('#tfAcct').value, monthly: Math.max(0, num('tfMonthly', 0)) }; renderSheet(); }
+    if (el.dataset.act === 'tradeForm') { const f0 = ui.tradeForm || {}; ui.tradeForm = { qty: $('#tfQty') ? Math.max(0, num('tfQty', 0)) : f0.qty, acct: $('#tfAcct') ? $('#tfAcct').value : f0.acct || 'auto', monthly: $('#tfMonthly') ? Math.max(0, num('tfMonthly', 0)) : f0.monthly }; renderSheet(); }
     if (el.dataset.act === 'bizForm') { ui.bizForm = { name: $('#bfName').value, industry: $('#bfInd').value, capital: Math.max(0, num('bfCap', 0)), quit: !!($('#bfQuit') && $('#bfQuit').checked) }; renderSheet(); }
     if (el.dataset.act === 'bizAds') { result(LC.bizSetAds(S, el.dataset.v, parseFloat(el.value))); }
     if (el.dataset.act === 'divBudget') { result(LC.divSetBudget(S, el.dataset.b, el.dataset.v, el.dataset.k, parseFloat(el.value))); }
@@ -11185,7 +11327,7 @@ const Scene = (function () {
       case 'petCare': result(LC.careForPet(S, v)); break;
       case 'move': ui.confirm = null; result(LC.moveCountry(S, v)); break;
       // market
-      case 'asset': ui.asset = v; ui.tradeForm = null; ui.msg = null; renderSheet(); $('#sheetBody').scrollTop = 0; break;
+      case 'asset': if (ui.sheet !== 'market') openSheet('market'); ui.asset = v; ui.tradeForm = null; ui.tradeMode = 'buy'; ui.msg = null; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'assetBack': ui.asset = null; ui.msg = null; renderSheet(); break;
       case 'tf': ui.tf = v; renderSheet(); break;
       case 'ind': ui.ind = Object.assign({}, ui.ind, { [v]: !(ui.ind && ui.ind[v]) }); renderSheet(); break;
@@ -11195,13 +11337,23 @@ const Scene = (function () {
         ui.tradeForm = { qty: q, acct, monthly: num('tfMonthly', f.monthly || niceBase(30000)) };
         result(act === 'buy' ? LC.buyAsset(S, v, qty, acct) : LC.sellAsset(S, v, qty, acct)); break;
       }
-      case 'setRec': { const acct = $('#tfAcct') ? $('#tfAcct').value : 'taxable'; result(LC.setRecurring(S, v, Math.max(0, numMoney('tfMonthly', 0)), acct)); break; }
+      case 'setRec': { const a0 = $('#tfAcct') ? $('#tfAcct').value : (ui.tradeForm && ui.tradeForm.acct) || 'auto'; const acct = a0 === 'auto' ? (S.country === 'jp' && LC.assetDef(v).kind !== 'crypto' ? 'nisa' : 'taxable') : a0; result(LC.setRecurring(S, v, Math.max(0, numMoney('tfMonthly', 0)), acct)); break; }
       case 'stopRec': result(LC.setRecurring(S, v, 0, el.dataset.k)); break;
       // business
       case 'found': { const f = { name: $('#bfName').value, industry: $('#bfInd').value, capital: numMoney('bfCap', 0), quitJob: !!($('#bfQuit') && $('#bfQuit').checked) }; const r = LC.foundCompany(S, f); if (r.ok) ui.bizForm = null; result(r); break; }
       case 'hire': result(LC.bizHire(S, v, +el.dataset.k)); break;
       case 'jobCat': ui.jobCat = v; renderSheet(); break;
       case 'jobOk': ui.jobOk = !ui.jobOk; renderSheet(); break;
+      case 'tradeMode': ui.tradeMode = v; renderSheet(); break;
+      case 'tfQuick': ui.tradeForm = Object.assign({}, ui.tradeForm, { qty: +v }); renderSheet(); break;
+      case 'tfMonthlyQuick': ui.tradeForm = Object.assign({}, ui.tradeForm, { monthly: +v }); renderSheet(); break;
+      case 'tfAcct2': ui.tradeForm = Object.assign({}, ui.tradeForm, { acct: v }); renderSheet(); break;
+      case 'trade2': { const a = LC.assetDef(v), q = Math.max(0, num('tfQty', 0)), acct = (ui.tradeForm && ui.tradeForm.acct) || 'auto'; const qty = a.kind === 'stock' ? Math.floor(q) : IN(q) / LC.assetPriceJPY(S, v);
+        ui.tradeForm = Object.assign({}, ui.tradeForm, { qty: q }); result(el.dataset.k === 'sell' ? LC.sellSmart(S, v, qty, acct) : LC.buySmart(S, v, qty, acct)); break; }
+      case 'sflt': ui.sflt = v; renderSheet(); $('#sheetBody').scrollTop = 0; break;
+      case 'ssort': ui.ssort = v; renderSheet(); break;
+      case 'baitoApply': result(LC.applyBaito(S, v)); break;
+      case 'baitoQuit': result(LC.quitBaito(S)); break;
       case 'apply': { const r = LC.applyJob(S, v); if (r.openBiz) { ui.tab = 'company'; ui.bizForm = { name: '', industry: r.openBiz, capital: Math.max(LC.OCC[v].cost || 3e6, 1e6), quit: S.career.status === 'employed' }; } result(r); break; }
       case 'study': result(LC.setStudyTarget(S, v || null)); break;
       case 'sportStart': { const sp = LC.startSport(S, v, LC.playerAge(S) < 12 ? 2 : 3); result({ ok: !!sp, msg: sp ? `${LC.SPORTS[v].label}を始めました。` : '始められませんでした。' }); break; }
@@ -11219,7 +11371,7 @@ const Scene = (function () {
       case 'sellShares': result(LC.bizSellShares(S, v, +el.dataset.k)); break;
       case 'ownRaise': result(LC.ownCapitalIncrease(S, v, 0.1)); break;
       case 'ownBuyback': { const b = LC.bizById(S, v); result(LC.ownBuyback(S, v, b ? b.cash * 0.1 : 0)); break; }
-      case 'ownChart': openSheet('market', 'list'); ui.asset = v; renderSheet(); $('#sheetBody').scrollTop = 0; break;
+      case 'ownChart': openSheet('market', 'list'); ui.asset = v; ui.tradeMode = 'buy'; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'sellBiz': ui.confirm = null; result(LC.bizSellCompany(S, v)); break;
       case 'acquire': result(LC.bizAcquire(S, el.dataset.b, v, +el.dataset.k)); break;
       case 'fav': LC.toggleFav(S, v); renderLog(); break;
@@ -11239,7 +11391,7 @@ const Scene = (function () {
       case 'buyProp': { const f = ui.rform || { down: 0.2, years: 25 }; const r = LC.buyRealty(S, v, f.down, f.years); if (r.ok) ui.rlist = null; result(r); break; }
       case 'bizSel': ui.bizSel = v; renderSheet(); break;
       case 'ctab': ui.ctab = v; ui.div = null; renderSheet(); break;
-      case 'divOpen': ui.div = v; if (el.dataset.b && S.businesses.find((x) => x.id === el.dataset.b && x.parentId)) ui.sub = el.dataset.b; else ui.ctab = 'div'; renderSheet(); break;
+      case 'divOpen': ui.div = v; if (el.dataset.b && S.businesses.find((x) => x.id === el.dataset.b && x.parentId)) ui.sub = el.dataset.b; else ui.ctab = 'ops'; renderSheet(); break;
       case 'divBack': ui.div = null; renderSheet(); break;
       case 'divHire': result(LC.divHire(S, el.dataset.b, v, +el.dataset.k)); break;
       case 'divLeader': result(LC.divSetLeader(S, el.dataset.b, v, el.dataset.k)); break;
@@ -11740,7 +11892,9 @@ const Scene = (function () {
   }
 
   // ---------- company dashboard
-  const CTABS = [['ov', '概要'], ['div', '事業部'], ['fin', '財務・連結'], ['bud', '予算'], ['emp', '従業員'], ['sh', '株主'], ['ma', '子会社・買収'], ['act', '経営施策'], ['news', 'ニュース']];
+  // four places instead of nine: what matters now / people and businesses / money and owners / growth by acquisition
+  const CTABS = [['ov', '概要'], ['ops', '人・事業'], ['money', 'お金・株主'], ['grow', '子会社・買収']];
+  const CTAB_OLD = { div: 'ops', emp: 'ops', bud: 'ops', fin: 'money', act: 'money', sh: 'money', ma: 'grow', news: 'ov' };
   // ---- the company list: every company you own, however it came to you (founded, bought, family, inherited), one shared system
   const VIA = { found: '設立', acquire: '買収', family: '家業', inherit: '相続' };
   const coSize = (b) => (b.employees >= 1000 ? '大企業' : b.employees >= 300 ? '中堅企業' : b.employees >= 20 ? '中小企業' : '小規模');
@@ -11771,19 +11925,26 @@ const Scene = (function () {
     if (!mine.length) return sheetCompany();
     if (ui.sub) { const sub = S.businesses.find((x) => x.id === ui.sub); if (sub) return subDetail(sub); ui.sub = null; }
     let b = mine.find((x) => x.id === ui.bizSel) || mine[0]; ui.bizSel = b.id;
-    const ct = ui.ctab || 'ov';
-    let html = ct === 'ov' ? coList(mine, b) : (mine.length > 1 ? `<div class="chip-row">${mine.map((x) => `<button class="chip-btn ${x.id === b.id ? 'on' : ''}" data-act="bizSel" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '');
+    const ct = CTAB_OLD[ui.ctab] || (CTABS.some(([k]) => k === ui.ctab) ? ui.ctab : 'ov');
+    let html = ct === 'ov' && mine.length > 1 ? coList(mine, b) : (mine.length > 1 ? `<div class="chip-row">${mine.map((x) => `<button class="chip-btn ${x.id === b.id ? 'on' : ''}" data-act="bizSel" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>` : '');
     html += roleBox(b);
     LC.ensureDivs(S, b);
     const L = b.last, op = LC.bizOperatingProfit(b), g = LC.groupSummary(S);
     const growth = L && L.prevRevenue ? L.revenue / L.prevRevenue - 1 : null;
-    if (ui.div && ct === 'div') return html + `<p class="crumb">${esc(b.name)} › 事業部</p>` + bizDivisions(b); // a division screen: no company header, the division comes first
+    if (ui.div && ct === 'ops') return html + `<p class="crumb">${esc(b.name)} › 事業部</p>` + bizDivisions(b); // a division screen: no company header, the division comes first
     if (ct !== 'ov') html += `<div class="co-mini"><b>${esc(b.name)}</b><span>売上 ${Y(b.revenueRun)}</span><span class="${op != null && op < 0 ? 'down' : ''}">営業利益 ${op != null ? LC.signedYen(op) : '—'}</span><span class="${b.cash < 0 ? 'down' : ''}">現金 ${Y(b.cash)}</span><span>社員 ${b.employees}人</span></div>`;
     else html += `<div class="box"><h4>${esc(b.name)}<span class="tag biz">${LC.INDUSTRIES[b.industry].label}${b.listed ? '・上場' : ''}・${b.foundedYear}年設立</span></h4>
-      <div class="kpis">${kpi('売上（年換算）', Y(b.revenueRun), growth != null ? `前年比 ${pctS(growth)}` : '')}${kpi('営業利益（前期）', op != null ? LC.signedYen(op) : '—', L ? `利益率 ${pctS(op / Math.max(1, L.revenue))}` : '決算は年末', op != null && op < 0 ? 'bad' : '')}${kpi('会社の現金', Y(b.cash), `借入 ${Y(b.debt)}`, b.cash < 0 ? 'bad' : '')}${kpi('企業価値', Y(b.valuation), `持株 ${Math.round(b.ownership * 1000) / 10}%`, 'gold')}${kpi('社員', b.employees + '人', `グループ計 ${g.employees}人`)}${L ? kpi('純利益（前期）', LC.signedYen(L.net), `法人税 ${Y(L.tax)}`, L.net < 0 ? 'bad' : '') : ''}${L ? kpi('人件費（前期）', Y(L.labor), `売上比 ${pctS(L.labor / Math.max(1, L.revenue))}`) : ''}${kpi('品質', Math.round(b.quality), `研究開発 年${Y(b.rnd || 0)}`)}</div></div>`;
+      <div class="kpis">${kpi('売上（年換算）', Y(b.revenueRun), growth != null ? `前年比 ${pctS(growth)}` : '')}${kpi('営業利益（前期）', op != null ? LC.signedYen(op) : '—', L ? `利益率 ${pctS(op / Math.max(1, L.revenue))}` : '決算は年末', op != null && op < 0 ? 'bad' : '')}${kpi('会社の現金', Y(b.cash), `借入 ${Y(b.debt)}`, b.cash < 0 ? 'bad' : '')}${kpi('社員', b.employees + '人', `グループ計 ${g.employees}</div><details class="mini-d"><summary>ほかの指標（企業価値・純利益・人件費・品質）</summary><div class="kpis">${kpi('企業価値', Y(b.valuation), `持株 ${Math.round(b.ownership * 1000) / 10}%`, 'gold')}人`)}${L ? kpi('純利益（前期）', LC.signedYen(L.net), `法人税 ${Y(L.tax)}`, L.net < 0 ? 'bad' : '') : ''}${L ? kpi('人件費（前期）', Y(L.labor), `売上比 ${pctS(L.labor / Math.max(1, L.revenue))}`) : ''}${kpi('品質', Math.round(b.quality), `研究開発 年${Y(b.rnd || 0)}`)}</div></details></div>`;
     void 0;
     html += `<div class="sheet-tabs inner">${CTABS.map(([k, l]) => `<button class="chip-btn ${ct === k ? 'on' : ''}" data-act="ctab" data-v="${k}">${l}</button>`).join('')}</div>`;
-    html += ({ ov: bizOverview, fin: bizFinance, div: bizDivisions, bud: budgetTab, emp: bizEmployees, sh: bizShareholders, ma: bizMA, act: bizActions, news: bizNews }[ct] || bizOverview)(b);
+    const sec = (title, body, open) => `<details class="co-sec" ${open ? 'open' : ''}><summary>${title}</summary>${body}</details>`;
+    const G = {
+      ov: () => coAdvice(b) + bizOverview(b) + sec('ニュース', bizNews(b)),
+      ops: () => bizEmployees(b) + bizDivisions(b) + sec('予算（部門ごとの配分）', budgetTab(b)),
+      money: () => bizActions(b) + sec('財務・連結（損益・資金繰り）', bizFinance(b), true) + bizShareholders(b),
+      grow: () => bizMA(b),
+    };
+    html += (G[ct] || G.ov)();
     if (mine.length < 3 && ct === 'ov') html += `<details class="box more-co"><summary>もう1社つくる</summary>${companyForm()}</details>`;
     return html;
   }
@@ -12195,6 +12356,12 @@ const Scene = (function () {
       const since = yearBase.gain != null ? gain - yearBase.gain : null;
       add(gain >= 0 ? 'good' : 'bad', gain >= 0 ? '▲' : '▼', '投資', `評価額 ${Y(val)} · 含み損益 ${LC.signedYen(gain)}${since != null && Math.abs(since) >= 1 ? `（この1年 ${LC.signedYen(since)}）` : ''}`, 'sheet', 'market');
     }
+    // company: staffing that is far off what the market asks (the same check as 「いまやること」)
+    for (const b of S.businesses.filter((y) => !y.parentId && LC.isExec(y))) {
+      const cap = LC.bizCapacity(S, b), dem = LC.divTotalDemand(b);
+      if (dem > cap * 1.3) add('act', '!', `${b.name}：人手が足りません`, `注文 ${Y(dem)} に対して生産能力は ${Y(cap)}。採用すると売上が伸びます。`, 'sheet', 'biz', 'company');
+      else if (cap > dem * 1.8 && b.employees > 2 && (LC.bizOperatingProfit(b) || 0) < 0) add('bad', '!', `${b.name}：人が多すぎて赤字です`, '人数を見直すか、広告で需要を増やしましょう。', 'sheet', 'biz', 'company');
+    }
     // company: last two closed years
     for (const b of S.businesses.filter((y) => !y.parentId).slice(0, 2)) {
       const h = b.hist2 || []; const L = h[h.length - 1], P = h[h.length - 2];
@@ -12392,6 +12559,134 @@ const Scene = (function () {
     el.innerHTML = epiHTML(E, archived); el.hidden = false; el.scrollTop = 0; document.documentElement.classList.add('lock');
   }
   function closeEpilogue() { const el = $('#epilogue'); if (!el) return; el.hidden = true; el.innerHTML = ''; if (!ui.sheet) document.documentElement.classList.remove('lock'); }
+
+  // ---- the job board while at school: part-time work only
+  function baitoBoard() {
+    const cur = S.career.baito, stage = { high: '高校生', vocational: '専門学校生', university: '大学生', grad: '大学院生' }[S.education.stage] || '学生';
+    const card = (id) => { const B = LC.BAITO[id], el = LC.baitoEligibility(S, id), applied = (S.flags.applied || {})['baito:' + id] === S.time.year;
+      return `<div class="box baito ${cur && cur.id === id ? 'on' : ''}"><h4>${esc(B.label)}<span class="tag">時給 ${Y(B.hourly * LC.country(S).wage * LC.priceIdx(S))}</span></h4>
+        <p class="hint">${esc(B.note)}</p>
+        ${kv([['働く時間', `週${B.hours}時間`], ['収入の目安', `年 ${Y(LC.baitoPay(S, id))}`], ['採用の見込み', el.ok ? `約${Math.round(LC.baitoChance(S, id) * 100)}%` : '—'], (B.univ || B.k || B.minAge > 15) && ['条件', [B.minAge > 15 ? `${B.minAge}歳以上` : '', B.univ ? '大学・専門学校の学生' : '', B.k ? `知識${B.k}以上` : ''].filter(Boolean).join('・')]])}
+        ${!el.ok && !(cur && cur.id === id) ? `<p class="hint down">${esc(el.why.join('、'))}</p>` : ''}
+        <div class="btn-row">${cur && cur.id === id ? '<span class="tag">いま働いています</span>' : `<button class="btn sm ${el.ok ? 'primary' : ''}" data-act="baitoApply" data-v="${id}" ${!el.ok || applied ? 'disabled' : ''}>${applied ? '今年は応募済み' : cur ? '乗り換えて応募する' : '応募する'}</button>`}</div></div>`; };
+    return `<div class="box"><h4>アルバイトを探す<span class="hint">${stage}</span></h4><p>在学中は正社員の仕事には応募できません。アルバイトなら学業と両立しながら収入と経験が得られます（学業の時間は少し減ります）。正社員の仕事は、卒業のときの就職活動で選べます。</p>
+      ${cur ? `${kv([['いまのアルバイト', `${esc(cur.label)}（${cur.since}年から）`], ['収入', `年 ${Y(cur.pay)}`]])}<div class="btn-row"><button class="btn sm" data-act="baitoQuit">アルバイトを辞める</button></div>` : '<p class="hint">いまはアルバイトをしていません。</p>'}</div>
+      <div class="list">${Object.keys(LC.BAITO).map(card).join('')}</div>`;
+  }
+
+  // ---- company: "いまやること" — the one or two things that matter now, each with a one-tap fix
+  function coAdvice(b) {
+    if (!LC.isExec(b)) return '';
+    const cap = LC.bizCapacity(S, b), dem = LC.divTotalDemand(b), op = LC.bizOperatingProfit(b), heads = b.employees + 1;
+    const per = cap / Math.max(1, heads), items = [];
+    const add = (kind, title, text, btn) => items.push(`<li class="ad ${kind}"><b>${title}</b><span>${text}</span>${btn || ''}</li>`);
+    if (b.cash < 0) add('bad', '会社の現金が足りません', `現金 ${Y(b.cash)}。借入や増資で資金を入れないと、倒産のおそれがあります。`, `<button class="btn sm primary" data-act="ctab" data-v="money">資金を入れる ›</button>`);
+    if (dem > cap * 1.05) { const need = Math.max(1, Math.ceil(dem * 1.05 / per) - heads); add('act', '注文に人手が追いついていません', `需要 ${Y(dem)} に対して、いまの生産能力は ${Y(cap)}。あと約${need}人いると、取りこぼしが減ります。`, `<button class="btn sm primary" data-act="hire" data-v="${b.id}" data-k="${need}">${need}人採用する</button>`); }
+    else if (cap > dem * 1.4 && b.employees > 1 && (op == null || op < 0)) { const cut = Math.max(1, Math.min(b.employees - 1, heads - Math.ceil(dem * 1.1 / per))); add('bad', '人が多すぎて赤字です', `生産能力 ${Y(cap)} に対して需要は ${Y(dem)}。約${cut}人減らすと人件費が下がります（退職金がかかります）。`, `<button class="btn sm" data-act="hire" data-v="${b.id}" data-k="-${cut}">${cut}人減らす</button>`); }
+    else if (cap > dem * 1.4) add('info', '生産能力に余裕があります', '広告で需要を増やすと、余っている人手を売上に変えられます。', `<button class="btn sm" data-act="ctab" data-v="money">広告費を見直す ›</button>`);
+    if (op != null && op > 0 && b.cash > Math.max(5e7, (b.last ? b.last.revenue : 0) * 0.5)) add('good', '現金に余裕があります', `会社の現金 ${Y(b.cash)}。新しい事業部・設備投資・買収・配当のどれかに使えます。`, `<button class="btn sm" data-act="ctab" data-v="ops">事業を広げる ›</button>`);
+    if (!items.length) add('good', '順調です', '需要と生産能力のつり合いがとれています。このまま様子を見ましょう。');
+    return `<div class="box co-advice"><h4>いまやること</h4><ul class="ad-list">${items.join('')}</ul></div>`;
+  }
+
+  // ======================= investing, simplified =======================
+  // stock detail: what you own and the buy/sell panel come first; the chart next; the detailed numbers fold away
+  function assetDetail2(id) {
+    const a = LC.assetDef(id), st = S.world.assets[id], pxJ = LC.assetPriceJPY(S, id), q = LC.assetQuote(S, id), isStock = a.kind === 'stock';
+    const rk = riskOf(a), mode = ui.tradeMode || 'buy', tf = ui.tf || '3m', cash = Math.max(0, S.finance.cash);
+    const ind = ui.ind || (ui.ind = { ma: true, bb: false, vol: true, rsi: false, macd: false });
+    const f = ui.tradeForm || (ui.tradeForm = { qty: isStock ? 100 : niceBase(100000), acct: 'auto', monthly: niceBase(30000) });
+    if (!f.acct) f.acct = 'auto';
+    const qty = isStock ? Math.floor(f.qty) : IN(f.qty) / pxJ;
+    const fee = (g) => LC.tradeFee ? LC.tradeFee(a, g) : g * 0.001;
+    const est = isStock ? pxJ * qty + fee(pxJ * qty) : IN(f.qty);
+    const chgCls = q.chg == null ? '' : q.chg >= 0 ? 'up' : 'down';
+    const own = q.qty > 0, under18 = LC.playerAge(S) < 18;
+    // quick amounts so nobody has to type
+    const maxShares = isStock ? Math.max(0, Math.floor(cash / (pxJ * 1.001))) : 0;
+    const quick = mode === 'sell'
+      ? (own ? [[isStock ? `${LC.fmtQty(a, Math.floor(q.qty / 2))}（半分）` : '半分', isStock ? Math.floor(q.qty / 2) : OUT(q.valueJPY / 2)], ['全部', isStock ? Math.floor(q.qty) : OUT(q.valueJPY)]] : [])
+      : isStock ? [['100株', 100], ['500株', 500], ['1,000株', 1000], [`買える最大（${maxShares.toLocaleString('ja-JP')}株）`, maxShares]].filter((x, i) => i === 3 ? x[1] > 0 : x[1] <= maxShares || i === 0)
+        : [['1万円', OUT(1e4)], ['10万円', OUT(1e5)], ['100万円', OUT(1e6)], ['現金の25%', OUT(cash * 0.25)], ['現金の50%', OUT(cash * 0.5)]].filter((x) => IN(x[1]) <= cash || x[0] === '1万円');
+    const room = LC.nisaRoom(S);
+    const acctNote = f.acct === 'auto' ? (S.country === 'jp' && a.kind !== 'crypto' ? (mode === 'sell' ? '課税口座の分から先に売ります' : room > 0 ? `NISA（今年の残り ${Y(room)}）を優先し、超える分は課税口座で買います` : 'NISA枠を使い切ったため課税口座で買います') : '課税口座') : { taxable: '課税口座', nisa: 'NISA', founder: '創業者株' }[f.acct];
+    const holdRows = ['taxable', 'nisa', 'founder'].map((k) => ({ k, h: S.portfolio.holdings[id + ':' + k] })).filter((x) => x.h);
+    let html = `<button class="btn sm" data-act="assetBack">← 一覧に戻る</button>
+      <div class="box quote q2"><h4>${esc(a.name)}<span class="tag">${esc(a.sector)}</span></h4>
+        <div class="q-main"><span class="q-px num">${fmtLocal(a, st.price)}</span><span class="q-chg num ${chgCls}">${q.chg == null ? '—' : `${q.chg >= 0 ? '▲' : '▼'} ${(q.chgPct * 100).toFixed(2)}%`}</span></div>
+        <p class="hint">値動きの大きさ ${dots(rk[1])} ${rk[0]}${a.growth != null ? ` · 成長の想定 ${(a.growth * 100).toFixed(0)}%/年` : ''}${q.yield ? ` · 配当 ${(q.yield * 100).toFixed(1)}%` : ''}${a.fee ? ` · 信託報酬 ${(a.fee * 100).toFixed(2)}%` : ''}</p>
+        ${own ? `<div class="own-line"><span>保有 <b>${LC.fmtQty(a, q.qty)}</b>${holdRows.length > 1 || (holdRows[0] && holdRows[0].k !== 'taxable') ? `（${holdRows.map((x) => `${{ taxable: '課税口座', nisa: 'NISA', founder: '創業者株' }[x.k]} ${LC.fmtQty(a, x.h.qty)}`).join('・')}）` : ''}</span><span>評価額 <b class="num">${Y(q.valueJPY)}</b></span><span>損益 <b class="num ${q.unreal >= 0 ? 'up' : 'down'}">${LC.signedYen(q.unreal)}（${((q.unreal / Math.max(1, q.valueJPY - q.unreal)) * 100).toFixed(1)}%）</b></span></div>` : ''}</div>
+      <div class="box trade2"><div class="seg tmode" role="tablist">${[['buy', '買う'], ['sell', '売る'], ['rec', '毎月積み立てる']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" data-act="tradeMode" data-v="${k}" ${k === 'sell' && !own ? 'disabled' : ''}>${l}</button>`).join('')}</div>
+      ${under18 ? '<p class="hint">投資は18歳から始められます。</p>' : mode === 'rec' ? `<div class="form"><label>毎月の金額（円）<input id="tfMonthly" type="number" inputmode="numeric" min="0" step="any" value="${f.monthly}" data-act="tradeForm"></label>
+          <div class="quick">${[['1万円', OUT(1e4)], ['3万円', OUT(3e4)], ['5万円', OUT(5e4)], ['10万円', OUT(1e5)]].map(([l, v]) => `<button class="chip-btn" data-act="tfMonthlyQuick" data-v="${v}">${l}</button>`).join('')}</div>
+          <p class="hint">毎月自動で買い足します（${S.country === 'jp' && a.kind !== 'crypto' ? 'NISAの積立' : '課税口座'}）。いつでも止められます。</p>
+          <div class="btn-row"><button class="btn primary big" data-act="setRec" data-v="${id}">毎月${Y(IN(f.monthly))}で積み立てる</button></div></div>`
+        : `<div class="form"><label>${isStock ? '株数' : '金額（円）'}<input id="tfQty" type="number" inputmode="numeric" min="0" step="${isStock ? 1 : 'any'}" value="${f.qty}" data-act="tradeForm"></label>
+          ${quick.length ? `<div class="quick">${quick.map(([l, v]) => `<button class="chip-btn" data-act="tfQuick" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
+          <dl class="kv order-sum">${mode === 'buy' ? `<dt>注文金額（見込み）</dt><dd><b>${Y(est)}</b></dd><dt>使える現金</dt><dd>${Y(cash)}</dd><dt>買った後の現金</dt><dd class="${cash - est < 0 ? 'down' : ''}">${cash - est < 0 ? '資金が足りません' : Y(cash - est)}</dd><dt>この口座の保有</dt><dd>${own ? LC.fmtQty(a, q.qty) : 'なし'}</dd>` : `<dt>売る数量</dt><dd>${LC.fmtQty(a, Math.min(qty, q.qty || 0))}</dd><dt>受け取り（見込み）</dt><dd><b>${Y(Math.min(qty, q.qty || 0) * pxJ)}</b></dd>`}<dt>口座</dt><dd>${esc(acctNote)}</dd></dl>
+          <div class="btn-row"><button class="btn primary big" data-act="trade2" data-k="${mode}" data-v="${id}" ${(mode === 'buy' && cash - est < 0) || !(qty > 0) ? 'disabled' : ''}>${mode === 'buy' ? '買う' : '売る'}</button></div>
+          <details class="mini-d"><summary>口座を自分で選ぶ</summary><div class="seg">${[['auto', 'おまかせ'], ['taxable', '課税口座']].concat(S.country === 'jp' && a.kind !== 'crypto' ? [['nisa', 'NISA']] : [], S.portfolio.holdings[id + ':founder'] ? [['founder', '創業者株']] : []).map(([k, l]) => `<button class="${f.acct === k ? 'on' : ''}" data-act="tfAcct2" data-v="${k}">${l}</button>`).join('')}</div>
+          ${holdRows.length > 1 ? `<p class="hint">内訳：${holdRows.map((x) => `${{ taxable: '課税口座', nisa: 'NISA', founder: '創業者株' }[x.k]} ${LC.fmtQty(a, x.h.qty)}`).join('・')}</p>` : ''}</details></div>`}
+      ${S.portfolio.recurring.some((r) => r.id === id) ? `<p class="hint">この銘柄を毎月 ${Y(S.portfolio.recurring.find((r) => r.id === id).monthly)} 積み立て中です。<button class="link-btn" data-act="stopRec" data-v="${id}" data-k="${S.portfolio.recurring.find((r) => r.id === id).acct}">積立を止める</button></p>` : ''}</div>
+      <div class="box chart-box"><div class="seg tf-seg" role="group" aria-label="期間">${LC.TIMEFRAMES.map((x) => `<button data-act="tf" data-v="${x.id}" class="${tf === x.id ? 'on' : ''}">${x.label}</button>`).join('')}</div>
+        <div id="chartRead" class="chart-read num"></div><div class="chart-wrap"><canvas id="chart" aria-label="${esc(a.name)}のローソク足チャート"></canvas></div>
+        <details class="mini-d"><summary>指標を表示する（移動平均・ボリンジャー・出来高・RSI・MACD）</summary><div class="ind-row" role="group" aria-label="指標">${[['ma', '移動平均'], ['bb', 'ボリンジャー'], ['vol', '出来高'], ['rsi', 'RSI'], ['macd', 'MACD']].map(([k, l]) => `<button class="chip-btn ${ind[k] ? 'on' : ''}" data-act="ind" data-v="${k}" aria-pressed="${!!ind[k]}">${l}</button>`).join('')}</div></details>
+        <p class="hint chart-legend"><span class="lg up">■ 陽線（上昇）</span><span class="lg down">■ 陰線（下落）</span><span id="chartUnit"></span></p></div>`;
+    const P2 = (v) => (v == null ? '—' : fmtLocal(a, v));
+    const rows = [['始値', P2(q.o)], ['高値', P2(q.h)], ['安値', P2(q.l)], ['終値', P2(q.c)], ['出来高', q.v == null ? '—' : CandleChart.fmtVol(q.v)],
+      isStock && ['時価総額', q.mcap == null ? '—' : Y(q.mcap)], isStock && ['PER', q.per == null ? '赤字のため算出不可' : q.per.toFixed(1) + '倍'], isStock && ['PBR', q.pbr == null ? '—' : q.pbr.toFixed(2) + '倍'],
+      ['配当利回り', q.yield == null ? '—' : (q.yield * 100).toFixed(2) + '%'], isStock && ['1株利益（EPS）', P2(q.eps)],
+      isStock && ['直近の決算', q.lastEarn && q.lastEarn.t ? `${CandleChart.dateLabel({ t: q.lastEarn.t }, '日足', true)}（予想比 ${(q.lastEarn.surprise * 100 >= 0 ? '+' : '') + (q.lastEarn.surprise * 100).toFixed(0)}%）` : '—'],
+      own && ['平均取得単価', q.avgCost == null ? '—' : YP(q.avgCost)], own && ['実現損益（この銘柄）', LC.signedYen(q.realized)]];
+    html += `<details class="co-sec"><summary>相場情報・企業データ</summary>${kv(rows.concat(assetExtraRows(a)))}</details>`;
+    html += `<details class="co-sec"><summary>この銘柄の取引履歴</summary>${tradeTable((S.portfolio.trades || []).filter((x) => x.id === id).slice(0, 12), false)}</details>`;
+    if (q.events.length) html += `<details class="co-sec"><summary>決算・ニュース（${Math.min(8, q.events.length)}件）</summary><ul class="news">${q.events.slice(0, 8).map((e) => `<li><b>${CandleChart.dateLabel({ t: e.t }, '日足', true)}</b><span class="${e.tone === 'good' ? 'up' : e.tone === 'bad' ? 'down' : ''}">${esc(e.txt)}</span></li>`).join('')}</ul></details>`;
+    return html;
+  }
+
+  // portfolio: three numbers, what you own, then everything else folded
+  function marketOverview2() {
+    const bs = LC.balanceSheet(S), hs = LC.holdingsList(S), gain = hs.reduce((a, h) => a + h.gain, 0), val = hs.reduce((a, h) => a + h.value, 0);
+    const cost = val - gain, pct = cost > 0 ? gain / cost * 100 : 0;
+    let html = adultOnly();
+    html += `<div class="box pf-sum"><div class="pf-k"><span>投資の評価額</span><b class="num">${Y(val)}</b></div><div class="pf-k"><span>含み損益</span><b class="num ${gain >= 0 ? 'up' : 'down'}">${gain >= 0 ? '▲' : '▼'} ${LC.signedYen(gain)}</b><small>${cost > 0 ? `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%` : ''}</small></div><div class="pf-k"><span>使える現金</span><b class="num">${Y(Math.max(0, S.finance.cash))}</b></div></div>`;
+    if (!hs.length) html += `<div class="box"><h4>はじめての投資</h4><p>迷ったら、世界中の株にまとめて投資できる「全世界株式インデックス」を毎月少しずつ積み立てるのが基本です。値動きが小さく、手数料も低めです。</p>
+      <div class="btn-row"><button class="btn primary" data-act="asset" data-v="world">全世界株式インデックスを見る</button><button class="btn" data-act="tab" data-v="list">ほかの銘柄を探す</button></div></div>`;
+    else html += `<p class="section-title">持っている銘柄<span class="hint">タップで売買</span></p><div class="list">${hs.map((h) => { const d = LC.assetDef(h.id); const p = h.value - h.gain > 0 ? h.gain / (h.value - h.gain) * 100 : 0;
+      return `<button class="asset-row pf-row" data-act="asset" data-v="${h.id}"><span class="nm">${esc(d.name)} <span class="tag">${{ taxable: '課税', nisa: 'NISA', founder: '創業者株' }[h.acct] || ''}</span></span><span class="px num">${Y(h.value)}</span><span class="sub">${LC.fmtQty(d, h.qty)}</span><span class="chg num ${h.gain >= 0 ? 'up' : 'down'}">${h.gain >= 0 ? '▲' : '▼'} ${LC.signedYen(h.gain)}（${p >= 0 ? '+' : ''}${p.toFixed(1)}%）</span></button>`; }).join('')}</div>`;
+    if (S.portfolio.recurring.length) html += `<p class="section-title">毎月の積立</p><div class="list">${S.portfolio.recurring.map((r) => `<div class="box opt"><span class="name">${esc(LC.assetDef(r.id).name)}</span><span class="sub">毎月${Y(r.monthly)} · ${r.acct === 'nisa' ? 'NISA' : '課税口座'}</span><button class="btn sm" data-act="stopRec" data-v="${r.id}" data-k="${r.acct}">止める</button></div>`).join('')}</div>`;
+    html += `<div class="btn-row"><button class="btn" data-act="tab" data-v="list">銘柄を探す ›</button>${bs.realEstate - (bs.home || 0) > 0 || true ? '<button class="btn" data-act="tab" data-v="realty">不動産 ›</button>' : ''}</div>`;
+    const nisa = S.country === 'jp' ? [['NISA 今年の枠', `${Y(S.finance.nisa.annualUsed)} / ${Y(LC.CONFIG.JP.nisaAnnual)}`], ['NISA 生涯枠', `${Y(S.finance.nisa.lifetimeUsed)} / ${Y(LC.CONFIG.JP.nisaLifetime)}`]] : [];
+    html += `<details class="co-sec"><summary>くわしい数字（確定した損益・配当・手数料・NISA枠）</summary>${kv([['実現損益（累計）', LC.signedYen(S.portfolio.realized)], ['受け取った配当（累計）', Y(S.portfolio.dividends || 0)], ['売買手数料（累計）', Y(S.portfolio.fees || 0)], ['投資用不動産', Y(bs.rentals)], ['仮想通貨', Y(bs.crypto)]].concat(nisa))}</details>`;
+    html += `<details class="co-sec"><summary>取引履歴</summary>${tradeTable((S.portfolio.trades || []).slice(0, 10), true)}</details>`;
+    html += `<details class="co-sec"><summary>経済ニュース</summary><ul class="news">${S.world.news.slice(0, 6).map((n) => `<li><b>${n.y}.${String(Math.max(1, n.m)).padStart(2, '0')}</b><span class="${n.tone === 'good' ? 'up' : n.tone === 'bad' ? 'down' : ''}">${esc(n.text || n.txt || n.title || '')}</span></li>`).join('')}</ul></details>`;
+    return html;
+  }
+
+  // the stock list: a short starter set by default, filters and sorting instead of one long scroll
+  const SFILTERS = [['pick', 'はじめての人向け'], ['all', 'すべて'], ['mine', '保有中'], ['fund', '投信・債券・金'], ['jp', '日本株'], ['os', '海外株'], ['div', '高配当']];
+  function stockList2() {
+    const flt = ui.sflt || 'pick', sort = ui.ssort || 'cat';
+    let list = LC.marketAssets(S).filter((a) => a.kind !== 'crypto');
+    const mine = new Set(LC.holdingsList(S).map((h) => h.id));
+    const isOS = (a) => a.region && a.region !== 'jp' && a.region !== 'world';
+    if (flt === 'pick') list = list.filter((a) => a.own || ((a.kind !== 'stock' || a.cat === 'jp_large') && riskOf(a)[1] <= 3));
+    else if (flt === 'mine') list = list.filter((a) => mine.has(a.id));
+    else if (flt === 'fund') list = list.filter((a) => a.kind !== 'stock');
+    else if (flt === 'jp') list = list.filter((a) => a.kind === 'stock' && !isOS(a));
+    else if (flt === 'os') list = list.filter((a) => a.kind === 'stock' && isOS(a));
+    else if (flt === 'div') list = list.filter((a) => { const q = LC.assetQuote(S, a.id); return q.yield != null && q.yield >= 0.025; });
+    const val = (a) => { const q = LC.assetQuote(S, a.id); return sort === 'up' ? -(q.chgPct || 0) : sort === 'big' ? -(q.mcap || 0) : sort === 'safe' ? riskOf(a)[1] * 10 - (q.yield || 0) : 0; };
+    if (sort !== 'cat') list = list.slice().sort((x, y) => val(x) - val(y));
+    list = list.filter((a) => a.own).concat(list.filter((a) => !a.own)); // your own listed company stays on top
+    const rows = list.map((a) => { const q = LC.assetQuote(S, a.id), ch = q.chgPct, rk = riskOf(a);
+      return `<button class="asset-row s2" data-act="asset" data-v="${a.id}"><span class="nm">${esc(a.name)}${a.own ? ' <span class="tag own">自社・創業企業</span>' : ''}${mine.has(a.id) ? ' <span class="tag">保有</span>' : ''}</span><span class="px num">${fmtLocal(a, S.world.assets[a.id].price)}</span><span class="sub">${esc(a.kind === 'stock' ? a.sector : LC.ASSET_CATS[a.cat] || a.sector)} · 値動き${dots(rk[1])}${q.yield ? ` · 配当${(q.yield * 100).toFixed(1)}%` : ''}</span><span class="chg num ${ch == null ? '' : ch >= 0 ? 'up' : 'down'}">${ch == null ? '—' : `${ch >= 0 ? '▲' : '▼'}${Math.abs(ch * 100).toFixed(2)}%`}</span></button>`; }).join('');
+    return `<div class="sflt">${SFILTERS.map(([k, l]) => `<button class="chip-btn ${flt === k ? 'on' : ''}" data-act="sflt" data-v="${k}">${l}</button>`).join('')}</div>
+      <div class="ssort"><span class="hint">並び順</span><div class="seg">${[['cat', '分類'], ['up', '値上がり'], ['big', '大きい会社'], ['safe', '値動き小']].map(([k, l]) => `<button class="${sort === k ? 'on' : ''}" data-act="ssort" data-v="${k}">${l}</button>`).join('')}</div></div>
+      ${flt === 'pick' ? '<p class="hint">値動きが比較的小さい投資信託・債券・金と、日本の大型株です。「すべて」でほかの銘柄も見られます。</p>' : ''}
+      ${list.length ? `<div class="list">${rows}</div>` : `<p class="empty">${flt === 'mine' ? 'まだ持っている銘柄はありません。' : '条件に合う銘柄がありません。'}</p>`}
+      <p class="hint">${list.length}銘柄 · 値動き＝1年の値動きの大きさ（●が多いほど大きい）</p>`;
+  }
 
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) closeSheet(); if (e.key === ' ' && !ui.sheet && e.target === document.body) { e.preventDefault(); LC.togglePlay(S); } });
   document.addEventListener('focusin', (e) => { if (e.target.matches && e.target.matches('.sheet input[type=text], .sheet input[type=number]')) ui.typing = true; });
