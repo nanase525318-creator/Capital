@@ -1039,6 +1039,45 @@ body { font-size: 14.5px; }
 .trade2 .order-sum dt { white-space: nowrap; color: var(--muted); } .trade2 .order-sum dd { margin: 0; text-align: right; }
 .section-title .hint { margin-left: 8px; font-weight: 400; }
 .co-sec { min-width: 0; max-width: 100%; overflow-x: auto; }
+
+/* ---- companies that ended: list rows, record view, chart, timeline (company tab and the epilogue) */
+.co-st.info { color: var(--info); } .co-st.muted { color: var(--muted); }
+.arc-box .co-list { opacity: 1; }
+.arc-row .co-k { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.arc-detail { display: grid; gap: 10px; min-width: 0; }
+.arc-detail .box { min-width: 0; }
+.arc-detail h4 .co-st { margin-left: 8px; font-size: 12px; }
+.arc-chart { margin: 4px 0 6px; }
+.arc-chart svg { width: 100%; height: auto; display: block; }
+.arc-chart figcaption { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.arc-chart .lg { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+.arc-chart .lg.bar { background: var(--teal); opacity: .55; } .arc-chart .lg.dot { background: var(--mkt-up); border-radius: 50%; } .arc-chart .lg.dot.dn { background: var(--mkt-down); }
+.arc-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.arc-tbl th, .arc-tbl td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.arc-tbl th:first-child, .arc-tbl td:first-child { text-align: left; }
+.arc-tbl td.down { color: var(--mkt-down); }
+.arc-detail .table-wrap { overflow-x: auto; max-width: 100%; }
+@media (max-width: 460px) { .arc-tbl { font-size: 11px; } .arc-tbl th, .arc-tbl td { padding: 3px 3px; } .arc-tbl .c-debt { display: none; } }
+.arc-tl { list-style: none; margin: 0; padding: 0 0 0 4px; border-left: 2px solid var(--line-2); display: grid; gap: 2px; }
+.arc-tl li { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); gap: 8px; padding: 4px 0 4px 10px; font-size: 13.5px; position: relative; }
+.arc-tl li::before { content: ''; position: absolute; left: -6px; top: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--panel); border: 2px solid var(--teal); }
+.arc-tl li.bad::before { border-color: var(--bad); } .arc-tl li.good::before { border-color: var(--good); }
+.arc-tl b { font-weight: 500; overflow-wrap: anywhere; }
+.arc-end { border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.arc-end.bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line-2)); }
+.arc-end h5 { margin: 0 0 6px; font-size: 14px; }
+.arc-end ul { margin: 4px 0 0; padding-left: 1.2em; font-size: 13.5px; }
+.epi-cos { display: grid; gap: 8px; }
+.epi-co { border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); min-width: 0; }
+.epi-co > summary { list-style: none; cursor: pointer; }
+.epi-co > summary::-webkit-details-marker { display: none; }
+.epi-co > summary .co-row { border: 0; width: 100%; }
+.epi-co[open] > summary { border-bottom: 1px solid var(--line); }
+.epi-co > .arc-detail { padding: 10px; }
+.crumb .btn { margin-bottom: 4px; }
+.auto-what { margin: 4px 0 0; font-size: 12.5px; }
+.auto-log { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12.5px; display: grid; gap: 2px; }
+.auto-log li { display: flex; gap: 8px; color: var(--muted); } .auto-log .num { min-width: 3.2em; color: var(--faint); }
 </style>
 </head>
 <body>
@@ -4294,7 +4333,7 @@ function divClose(s, bizId, divId, sell) {
   let cash;
   if (sell) { const op = last ? last.op : 0; cash = Math.max(0, (d.revRun || 0) * 0.4 + Math.max(0, op) * 4) * rfloat(s, 0.8, 1.1); b.cash += cash; }
   else { cash = -(Math.min(Math.max(0, b.cash), (d.revRun || d.demand || 0) * 0.12) + staff * divWage(s, b, d) * 0.3); b.cash += cash; b.ytd.other -= cash; }
-  b.employees -= sell ? staff : staff; divs.splice(i, 1);
+  b.employees = Math.max(0, b.employees - staff); divs.splice(i, 1); // never below zero (a closing division can report more staff than the company total)
   b.equipment += sell ? 0 : (d.equip || 0) * 0.3;
   record(s, { cat: 'biz', title: sell ? `${d.name}を売却` : `${d.name}から撤退`, desc: sell ? `${b.name}が${d.name}を他社に${yen(cash)}で売却しました。社員${staff}人も移籍しました。` : `${b.name}が${d.name}から撤退しました（費用${yen(-cash)}・社員${staff}人）。`, tone: sell ? 'good' : 'neutral', important: true });
   if (!sell && last && last.op < 0) s.flags.earlyExit = s.time.year;
@@ -7987,14 +8026,16 @@ function autoPick(s, style) {
     const txt = c.label + ' ' + (c.now || '') + ' ' + (c.future || '');
     let sc = -i * 0.3; // the game lists the steady option first
     const bold = /挑戦|起業|全力|攻め|独立|海外|プロ|上場|買収|投資|大胆|受ける|参入|移籍/.test(txt), safe = /見送|断る|今のまま|続ける|貯金|安定|守|休|相談|様子/.test(txt);
-    if (style === 'bold') sc += (bold ? 3 : 0) + (c.risk ? 1.5 : 0) - (safe ? 1 : 0);
-    else if (style === 'safe') sc += (safe ? 2 : 0) - (c.risk ? 2 : 0) - (bold ? 1.5 : 0);
-    else sc += (c.risk ? -0.5 : 0);
+    // an all-in bet is not "taking risk for profit": the bold style takes it only with real investing knowledge
+    const gamble = /集中投資|全額|一点張り|借金して|レバレッジ|信用取引/.test(txt), knows = (s.stats.finLit || 0) >= 55;
+    if (style === 'bold') sc += (bold ? 3 : 0) + (c.risk ? 1.5 : 0) - (safe ? 1 : 0) + (gamble ? (knows ? 0.5 : -4) : 0);
+    else if (style === 'safe') sc += (safe ? 2 : 0) - (c.risk ? 2 : 0) - (bold ? 1.5 : 0) - (gamble ? 4 : 0);
+    else sc += (c.risk ? -0.5 : 0) - (gamble ? 2 : 0);
     if (sc > bv) { bv = sc; best = i; }
   });
   return best;
 }
-function setAuto(s, style) { s.flags.auto = style && AUTO_STYLES[style] ? style : null; bump(s); return { ok: true, msg: s.flags.auto ? `これからの決断を「${AUTO_STYLES[style]}」でおまかせにします。` : 'おまかせをやめました。決断は自分で選びます。' }; }
+function setAuto(s, style) { s.flags.auto = style && AUTO_STYLES[style] ? style : null; bump(s); return { ok: true, msg: s.flags.auto ? `これからの決断を「${AUTO_STYLES[style]}」でおまかせにします。投資・不動産・経営している会社の見直しも、この方針で定期的に行います（行ったことは人生の記録に残ります）。` : 'おまかせをやめました。決断は自分で選びます。' }; }
 
 // ---------- the closing sequence of a life
 function lastWords(s) {
@@ -8088,7 +8129,7 @@ function pushTimeline(s, start) {
 function compactRoom(s) {
   const m = roomModel(s);
   return { kind: m.kind, size: m.size, dims: m.dims, floor: m.floor, wall: m.wall, view: m.view, outside: m.outside, tier: m.tier, label: m.label, month: m.month, weather: 'clear',
-    items: m.items.map((i) => ({ key: i.key, src: i.src, id: i.id, pet: i.pet })), people: m.people.map((p) => ({ id: p.id, relation: p.relation, gender: p.gender, age: p.age, stage: p.stage, routine: p.routine, outfit: p.outfit, look: p.look, grey: p.grey, beard: p.beard, label: p.label })),
+    items: m.items.map((i) => ({ key: i.key, src: i.src, id: i.id, pet: i.pet })), people: m.people.map((p) => ({ id: p.id, relation: p.relation, gender: p.gender, age: p.age, stage: p.stage, routine: p.routine, outfit: p.outfit, look: p.look, grey: p.grey, beard: p.beard, label: p.label, wealth: p.wealth })),
     pets: m.pets.map((p) => ({ id: p.id, kind: p.kind, color: p.color, age: p.age })), cars: m.cars.map((c) => ({ id: c.id, type: c.type, color: c.color })), office: null };
 }
 function takeSnapshot(s, why) {
@@ -8886,7 +8927,7 @@ function sellSmart(s, id, qty, acct) {
 // in s.summary.epi, so reopening the ending always shows the same text. Phrasing varies by life (a per-life seed), never by viewing.
 // Nothing is invented: a sentence is written only when the data behind it exists.
 
-const EPI_VERSION = 1;
+const EPI_VERSION = 2; // 2: companies that ended are kept (s.bizArchive) and shown with their history
 function epiPick(s, key, arr) { return arr[Math.floor(hash01(s.seed || 1, strHash(key)) * arr.length) % arr.length]; }
 
 // ---- how the life ended: decided from the same things the game's mortality uses (age, health, early-childhood risk)
@@ -8984,7 +9025,11 @@ function epiStory(s, F) {
     if (F.A.ipo) t += `${F.A.ipo.age}歳で会社を上場させた。`;
     if (F.A.mna) t += 'ほかの会社を買収し、事業を広げた。';
     if ((F.L.maxEmployees || 0) >= 10) t += `最も多いときには${F.L.maxEmployees}人の社員を抱えた。`;
-    if (F.bizFail.length) t += `${F.bizFail[0].age}歳のときには${F.bizFail[0].title.replace(/が倒産$/, '')}を倒産させ、${pick('fail', ['苦い経験も味わった。', '大きな挫折を経験した。'])}`;
+    if (F.bizFail.length) {
+      const nm = F.bizFail[0].title.replace(/が倒産$/, ''), arc = (s.bizArchive || []).find((x) => x.status === 'bankrupt' && x.name === nm);
+      const peak = arc && arc.peak && arc.peak.rev > 0 ? `最盛期の${arc.peak.revY}年には売上${yen(arc.peak.rev)}${arc.peak.emp >= 5 ? `・社員${arc.peak.emp}人` : ''}まで育てた${nm}だったが、` : '';
+      t += peak ? `${peak}${F.bizFail[0].age}歳のときに倒産させ、${pick('fail', ['苦い経験も味わった。', '大きな挫折を経験した。'])}` : `${F.bizFail[0].age}歳のときには${nm}を倒産させ、${pick('fail', ['苦い経験も味わった。', '大きな挫折を経験した。'])}`;
+    }
     if (F.bizSold.length) t += `${F.bizSold.slice(-1)[0].age}歳で${F.bizSold.slice(-1)[0].title.replace(/を売却$/, '')}を手放した。`;
     if (t) work.push({ w: 60 + (F.A.ipo ? 25 : 0) + Math.min(15, Math.log2(1 + (F.L.maxEmployees || 0)) * 3) + (F.bizFail.length ? 10 : 0), t, a: Math.min(...[].concat(F.starts.map((r) => r.age), F.inherited.map((r) => r.age), [99])) });
   }
@@ -9146,6 +9191,170 @@ function ensureEpilogue(s) {
 }
 { const _dies = playerDies; playerDies = function (s) { _dies(s); s.summary = s.summary || {}; s.summary.death = deathInfo(s); s.summary.epi = buildEpilogue(s); bump(s); }; }
 
+// ---- 08_zzz_bizarc.js
+// ===== company archive: companies that ended (bankrupt, sold, left the group) stay in the life record =====
+// Before: a bankrupt or sold company was simply removed from s.businesses, so its numbers and story disappeared.
+// Now, at the moment a company ends, a compact frozen copy is kept in s.bizArchive: who founded it, how the player was
+// involved, its yearly figures, the decisions and crises that happened to it, and how it ended. Ended companies are no
+// longer simulated (they are not in s.businesses); the archive is only read. Everything in it comes from the save.
+const BIZ_ARC_MAX = 40, BIZ_LOG_MAX = 40;
+function bizArchive(s) { return s.bizArchive || (s.bizArchive = []); }
+const BIZ_END_L = { active: '経営中', bankrupt: '倒産', sold: '売却済み', parent: 'グループごと終了', subsold: '子会社として売却', ended: '経営から離脱' };
+const BIZ_ROLE_L = { owner: 'オーナー経営者（創業者）', ceo: '代表（経営者）', holder: '株主（経営は他の人）', sub: '親会社を通じて経営', subhold: '親会社を通じた株主' };
+const BIZ_VIA_L = { found: '自分で設立', inherit: '親から相続', acquire: '買収で取得', family: '家族の会社' };
+function bizRoleOf(s, b) {
+  if (b.parentId) { const p = bizById(s, b.parentId); return p && isExec(p) ? 'sub' : 'subhold'; }
+  if (!isExec(b)) return 'holder';
+  return (b.via || 'found') === 'found' && b.ownership >= 0.5 ? 'owner' : 'ceo';
+}
+function bizSizeL(emp) { return emp >= 300 ? '大企業' : emp >= 50 ? '中堅企業' : emp >= 10 ? '中小企業' : emp >= 1 ? '小規模' : '個人規模'; }
+// a frozen copy of a company (used for ended companies, and for running companies at the end of a life)
+function bizSnapshot(s, b, status) {
+  const via = b.via || (b.acquired ? 'acquire' : 'found'), parent = b.parentId ? bizById(s, b.parentId) : null;
+  const hist = (b.hist2 || []).slice(-40).map((r) => ({ y: r.y, rev: r.rev, op: r.op, net: r.net, emp: r.emp, debt: r.debt, cash: r.cash }));
+  const Y = b.ytd;
+  if (status !== 'active' && Y && Y.revenue > 0 && (!hist.length || hist[hist.length - 1].y < s.time.year)) { // the months of the final year
+    hist.push({ y: s.time.year, rev: Math.round(Y.revenue), op: Math.round(Y.revenue - Y.cogs - Y.labor - Y.depr - Y.other - Y.ads), net: null, emp: b.employees, debt: Math.round(b.debt), cash: Math.round(b.cash), part: s.time.monthsDone || 0 });
+  }
+  const full = hist.filter((r) => !r.part);
+  const peakRev = full.reduce((m, r) => (!m || r.rev > m.rev ? r : m), null), peakOp = full.reduce((m, r) => (!m || r.op > m.op ? r : m), null), peakEmp = hist.reduce((m, r) => (!m || r.emp > m.emp ? r : m), null);
+  const P0 = P(s);
+  let log = (b.log || []).slice();
+  if (!log.length) { // older saves: the company's own entries from the life history
+    log = lifeRecords(s).filter((r) => r.year >= (b.foundedYear || 0) && (r.title.includes(b.name) || (r.cat === 'biz' && r.desc && r.desc.includes(b.name)))).slice(-BIZ_LOG_MAX).map((r) => ({ y: r.year, age: r.age, title: r.title, tone: r.tone }));
+  }
+  return {
+    id: b.id, name: b.name, industry: b.industry, ind: INDUSTRIES[b.industry] ? INDUSTRIES[b.industry].label : '', via, status,
+    foundedYear: b.foundedYear, founder: via === 'found' ? `${P0.name}（あなた）` : via === 'inherit' && b.inh ? `${b.inh.from}・${b.inh.fromName}` : null,
+    joinYear: via === 'inherit' && b.inh ? b.inh.year : via === 'acquire' && b.acq ? b.acq.year : b.foundedYear, joinAge: null,
+    role: bizRoleOf(s, b), stake: b.parentId ? b.parentStake : b.ownership, parentName: parent ? parent.name : null, listed: !!b.listed, listYear: b.listYear || null,
+    product: b.acq && b.acq.product ? b.acq.product : null, divs: (b.divs || []).filter((d) => !d.main).map((d) => d.name).slice(0, 6),
+    employees: Math.max(0, b.employees), size: bizSizeL(Math.max(0, b.employees)), revenue: Math.round(b.revenueRun || 0), cashEnd: Math.round(b.cash), debtEnd: Math.round(b.debt), value: Math.round(b.valuation || 0),
+    hist, log: log.slice(-BIZ_LOG_MAX),
+    peak: { rev: peakRev ? peakRev.rev : 0, revY: peakRev ? peakRev.y : null, op: peakOp ? peakOp.op : 0, opY: peakOp ? peakOp.y : null, emp: peakEmp ? peakEmp.emp : b.employees, empY: peakEmp ? peakEmp.y : null },
+    endYear: status === 'active' ? null : s.time.year, endAge: status === 'active' ? null : playerAge(s),
+    birthYear: P0.birthYear,
+  };
+}
+function bizArcPush(s, a) {
+  a.joinAge = a.joinYear != null ? a.joinYear - a.birthYear : null;
+  const A = bizArchive(s); A.push(a);
+  if (A.length > BIZ_ARC_MAX) A.splice(0, A.length - BIZ_ARC_MAX);
+  return a;
+}
+function bizArcFind(s, id) { const A = bizArchive(s); for (let i = A.length - 1; i >= 0; i--) if (A[i].id === id) return A[i]; return null; }
+// ---- the facts behind an ending (only what the numbers and records show; nothing is invented)
+function bizEndCauses(a) {
+  const H = a.hist.filter((r) => !r.part), out = [], last = H[H.length - 1];
+  let n = 0; for (let i = H.length - 1; i >= 0 && H[i].net < 0; i--) n++;
+  if (n >= 2) out.push(`最後の${n}期は続けて赤字でした`); else if (n === 1) out.push('最後の決算は赤字でした');
+  if (a.peak.rev > 0 && last && a.peak.revY < last.y && last.rev < a.peak.rev * 0.75) out.push(`売上は${a.peak.revY}年の${yen(a.peak.rev)}から${yen(last.rev)}へ約${Math.round((1 - last.rev / a.peak.rev) * 100)}%減っていました`);
+  const d0 = H.length >= 4 ? H[H.length - 4].debt : H.length ? H[0].debt : 0;
+  if (a.debtEnd > 0 && a.debtEnd > (d0 || 0) * 1.3 + 1) out.push(`借入は${yen(d0 || 0)}から${yen(a.debtEnd)}に増えていました`);
+  if (a.cashEnd < 0) out.push(`最後は会社の現金が${yen(a.cashEnd)}になり、支払いができなくなりました`);
+  const clean = (t) => t.replace(/^おまかせ（[^）]+）：/, '').replace(a.name + '：', '');
+  const exp = a.log.filter((e) => e.y >= a.endYear - 3 && /買収|新規事業|設備投資|採用|融資/.test(e.title));
+  if (exp.length) out.push(`直前の数年に${exp.slice(-2).map((e) => `「${clean(e.title)}」（${e.y}年）`).join('、')}がありました`);
+  const bad = a.log.filter((e) => e.y >= a.endYear - 3 && e.tone === 'bad' && !/倒産/.test(e.title));
+  if (bad.length) out.push(`${bad.slice(-2).map((e) => `「${clean(e.title)}」（${e.y}年）`).join('、')}も重なりました`);
+  return out;
+}
+// ---- the company's story (generated from its own record; the success years are told as well as the ending)
+function bizStory(a) {
+  const h = strHash(a.id + a.name), pick = (arr, k) => arr[(h >>> (k || 0)) % arr.length];
+  const ps = [], years = (a.endYear || (a.hist.length ? a.hist[a.hist.length - 1].y : a.foundedYear)) - a.foundedYear;
+  if (a.via === 'found') ps.push(`${a.joinAge != null ? a.joinAge + '歳のとき、' : ''}${a.ind}の会社として「${a.name}」を${a.foundedYear}年に立ち上げた。${pick(['小さな一歩からの出発だった。', 'ここから会社の歴史が始まった。'])}`);
+  else if (a.via === 'inherit') ps.push(`${a.foundedYear}年創業の「${a.name}」を、${a.joinYear}年に${a.founder ? a.founder.split('・')[0] : '親'}から受け継いだ。${a.role === 'holder' ? '経営は役員に任せ、株主として見守った。' : '自ら代表として経営にあたった。'}`);
+  else ps.push(`${a.parentName ? `${a.parentName}の子会社として、` : ''}${a.joinYear}年に${a.ind}の「${a.name}」${a.product ? `（${a.product}）` : ''}を買収でグループに迎えた。`);
+  const g = [];
+  if (a.peak.rev > 0) g.push(`${a.peak.revY}年には売上${yen(a.peak.rev)}`);
+  if (a.peak.emp >= 5) g.push(`社員${a.peak.emp}人`);
+  let t = g.length ? `最も勢いがあったころ、${g.join('・')}の規模に達した。` : '';
+  if (a.peak.op > 0) t += a.peak.opY === a.peak.revY && g.length ? `その年の営業利益は${yen(a.peak.op)}だった。` : `${a.peak.opY}年には営業利益${yen(a.peak.op)}を上げている。`;
+  if (a.listed) t += `${a.listYear ? a.listYear + '年に' : ''}株式を上場させた。`;
+  if (a.divs.length) t += `${a.divs.join('・')}にも事業を広げた。`;
+  if (t) ps.push(t);
+  const keys = a.log.filter((e) => !/倒産|を売却$/.test(e.title) && (e.tone !== 'neutral' || /買収|新規事業|上場|融資|採用|撤退|設備/.test(e.title))).slice(-4);
+  if (keys.length) ps.push('主な出来事：' + keys.map((e) => `${e.y}年「${e.title.replace(/^おまかせ（[^）]+）：/, '').replace(a.name + '：', '')}」`).join('、') + '。');
+  if (a.status === 'bankrupt') {
+    const c = bizEndCauses(a);
+    ps.push(`${c.length ? c.join('。') + '。' : ''}${a.endYear}年、${a.name}は倒産した${years > 0 ? `（${years}年の歴史だった）` : ''}。${a.guarantee > 0 ? `経営者保証として${yen(a.guarantee)}を個人で負担した。` : ''}`);
+    if (a.peak.op > 0 || a.peak.emp >= 10) ps.push(pick(['会社は残らなかったが、売上を伸ばし人を雇った年月は、確かにあった。', '結末は倒産だったが、それまでに積み上げた仕事と雇用は、実際にあったことだ。'], 3));
+  } else if (a.status === 'sold' || a.status === 'subsold') ps.push(`${a.endYear}年、${a.name}を${a.status === 'subsold' ? '第三者に' : ''}売却した${a.proceeds > 0 ? `（${a.status === 'subsold' ? '親会社が' : ''}受け取った額 ${yen(a.proceeds)}）` : ''}。事業はほかの経営者のもとで続いていく。`);
+  else if (a.status === 'parent') ps.push(`${a.endYear}年、親会社${a.parentName ? `「${a.parentName}」` : ''}の${BIZ_END_L[a.parentEnd] || '終了'}にともない、グループを離れた。`);
+  else if (a.status === 'ended') ps.push(`${a.endYear}年に経営から離れた。`);
+  else ps.push(`人生の最後まで、${a.role === 'holder' || a.role === 'subhold' ? '株主として関わり続けた' : '経営を続けた'}。`);
+  return ps;
+}
+// ---- hooks: every path that removes a company goes through removeBusiness (or bizSellSub), so the copy is taken there
+let BIZ_ARC_CTX = null;
+const _removeBusinessArc = removeBusiness;
+removeBusiness = function (s, b) {
+  if (!b || !s.businesses.includes(b)) return _removeBusinessArc(s, b);
+  const ctx = BIZ_ARC_CTX, status = ctx ? ctx.status : 'ended';
+  const a = bizSnapshot(s, b, status);
+  if (ctx && ctx.status === 'parent') { a.parentName = ctx.parentName; a.parentEnd = ctx.parentEnd; }
+  bizArcPush(s, a);
+  BIZ_ARC_CTX = { status: 'parent', parentName: b.name, parentEnd: status };
+  try { return _removeBusinessArc(s, b); } finally { BIZ_ARC_CTX = ctx; }
+};
+function bizArcWrap(fn, status, idOf) {
+  return function (s, ...args) {
+    const ctx = BIZ_ARC_CTX, cash0 = s.finance.cash, b = idOf(s, args), id = b ? b.id : null;
+    BIZ_ARC_CTX = { status };
+    let r; try { r = fn(s, ...args); } finally { BIZ_ARC_CTX = ctx; }
+    const a = id && !bizById(s, id) ? bizArcFind(s, id) : null;
+    if (a && a.endYear === s.time.year) {
+      const endT = status === 'bankrupt' ? `${a.name}が倒産` : `${a.name}を売却`, lastT = a.log.length ? a.log[a.log.length - 1].title : '';
+      if (status === 'bankrupt') a.guarantee = Math.max(0, Math.round(cash0 - s.finance.cash));
+      else a.proceeds = Math.max(a.proceeds || 0, Math.round(s.finance.cash - cash0));
+      if (lastT !== endT) a.log.push({ y: s.time.year, age: playerAge(s), title: endT, tone: status === 'bankrupt' ? 'bad' : 'good' });
+      if (a.log.length > BIZ_LOG_MAX) a.log.splice(0, a.log.length - BIZ_LOG_MAX);
+    }
+    return r;
+  };
+}
+bizBankrupt = bizArcWrap(bizBankrupt, 'bankrupt', (s, a) => a[0]);
+bizSellCompany = bizArcWrap(bizSellCompany, 'sold', (s, a) => bizById(s, a[0]));
+ownTakeover = bizArcWrap(ownTakeover, 'sold', (s, a) => a[0]);
+const _bizSellSubArc = bizSellSub;
+bizSellSub = function (s, subId, frac) {
+  const sub = bizById(s, subId), whole = sub && sub.parentId && (frac == null || frac >= 0.999);
+  if (!whole) return _bizSellSubArc(s, subId, frac);
+  const parent = bizById(s, sub.parentId), pc0 = parent ? parent.cash : 0;
+  const snaps = [sub].concat(subsidiaries(s, sub)).map((x, i) => Object.assign(bizSnapshot(s, x, i ? 'parent' : 'subsold'), i ? { parentName: sub.name, parentEnd: 'subsold' } : {}));
+  const r = _bizSellSubArc(s, subId, frac);
+  if (r && r.ok && !bizById(s, subId)) { snaps[0].proceeds = Math.max(0, Math.round((parent ? parent.cash : 0) - pc0)); snaps[0].log.push({ y: s.time.year, age: playerAge(s), title: `${sub.name}を売却`, tone: 'neutral' }); snaps.forEach((a) => bizArcPush(s, a)); }
+  return r;
+};
+// every record that names a company is also kept in that company's own short log (decisions, crises, milestones);
+// a sale that happened through an event choice is recognised here too
+const _recordArc = record;
+record = function (s, r) {
+  const e = _recordArc(s, r);
+  try {
+    const txt = (r.title || '') + ' ' + (r.desc || '');
+    if (s.businesses && s.businesses.length && (r.cat === 'biz' || /会社|事業|経営/.test(txt))) {
+      for (const b of s.businesses) if (b.name && txt.includes(b.name)) { (b.log || (b.log = [])).push({ y: s.time.year, age: playerAge(s), title: r.title, tone: r.tone || 'neutral' }); if (b.log.length > BIZ_LOG_MAX) b.log.shift(); }
+    }
+    if (/売却/.test(r.title || '') && s.bizArchive) for (const a of s.bizArchive) if (a.status === 'ended' && a.endYear === s.time.year && txt.includes(a.name)) a.status = 'sold';
+  } catch (err) { /* the log is a convenience */ }
+  return e;
+};
+// ---- for screens: everything the player ever ran or held, running companies first
+function bizArcList(s) {
+  const now = s.businesses.map((b) => Object.assign(bizSnapshot(s, b, 'active'), { live: true }));
+  const ended = bizArchive(s).slice().reverse().filter((a, i, arr) => arr.findIndex((x) => x.id === a.id) === i && !s.businesses.some((b) => b.id === a.id));
+  return now.concat(ended).map((a) => Object.assign({}, a, { joinAge: a.joinYear != null ? a.joinYear - a.birthYear : null, story: bizStory(a), causes: a.status === 'bankrupt' ? bizEndCauses(a) : [] }));
+}
+// ---- the epilogue gets the full list (frozen with it, so a saved past life still shows its companies)
+const _epiFinalArc = epiFinal;
+epiFinal = function (s, F) {
+  const out = _epiFinalArc(s, F);
+  try { out.bizArc = bizArcList(s).map((a) => Object.assign(a, { hist: a.hist.slice(-30), log: a.log.slice(-20) })).slice(0, 20); } catch (e) { out.bizArc = []; }
+  return out;
+};
+
 // ---- 09_scenemodel.js
 // ===== scene model: pure description of what the animation must draw, derived from game state =====
 function heightFor(age) {
@@ -9220,7 +9429,10 @@ function outfitFor(s, c) {
       const t = s.career.job.type;
       if (['police', 'fire', 'sdf'].includes(t)) return 'uniform';
       if (['doctor', 'nurse', 'pharm', 'researcher'].includes(t)) return 'coat';
-      if (['factory', 'construct'].includes(t)) return 'work';
+      if (t === 'construct') return 'vest';
+      if (t === 'factory') return 'work';
+      if (['it_eng', 'programmer', 'ai_eng', 'web_design', 'data_sci'].includes(t)) return 'hoodie';
+      if (['teacher', 'professor'].includes(t)) return 'cardigan';
       if (t === 'retail') return 'apron';
       if (t === 'sport_coach') return sp ? 'sport:' + sp.id : 'track';
       if (t === 'part') return 'casual';
@@ -9231,6 +9443,7 @@ function outfitFor(s, c) {
   }
   if (['father', 'mother', 'spouse'].includes(c.relation) && a < 65 && a >= 20 && (c.income || 0) > 0 && ['company', 'gov', 'exec', 'pro'].includes(c.jobKey)) return 'suit';
   if (['child', 'sibling', 'grandchild'].includes(c.relation) && a >= 12 && a < 18) return 'school';
+  if (a >= 65 && (strHash(String(c.id)) >> 2) % 2 === 0) return 'cardigan'; // some older relatives wear a cardigan at home
   return 'casual';
 }
 function roomModel(s) {
@@ -9303,6 +9516,248 @@ function roomModel(s) {
   };
 }
 
+// ---- 09_zauto.js
+// ===== おまかせ (auto) personalities that actually run money and companies =====
+// Before: おまかせ only picked event choices. Now each style also manages the things a player manages between events —
+// personal investing, rental property and the companies the player runs — on a schedule, with cooldowns, using exactly
+// the same game functions (and therefore the same rules, fees, taxes, limits and approvals) as the buttons on screen.
+// Everything it really does is written to the life history (and therefore the epilogue and the company history).
+// 挑戦重視 takes risks for profit, but never spends the emergency cash; every style re-checks when deficits or debt grow.
+const AUTO_PROF = {
+  safe: { label: '安定重視', reserveM: 12, investShare: 0.3, every: 6, mix: { fund: 0.45, bond: 0.4, gold: 0.15 }, maxPos: 0.25, realty: 0, realtyDown: 0.5, minCfShare: 0.25,
+    bizEvery: 12, hireRatio: 0.98, rnd: 0.01, ads: 0.015, capex: false, newDiv: false, ma: false, repay: 0.5, loan: false, divCool: 0, maCool: 0 },
+  balanced: { label: 'バランス', reserveM: 6, investShare: 0.55, every: 3, mix: { fund: 0.5, stock: 0.25, bond: 0.15, gold: 0.1 }, maxPos: 0.3, realty: 2, realtyDown: 0.3, minCfShare: 0.12,
+    bizEvery: 6, hireRatio: 1.05, rnd: 0.025, ads: 0.03, capex: true, newDiv: true, ma: false, repay: 0.25, loan: true, divCool: 60, maCool: 0 },
+  bold: { label: '挑戦重視', reserveM: 4, investShare: 0.8, every: 2, mix: { fund: 0.32, stock: 0.45, gold: 0.08, crypto: 0.07, bond: 0.08 }, maxPos: 0.35, realty: 4, realtyDown: 0.2, minCfShare: 0.02,
+    bizEvery: 6, hireRatio: 1.12, rnd: 0.045, ads: 0.05, capex: true, newDiv: true, ma: true, repay: 0.1, loan: true, divCool: 30, maCool: 48 },
+};
+function autoState(s) { return s.autoMgr || (s.autoMgr = { last: {}, n: { invest: 0, sell: 0, realty: 0, biz: 0 }, log: [] }); }
+function autoMonthIdx(s) { return s.time.year * 12 + (s.time.monthsDone || 0); }
+function autoReady(s, key, cool) { const A = autoState(s), t = A.last[key]; return t == null || autoMonthIdx(s) - t >= cool; }
+function autoMark(s, key) { autoState(s).last[key] = autoMonthIdx(s); }
+// one line in the life history for every real action (and a short internal log for the screens / tests)
+function autoNote(s, cat, kind, title, desc, extra) {
+  const A = autoState(s), P = AUTO_PROF[s.flags.auto] || AUTO_PROF.balanced;
+  A.n[kind] = (A.n[kind] || 0) + 1;
+  A.log.push({ y: s.time.year, m: s.time.monthsDone, age: playerAge(s), kind, title }); if (A.log.length > 80) A.log.splice(0, A.log.length - 80);
+  record(s, Object.assign({ cat, title: `おまかせ（${P.label}）：${title}`, desc, tone: 'neutral' }, extra || {}));
+}
+function autoMonthlySpend(s) {
+  let b = null; try { b = budget(s); } catch (e) { b = null; }
+  const pi = priceIdx(s), C = country(s);
+  const spend = b ? (b.totalExpense + (b.totalTax || 0)) / 12 : 2e5 * C.cost * pi;
+  return Math.max(1.5e5 * C.cost * pi, spend);
+}
+function autoReserve(s, P) { return P.reserveM * autoMonthlySpend(s); }
+// ---------- personal investing
+function autoInvestValue(s) { const o = portfolioByKind(s); return o.stock + o.fund + o.bond + o.gold + o.crypto; }
+function autoPickAsset(s, kind, P) {
+  const defs = marketAssets(s).filter((d) => d.kind === kind && !d.delisted && !d.own && s.world.assets[d.id]);
+  if (!defs.length) return null;
+  const held = {}; for (const h of holdingsList(s)) if (h.acct !== 'founder') held[h.id] = (held[h.id] || 0) + h.value;
+  const tot = Math.max(1, autoInvestValue(s));
+  const ok = defs.filter((d) => (held[d.id] || 0) / tot < P.maxPos);
+  const list = ok.length ? ok : defs;
+  if (kind === 'stock') { // cheap earnings + growth, less volatility for careful styles; skip what is already a big position
+    const sc = (d) => { const st = s.world.assets[d.id], ey = (st.eps || d.eps || 0) / Math.max(1e-9, st.price), g = d.growth || 0; return ey + g * (s.flags.auto === 'bold' ? 1.2 : 0.7) - (d.vol || 0.25) * (s.flags.auto === 'bold' ? 0.05 : 0.2) - (held[d.id] || 0) / tot; };
+    return list.slice().sort((a, b) => sc(b) - sc(a) || (a.id < b.id ? -1 : 1))[0];
+  }
+  return list.slice().sort((a, b) => (held[a.id] || 0) - (held[b.id] || 0) || (a.id < b.id ? -1 : 1))[0]; // spread across funds
+}
+function autoInvest(s, P) {
+  if (playerAge(s) < 18 || !isIndependent(s)) return;
+  const cash = s.finance.cash, reserve = autoReserve(s, P), C = country(s), pi = priceIdx(s);
+  const debts = (s.finance.debts || []).filter((d) => !['mortgage', 'realty'].includes(d.type)).reduce((a, d) => a + (d.principal || 0), 0);
+  // 1) not enough cash: sell (taxable first) to rebuild the reserve — never invest while short
+  if (cash < reserve * 0.5) {
+    const need = reserve * 0.8 - cash, H = holdingsList(s).filter((h) => h.acct !== 'founder').sort((a, b) => (a.acct === 'nisa') - (b.acct === 'nisa') || b.value - a.value);
+    if (H.length && autoReady(s, 'sell:reserve', 3)) {
+      const h = H[0], d = assetDef(h.id), px = assetPriceJPY(s, h.id), q = Math.min(h.qty, need / px * 1.02);
+      const r = sellSmart(s, h.id, d.kind === 'stock' ? Math.ceil(q) : q, 'auto');
+      if (r.ok) { autoMark(s, 'sell:reserve'); autoNote(s, 'invest', 'sell', '生活資金を確保するため売却', `手元資金が生活費${P.reserveM}か月分の半分を下回ったため、${d.name}を約${yen(Math.min(h.value, need))}分売りました。${r.msg}`, { tone: 'neutral' }); }
+    }
+    return;
+  }
+  if (debts > 0 && s.flags.auto === 'safe') return; // the careful style clears consumer debt first
+  // 2) trim a position that became too large (diversification); 挑戦重視 also locks in big gains
+  const tot = autoInvestValue(s);
+  if (tot > 0 && autoReady(s, 'trim', 6)) {
+    const byId = {}; for (const h of holdingsList(s)) if (h.acct !== 'founder') { const x = byId[h.id] || (byId[h.id] = { id: h.id, value: 0, cost: 0 }); x.value += h.value; x.cost += h.qty * h.avgCost; }
+    const big = Object.values(byId).filter((x) => assetDef(x.id).kind !== 'fund').sort((a, b) => b.value - a.value)[0];
+    if (big && tot > 3e6 * C.cost && (big.value / tot > P.maxPos * 1.4 || (s.flags.auto === 'bold' && big.value > big.cost * 2 && big.value / tot > 0.2))) {
+      const d = assetDef(big.id), px = assetPriceJPY(s, big.id), sellV = big.value - tot * P.maxPos;
+      const q = Math.max(sellV, big.value * 0.3) / px, r = sellSmart(s, big.id, d.kind === 'stock' ? Math.floor(q) : q, 'auto');
+      if (r.ok) { autoMark(s, 'trim'); autoNote(s, 'invest', 'sell', `${d.name}の一部を売却`, `${d.name}が資産の${Math.round(big.value / tot * 100)}%まで大きくなったため（含み益${yen(big.value - big.cost)}）、一部を売って分散しました。${r.msg}`); return; }
+    }
+  }
+  // 3) invest part of the surplus, into the most underweight asset class
+  const surplus = cash - reserve, lot = 1e5 * C.cost * pi;
+  if (surplus < lot * 2) return;
+  const skill = clamp(0.7 + (s.stats.finLit || 0) / 200, 0.7, 1.2); // knowledge makes the plan bolder and better spread
+  const mix = Object.assign({}, P.mix);
+  if ((s.stats.finLit || 0) < 30 && mix.stock) { mix.fund = (mix.fund || 0) + mix.stock * 0.5; mix.stock *= 0.5; delete mix.crypto; }
+  const byKind = portfolioByKind(s), sumMix = Object.values(mix).reduce((a, v) => a + v, 0), after = tot + surplus * P.investShare;
+  const gaps = Object.keys(mix).map((k) => ({ k, gap: mix[k] / sumMix * after - (byKind[k] || 0) })).sort((a, b) => b.gap - a.gap);
+  const amount = Math.min(surplus * P.investShare * skill, Math.max(lot, gaps[0].gap), surplus * 0.6);
+  if (amount < lot) return;
+  for (const g of gaps) {
+    const d = autoPickAsset(s, g.k, P); if (!d) continue;
+    if (!autoReady(s, 'buy:' + d.id, 2)) continue; // no repeated orders for the same asset within two months
+    const cap = d.kind === 'fund' ? amount : Math.min(amount, Math.max(lot, (tot + surplus) * (d.kind === 'crypto' ? 0.05 : 0.12))); // one stock / coin never becomes a big bet in one order
+    const px = assetPriceJPY(s, d.id), qty = d.kind === 'stock' ? Math.floor(cap / (px * 1.01)) : cap / (px * 1.01);
+    if (!(qty > 0)) continue;
+    const r = buySmart(s, d.id, qty, 'auto');
+    if (r.ok) {
+      autoMark(s, 'buy:' + d.id);
+      const why = { fund: '幅広く分散するインデックス', stock: '利益と成長性のバランスがよい個別株', bond: '値動きを抑える債券', gold: '物価や危機に強い実物資産', crypto: '小さな割合でのハイリスク枠' }[d.kind];
+      autoNote(s, 'invest', 'invest', `${d.name}を購入`, `生活費${P.reserveM}か月分（${yen(reserve)}）を手元に残し、余裕資金の一部で${why}を買いました。${r.msg}`, { money: -Math.round(qty * px) });
+      return;
+    }
+  }
+}
+// ---------- rental property: price, loan, rate, running costs (tax, repairs, management), rent and vacancy
+function autoRealty(s, P) {
+  if (!P.realty || playerAge(s) < 25 || !isIndependent(s) || !autoReady(s, 'realty', 12)) return;
+  autoMark(s, 'realty');
+  const own = realtyList(s);
+  // sell a property whose rent no longer covers its loan and costs two years running (checked once a year)
+  for (const p of own) {
+    const d = propLoan(s, p), cf = p.occ * p.rentUnit * 12 - realtyRunningCost(s, p) - (d ? d.payment * 12 : 0);
+    p.autoNeg = cf < 0 ? (p.autoNeg || 0) + 1 : 0;
+    if (p.autoNeg >= 2 && s.flags.auto !== 'bold') {
+      const r = sellRealty(s, p.id); if (r.ok) { autoNote(s, 'invest', 'realty', `${p.name}を売却`, `家賃収入がローン返済と維持費を2年続けて下回った（年${yen(cf)}）ため、手放しました。${r.msg}`); return; }
+    }
+  }
+  if (own.length >= P.realty) return;
+  const reserve = autoReserve(s, P), list = (s.world.realtyMarket || []).slice();
+  let best = null;
+  for (const L of list) {
+    const q = realtyQuote(s, L.id, P.realtyDown, 30); if (!q.ok) continue;
+    if (s.finance.cash - (q.down + q.fees) < reserve * 1.2) continue; // keep the emergency money after the down payment
+    const R = REALTY[L.type], netYield = (q.rentM * 12 - q.runM * 12) / q.price;
+    if (q.cf < q.rentM * P.minCfShare) continue; // rent after vacancy must cover loan + costs with a margin
+    if (netYield < (s.flags.auto === 'bold' ? 0.03 : 0.035)) continue;
+    if (R.cur && s.flags.auto !== 'bold') continue; // only the bold style takes currency risk
+    const score = q.cf * 12 / Math.max(1, q.down + q.fees) + netYield;
+    if (!best || score > best.score) best = { L, q, score, netYield };
+  }
+  if (!best) return;
+  const r = buyRealty(s, best.L.id, P.realtyDown, 30);
+  if (r.ok) autoNote(s, 'invest', 'realty', `${best.L.name}を購入`, `表面利回り${(best.q.grossYield * 100).toFixed(1)}%、空室と管理費・税金・修繕を引いた実質利回り${(best.netYield * 100).toFixed(1)}%、ローン返済後の手残りが月${yen(best.q.cf)}と見込めたため購入しました（頭金${Math.round(P.realtyDown * 100)}%・金利${(best.q.rate * 100).toFixed(2)}%）。`, { important: true });
+}
+// ---------- company management (only companies the player actually runs)
+function autoCompany(s, P) {
+  const style = s.flags.auto, skill = clamp(((s.stats.workSkill || 0) + (s.stats.knowledge || 0)) / 200, 0, 1);
+  for (const b of s.businesses.slice()) {
+    if (!s.businesses.includes(b)) continue;
+    if (!isExec(b) || (b.parentId && !(canDo(s, b, 'hire') || {}).ok) || (!b.parentId && !(canDo(s, b, 'hire') || {}).ok)) continue;
+    if (!autoReady(s, 'biz:' + b.id, P.bizEvery)) continue;
+    autoMark(s, 'biz:' + b.id);
+    const L = b.last, rev = Math.max(b.revenueRun || 0, L ? L.revenue : 0), op = bizOperatingProfit(b), H = (b.hist2 || []).slice(-3);
+    const losses = H.length ? H.slice().reverse().findIndex((x) => x.net >= 0) : 0, lossYears = losses < 0 ? H.length : losses;
+    const monthlyCost = L ? (L.cogs + L.labor + L.other + L.ads + (L.interest || 0)) / 12 : Math.max(1e6, (b.employees + 1) * INDUSTRIES[b.industry].wage * country(s).wage / 12);
+    const runway = b.cash / Math.max(1, monthlyCost);
+    const cap = bizCapacity(s, b), dem = divTotalDemand(b), heads = b.employees + 1, per = cap / Math.max(1, heads);
+    const did = [];
+    const act = (title, desc, r) => { if (r && r.ok) { did.push(title); autoNote(s, 'biz', 'biz', `${b.name}：${title}`, desc + (r.msg ? ` ${r.msg}` : '')); return true; } return false; };
+    // 1) trouble first: short of cash or losing money → cut spending, right-size, borrow only if the business earns
+    if (b.cash < 0 || runway < 3 || lossYears >= 2) {
+      if ((b.ads || 0) > rev * 0.01) act('広告費を削減', `${lossYears >= 2 ? `${lossYears}期続けて赤字` : `手元資金が約${Math.max(0, runway).toFixed(1)}か月分`}のため、広告費を絞りました。`, bizSetAds(s, b.id, rev * 0.01));
+      if ((b.rnd || 0) > rev * 0.01 && style !== 'bold') act('研究開発費を削減', '資金繰りを優先し、研究開発費を減らしました。', bizSetRnd(s, b.id, rev * 0.005));
+      if (cap > dem * 1.3 && b.employees > 2) { const cut = Math.max(1, Math.min(b.employees - 1, Math.floor(heads - dem * 1.1 / per))); act(`${cut}人を削減`, `生産能力${yen(cap)}に対して需要が${yen(dem)}しかなく人件費が重いため、人員を減らしました。`, bizHire(s, b.id, -cut)); }
+      if (b.cash < monthlyCost * 2 && P.loan && op != null && op > 0) act('運転資金を借入', '本業は営業黒字のため、資金繰りのつなぎとして融資を申し込みました。', bizLoan(s, b.id, Math.round(monthlyCost * 4)));
+      // closing a division that keeps losing money
+      for (const d of (b.divs || []).filter((x) => !x.main)) {
+        const dh = (d.hist || []).slice(-2);
+        if (dh.length === 2 && dh.every((x) => x.op < 0)) { act(`${d.name}から撤退`, `${d.name}が2期続けて営業赤字だったため、撤退しました。`, bizCloseDivision(s, b.id, d.id)); break; }
+      }
+      continue; // no expansion while in trouble
+    }
+    // 2) staffing: hire when orders exceed capacity (and the money lasts); trim when clearly overstaffed and unprofitable
+    if (dem > cap * P.hireRatio && runway > 6) {
+      const need = Math.max(1, Math.ceil(dem * 1.05 / per) - heads), n = Math.max(1, Math.min(need, Math.round(heads * (style === 'bold' ? 0.5 : style === 'safe' ? 0.15 : 0.3)) + 1, Math.floor(b.cash / Math.max(1, INDUSTRIES[b.industry].wage * country(s).wage * priceIdx(s) * 0.6))));
+      act(`${n}人を採用`, `需要${yen(dem)}に生産能力${yen(cap)}が追いついていないため、採用しました。`, bizHire(s, b.id, n));
+    } else if (cap > dem * 1.5 && op != null && op < 0 && b.employees > 2) {
+      const cut = Math.max(1, Math.min(b.employees - 1, Math.floor(heads - dem * 1.15 / per)));
+      act(`${cut}人を削減`, '人員が需要に対して多すぎ、営業赤字になっていたため削減しました。', bizHire(s, b.id, -cut));
+    }
+    // 3) growth spending as a share of sales (profitable companies only)
+    if (op != null && op > 0 && rev > 0) {
+      const adT = rev * P.ads * (0.8 + skill * 0.4), rdT = rev * P.rnd * (0.8 + skill * 0.4);
+      if (Math.abs((b.ads || 0) - adT) > adT * 0.35 && autoReady(s, 'ads:' + b.id, 12)) { autoMark(s, 'ads:' + b.id); act('広告費を見直し', `売上の約${(P.ads * 100).toFixed(1)}%を広告に回す方針で、年${yen(adT)}にしました。`, bizSetAds(s, b.id, adT)); }
+      if (Math.abs((b.rnd || 0) - rdT) > rdT * 0.35 && autoReady(s, 'rnd:' + b.id, 12)) { autoMark(s, 'rnd:' + b.id); act('研究開発費を見直し', `売上の約${(P.rnd * 100).toFixed(1)}%を研究開発に回し、品質と成長を高めます。`, bizSetRnd(s, b.id, rdT)); }
+    }
+    const spare = b.cash - monthlyCost * (style === 'bold' ? 6 : 9);
+    // 4) debt: repay when cash is ample (the careful styles first of all)
+    if (b.debt > 0 && spare > 0 && (style === 'safe' || b.debt > rev * 0.4 || lossYears > 0) && autoReady(s, 'repay:' + b.id, 6)) {
+      autoMark(s, 'repay:' + b.id); act('借入を返済', `会社の現金に余裕があるため、借入${yen(b.debt)}の一部を返しました。`, bizRepay(s, b.id, Math.min(b.debt, spare * (P.repay + 0.3))));
+    }
+    if (!(op != null && op > 0) || lossYears > 0) continue;
+    // 5) investing in the business: equipment, a new division, an acquisition (bold first), with the money it actually has
+    if (P.capex && spare > rev * 0.15 && autoReady(s, 'capex:' + b.id, 18)) { autoMark(s, 'capex:' + b.id); act('設備投資', `黒字で現金に余裕があるため、生産能力と品質を上げる設備に投資しました。`, bizCapex(s, b.id, Math.round(spare * (style === 'bold' ? 0.3 : 0.15)))); }
+    if (P.newDiv && (b.hist2 || []).filter((x) => x.net > 0).length >= 2 && autoReady(s, 'div:' + b.id, P.divCool) && skill >= (style === 'bold' ? 0.25 : 0.4)) {
+      ensureDivs(s, b);
+      const kinds = Object.keys(DIV_KINDS).filter((k) => divAvailability(s, b, k).ok);
+      const pref = kinds.filter((k) => DIV_KINDS[k].ind && (DIV_KINDS[k].ind === b.industry || groupIndustries(s, b).has(DIV_KINDS[k].ind) || (TECH.includes(b.industry) && TECH.includes(DIV_KINDS[k].ind))));
+      const k = (pref.length ? pref : style === 'bold' ? kinds : [])[0];
+      const cost = 1.5e7 * country(s).cost * priceIdx(s) * 3;
+      if (k && spare > cost) { autoMark(s, 'div:' + b.id); act(`新規事業「${DIV_KINDS[k].label}」`, '本業が2期以上黒字で資金に余裕があり、既存の技術や顧客を生かせる分野に参入しました。', bizNewDivision(s, b.id, k)); }
+    }
+    if (P.ma && !b.parentId && autoReady(s, 'ma:' + b.id, P.maCool) && skill >= 0.35 && s.time.year - b.foundedYear >= 3) {
+      const T = (s.world.maTargets || []).filter((t) => t.margin > 0.04 && t.net > 0 && t.price * 0.51 < spare * 0.7).sort((x, y) => y.net / y.price - x.net / x.price)[0];
+      if (T) {
+        autoMark(s, 'ma:' + b.id);
+        if (!T.dd && typeof bizDueDiligence === 'function') { const dd = bizDueDiligence(s, b.id, T.id); if (dd && dd.ok) did.push('買収前の調査'); }
+        const t2 = (s.world.maTargets || []).find((x) => x.id === T.id);
+        if (t2 && !(t2.hidden && t2.dd && t2.hidden.debt > t2.price * 0.3)) act(`「${T.name}」を買収`, `営業黒字（利益率${Math.round(T.margin * 100)}%）の${INDUSTRIES[T.industry].label}企業を、会社の手元資金の範囲で過半数取得しました。`, bizAcquire(s, b.id, T.id, 0.51));
+      }
+    }
+  }
+}
+function autoManage(s) {
+  const style = s.flags && s.flags.auto, P = AUTO_PROF[style];
+  if (!P || s.over) return;
+  try {
+    if (autoReady(s, 'invest', P.every)) { autoMark(s, 'invest'); autoInvest(s, P); }
+    autoRealty(s, P);
+    autoCompany(s, P);
+  } catch (e) { /* management is a convenience: an unexpected state must never stop the game */ }
+}
+const _processMonthAuto = processMonth;
+processMonth = function (s) { const r = _processMonthAuto(s); if (s.flags && s.flags.auto && !s.over) autoManage(s); return r; };
+function autoSummary(s) { const A = s.autoMgr; return A ? { n: Object.assign({}, A.n), recent: A.log.slice(-8) } : null; }
+
+// ---- 09_zlook.js
+// ===== appearance details kept with every character =====
+// The pixel room draws faces in more detail now (eye shape, brows, glasses). Those traits are stored in the character's
+// look so the same person looks the same in the room, the profile, the life-history snapshots and every later load.
+// Older saves get them on load, derived from the character id (deterministic, so nothing changes between loads).
+function ensureLook(c) {
+  if (!c || !c.look) return c;
+  const L = c.look, h = strHash(String(c.id) + ':face');
+  if (L.eyes == null) L.eyes = h % 4;
+  if (L.brow == null) L.brow = (h >>> 3) % 3;
+  if (L.glasses == null) L.glasses = (h >>> 6) % 7 === 0;
+  return c;
+}
+const _makeCharLook = makeChar;
+makeChar = function (s, o) { return ensureLook(_makeCharLook(s, o)); };
+const _deserializeLook = deserialize;
+deserialize = function (json) {
+  const s = _deserializeLook(json);
+  for (const id of Object.keys(s.characters || {})) ensureLook(s.characters[id]);
+  return s;
+};
+// how well-off each person in the room looks (clothes, shoes, a watch): the household's real wealth, not decoration
+function lookWealthTier(w) { return w < 15 ? 0 : w < 35 ? 1 : w < 60 ? 2 : w < 80 ? 3 : 4; }
+const _roomModelLook = roomModel;
+roomModel = function (s) {
+  const m = _roomModelLook(s);
+  const mine = lookWealthTier(s.stats && s.stats.wealth != null ? s.stats.wealth : 40);
+  for (const p of m.people) p.wealth = m.kind === 'parents' ? (m.tier != null ? m.tier : 2) : mine;
+  return m;
+};
+
 // ---- 99_export.js
 // ===== public API =====
 const LC = {
@@ -9323,6 +9778,7 @@ const LC = {
   fireStatus, checkAchievements, sceneModel, heightFor, greyness, dayPhase, weatherAt, addChildChar, marry, makeSpouseCandidate, startJob, jobOffers, retire, record, addStats, queueEvent, serialize, deserialize, bump,
 };
 Object.assign(LC, { nisaRoom, buySmart, sellSmart, BAITO, inSchool, baitoPay, baitoEligibility, baitoChance, applyBaito, quitBaito, bizBankrupt, playerDies, deathInfo, buildEpilogue, ensureEpilogue, EPI_VERSION, isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
+Object.assign(LC, { ensureLook, lookWealthTier, AUTO_PROF, autoManage, autoSummary, autoState, bizArchive, bizArcList, bizStory, bizEndCauses, bizSnapshot, BIZ_END_L, BIZ_ROLE_L, BIZ_VIA_L, removeBusiness, bizSellSub, ownTakeover, bizSellCompany });
 if (typeof module !== 'undefined' && module.exports) module.exports = LC;
 else root.LC = LC;
 
@@ -10004,248 +10460,523 @@ const Scene = (function () {
   }
 
   // ---------- people sprites (original pixel design). (x,y) = feet centre
+  // ---------- people, pets and cars: drawn at twice the room's resolution ("fine" pixels) straight into the 2× buffer.
+  // The room is drawn 1:1 and doubled with EPX (see present), so everything lands on the same 2× grid, but characters carry
+  // real extra detail — eyes with highlights, brows, mouths, hair strands and shading, folds, buttons, ties, shoes, glasses —
+  // instead of being enlarged. Colours get the same lift the room gets, so the two layers match.
   const OUTFIT = {
-    suit: { top: '#2f3650', sleeve: '#2f3650', pants: '#262b3c', tie: '#c84a4a', collar: '#f4f4f4' },
-    exec: { top: '#1f2436', sleeve: '#1f2436', pants: '#1a1e2c', tie: '#d8b44a', collar: '#f4f4f4' },
-    uniform: { top: '#2f4470', sleeve: '#2f4470', pants: '#25365a', cap: '#25365a', badge: '#e7c26a' },
-    coat: { top: '#f2f4f6', sleeve: '#f2f4f6', pants: '#7a8a9a', long: 1 },
-    work: { top: '#4a6d8c', sleeve: '#4a6d8c', pants: '#3e5c78' },
-    track: { top: '#2a5a9a', sleeve: '#2a5a9a', pants: '#2a5a9a', stripe: '#f4f4f4' },
-    school: { top: '#1f2a44', sleeve: '#1f2a44', pants: '#1f2a44', collar: '#f4f4f4' },
+    suit: { top: '#2f3650', sleeve: '#2f3650', pants: '#262b3c', tie: '#c84a4a', collar: '#f4f4f4', shoe: '#1e1a1e' },
+    exec: { top: '#1f2436', sleeve: '#1f2436', pants: '#1a1e2c', tie: '#d8b44a', collar: '#f4f4f4', shoe: '#141216', square: 1 },
+    uniform: { top: '#2f4470', sleeve: '#2f4470', pants: '#25365a', cap: '#25365a', badge: '#e7c26a', collar: '#a8c4e0', tie: '#1e2c4a', shoe: '#141216' },
+    coat: { top: '#f2f4f6', sleeve: '#f2f4f6', pants: '#7a8a9a', long: 1, collar: '#9ab8d8', tie: '#4a6a9a', shoe: '#e8e8ec' },
+    work: { top: '#4a6d8c', sleeve: '#4a6d8c', pants: '#3e5c78', shoe: '#5a4030' },
+    vest: { top: '#8a9098', sleeve: '#8a9098', pants: '#4a5058', vest: '#f07a24', helmet: '#f2c431', shoe: '#5a4030' },
+    track: { top: '#2a5a9a', sleeve: '#2a5a9a', pants: '#2a5a9a', stripe: '#f4f4f4', shoe: '#f0f0f4' },
+    school: { top: '#1f2a44', sleeve: '#1f2a44', pants: '#1f2a44', collar: '#f4f4f4', shoe: '#4a3020' },
+    hoodie: { top: '#4a5262', sleeve: '#4a5262', pants: '#3a4258', hood: 1, shoe: '#f0f0f4' },
+    cardigan: { top: '#8a6a4e', sleeve: '#8a6a4e', pants: '#4a4a52', cardi: 1, shoe: '#4a3020' },
   };
   function outfitColors(p) {
-    const lk = p.look || {};
-    const o = p.outfit || 'casual';
+    const lk = p.look || {}, o = p.outfit || 'casual', id = strId(p.id);
     if (o.startsWith('sport:')) {
-      const sp = o.slice(6), team = ['#c83a3a', '#2a5ac8', '#2a8a4a', '#e0a020', '#7a3ac8'][strId(p.id) % 5];
-      if (sp === 'baseball') return { top: '#f2f2ee', sleeve: '#f2f2ee', pants: '#f2f2ee', cap: team, stripe: team, socks: team };
-      if (sp === 'soccer') return { top: team, sleeve: team, pants: '#f4f4f4', shorts: 1, socks: team };
-      if (sp === 'basketball') return { top: team, sleeve: null, pants: team, shorts: 1 };
-      if (sp === 'golf') return { top: '#f4f4f0', sleeve: '#f4f4f0', pants: '#4a5a6a', cap: '#f4f4f0' };
-      if (sp === 'boxing') return { top: '#e0b090', sleeve: null, pants: team, shorts: 1, bare: 1 };
-      if (sp === 'esports') return { top: '#1a1a22', sleeve: '#1a1a22', pants: '#2a2a32', stripe: team };
-      return Object.assign({}, OUTFIT.track, { top: team, sleeve: team, pants: team });
+      const sp = o.slice(6), team = ['#c83a3a', '#2a5ac8', '#2a8a4a', '#e0a020', '#7a3ac8'][id % 5];
+      const base = { k: 'sport', sp, team, shoe: team };
+      if (sp === 'baseball') return Object.assign(base, { top: '#f2f2ee', sleeve: '#f2f2ee', pants: '#f2f2ee', cap: team, stripe: team, socks: team, pin: 1 });
+      if (sp === 'soccer') return Object.assign(base, { top: team, sleeve: team, pants: '#f4f4f4', shorts: 1, socks: team, num: 1, short: 1 });
+      if (sp === 'basketball') return Object.assign(base, { top: team, sleeve: null, pants: team, shorts: 1, num: 1 });
+      if (sp === 'golf') return Object.assign(base, { top: '#f4f4f0', sleeve: '#f4f4f0', pants: '#4a5a6a', cap: '#f4f4f0', polo: 1, short: 1, shoe: '#f4f4f4' });
+      if (sp === 'boxing') return Object.assign(base, { top: lk.skin || '#e0b090', sleeve: null, pants: team, shorts: 1, bare: 1, shoe: '#c83a3a' });
+      if (sp === 'esports') return Object.assign(base, { top: '#1a1a22', sleeve: '#1a1a22', pants: '#2a2a32', stripe: team });
+      return Object.assign(base, OUTFIT.track, { k: 'sport', top: team, sleeve: team, pants: team, stripe: '#f4f4f4' });
     }
-    if (o === 'school') return p.gender === 'f' ? { top: '#24305a', sleeve: '#24305a', pants: '#24305a', skirt: 1, collar: '#f4f4f4', tie: '#c84a4a' } : OUTFIT.school;
-    if (o === 'apron') return { top: lk.shirt || '#8a9aba', sleeve: lk.shirt || '#8a9aba', pants: lk.pants || '#3d3d48', apron: '#e4c87a' };
-    if (OUTFIT[o]) return Object.assign({ skirt: p.gender === 'f' && o === 'suit' && strId(p.id) % 2 === 0 ? 1 : 0 }, OUTFIT[o]);
-    const skirt = p.gender === 'f' && strId(p.id) % 3 !== 0 && p.age >= 4;
-    return { top: lk.shirt || '#6b8fd6', sleeve: lk.shirt || '#6b8fd6', pants: lk.pants || '#2f3a55', skirt: skirt ? 1 : 0 };
+    if (o === 'school') return p.gender === 'f' ? { k: 'sailor', top: '#24305a', sleeve: '#24305a', pants: '#24305a', skirt: 1, collar: '#f4f4f4', tie: '#c84a4a', shoe: '#4a3020', socks: '#1e2234' } : Object.assign({ k: 'gakuran' }, OUTFIT.school);
+    if (o === 'apron') return { k: 'apron', top: lk.shirt || '#8a9aba', sleeve: lk.shirt || '#8a9aba', pants: lk.pants || '#3d3d48', apron: '#e4c87a', shoe: '#2a2224' };
+    if (o === 'hoodie') return Object.assign({ k: 'hoodie' }, OUTFIT.hoodie, { top: mix(lk.shirt || '#4a5262', '#2a2e38', 0.45), sleeve: mix(lk.shirt || '#4a5262', '#2a2e38', 0.45) });
+    if (o === 'cardigan') return Object.assign({ k: 'cardigan', shirt: lk.shirt || '#e8e4dc', skirt: p.gender === 'f' && id % 2 === 0 ? 1 : 0 }, OUTFIT.cardigan);
+    if (OUTFIT[o]) return Object.assign({ k: o, skirt: p.gender === 'f' && o === 'suit' && id % 2 === 0 ? 1 : 0 }, OUTFIT[o]);
+    const skirt = p.gender === 'f' && id % 3 !== 0 && p.age >= 4;
+    const kidShoe = ['#e05a5a', '#5a8ae0', '#f0c040', '#5ac08a', '#f0f0f4'][id % 5];
+    return { k: 'casual', pat: (id >> 3) % 5, top: lk.shirt || '#6b8fd6', sleeve: lk.shirt || '#6b8fd6', pants: lk.pants || '#2f3a55', skirt: skirt ? 1 : 0, short: (id >> 5) % 3 !== 0, shoe: p.age < 13 ? kidShoe : (p.age >= 60 ? '#5a4232' : ['#f0f0f4', '#2a2a30', '#6a4a32'][(id >> 2) % 3]) };
   }
   const hairCol = (p) => mix((p.look && p.look.hair) || '#2e2420', '#dcdce0', p.grey || 0);
-  function drawPerson(c, x, y, now) {
-    const p = c.p, lk = p.look || {}, O = outfitColors(p);
-    const skin = lk.skin || '#f1c9a5', hair = hairCol(p), style = lk.hairStyle || (p.gender === 'f' ? 'bob' : 'short');
-    const act = c.state === 'act' ? c.act : c.state, face = c.face;
-    const walking = c.state === 'walk';
-    const fr = walking ? [0, 1, 0, 2][Math.floor(c.walkD / 3) % 4] : 0;
+  // facial traits that are stored with the character (engine: look.eyes / brow / glasses); older saves and office staff
+  // derive them from the id, so a person always looks the same on every screen
+  function traits(p) {
+    const lk = p.look || {}, id = strId(p.id);
+    return { eyes: lk.eyes != null ? lk.eyes : (id >> 4) % 4, brow: lk.brow != null ? lk.brow : (id >> 6) % 3, glasses: lk.glasses != null ? !!lk.glasses : (id >> 8) % 7 === 0, bald: p.gender === 'm' && p.age >= 58 && (id >> 9) % 4 === 0 };
+  }
+  let HG = null, OX = 0, OY = 0;
+  const LIFTC = new Map(), TONES = new Map();
+  function lift(c) { // the colour lift crisp() gives the room, applied to sprite colours
+    let v = LIFTC.get(c); if (v) return v;
+    if (typeof c !== 'string' || c[0] !== '#' || c.length !== 7) { LIFTC.set(c, c); return c; }
+    const [r, gg, b] = hex(c), l = r * 0.299 + gg * 0.587 + b * 0.114;
+    const f = (ch) => LUT[Math.max(0, Math.min(255, Math.round(l + (ch - l) * 1.14)))];
+    v = toHex(f(r), f(gg), f(b)); LIFTC.set(c, v); return v;
+  }
+  const F = (dx, dy, w, h, c) => { if (w <= 0 || h <= 0 || !c) return; HG.fillStyle = lift(c); HG.fillRect(OX + dx, OY + dy, w, h); };
+  function tone(c) { // base, shadow, deep (outline), highlight
+    let t = TONES.get(c); if (t) return t;
+    t = { b: c, s: mix(c, '#1a1020', 0.26), d: mix(c, '#120a12', 0.58), h: mix(c, '#ffffff', 0.24) }; TONES.set(c, t); return t;
+  }
+  const DIMS = { toddler: { hw: 14, hh: 13, bw: 10, bh: 6, lh: 4 }, child: { hw: 14, hh: 14, bw: 10, bh: 8, lh: 6 }, teen: { hw: 16, hh: 15, bw: 12, bh: 10, lh: 8 }, adult: { hw: 16, hh: 15, bw: 14, bh: 11, lh: 10 } };
+  const EYE = '#22181e';
+  function hiPerson(c, x, y, now) {
+    const p = c.p, lk = p.look || {}, O = outfitColors(p), r = p.routine;
+    OX = Math.round(x * 2); OY = Math.round(y * 2);
+    if (r === 'baby') return hiBaby(c, now, lk);
+    const act = c.state === 'act' ? c.act : c.state, face = c.face || 'down', walking = c.state === 'walk';
+    const fr = walking ? Math.floor((c.walkD || 0) / 2.2) % 4 : 0;
     const blink = ((now + (c.sd % 50) / 10) % 3.8) < 0.13;
-    const r = p.routine;
-    x = Math.round(x); y = Math.round(y);
-    if (r === 'baby') return drawBaby(c, x, y, now, skin, hair, lk);
-    // proportions by age
-    const dims = r === 'toddler' ? { hw: 7, hh: 6, bh: 3, lh: 2, bw: 5 } : r === 'child' ? { hw: 8, hh: 7, bh: 4, lh: 3, bw: 6 } : r === 'teen' ? { hw: 8, hh: 7, bh: 5, lh: 4, bw: 6 } : { hw: 8, hh: 7, bh: 5, lh: 5, bw: 6 };
-    const elder = p.age >= 70;
-    const sitting = ['desk', 'homework', 'eat', 'sofa', 'music', 'stream', 'draw', 'relax'].includes(act) && c.state === 'act' && !(act === 'tv' && !c.tvMode && !c.gameMode && false);
+    const kind = DIMS[r] ? r : 'adult', D0 = DIMS[kind], fem = p.gender === 'f', grown = kind === 'adult';
+    const elder = p.age >= 70, wealth = p.wealth != null ? p.wealth : 2, T = traits(p);
+    const hw = D0.hw, hh = D0.hh, bw = grown && fem ? 12 : D0.bw, bh = D0.bh;
+    const sitting = ['desk', 'homework', 'eat', 'sofa', 'music', 'stream', 'draw', 'relax'].includes(act) && c.state === 'act';
     const sitFloor = act === 'tv' || act === 'play' || (act === 'eat' && c.spot && c.spot.item.it.key === 'lowtable');
     const crouch = act === 'petplay' || act === 'water' || act === 'watchpet';
-    let lh = dims.lh; if (sitting || sitFloor) lh = 1; if (crouch) lh = Math.max(1, lh - 2);
-    const bob = act === 'practice' ? 0 : (walking && fr ? -1 : 0) + (act === 'run' ? -(Math.floor(now * 10) % 2) : 0) + (act === 'happy' ? -Math.max(0, Math.round(Math.sin(now * 9) * 2)) : 0);
-    const H2 = dims.hh + dims.bh + lh + 1;
-    const top = y - H2 + bob + (elder ? 1 : 0);
-    const hx = x - Math.floor(dims.hw / 2), bx = x - Math.floor(dims.bw / 2);
-    const bodyTop = top + dims.hh;
-    const legTop = bodyTop + dims.bh;
-    // shadow
-    R(x - 4, y - 1, 8, 2, 'rgba(0,0,0,0.18)');
+    let lh = D0.lh; if (sitting || sitFloor) lh = 3; if (crouch) lh = Math.max(2, lh - 4); if (elder && lh > 6) lh -= 1;
+    const bob = act === 'practice' ? 0 : (walking && (fr === 1 || fr === 3) ? -1 : 0) + (act === 'run' ? -2 * (Math.floor(now * 10) % 2) : 0) + (act === 'happy' ? -2 * Math.max(0, Math.round(Math.sin(now * 9) * 2)) : 0);
+    const legTop = bob - lh, torsoTop = legTop - bh, headTop = torsoTop - hh + 1 + (elder ? 1 : 0);
+    let topC = O.top, pantC = O.pants;
+    if (wealth <= 0 && (O.k === 'casual' || O.k === 'apron')) { topC = mix(topC, '#9a9a96', 0.3); pantC = mix(pantC, '#8a8a86', 0.25); }
+    const Q = { p, O, T, act, face, walking, fr, blink, kind, fem, elder, wealth, hw, hh, bw, bh, lh, legTop, torsoTop, headTop, sitting, sitFloor, crouch, now, c,
+      SK: tone(lk.skin || '#f1c9a5'), HR: tone(hairCol(p)), TP: tone(topC), PN: tone(pantC), SL: O.sleeve ? tone(O.sleeve === O.top ? topC : O.sleeve) : null, SH: tone(O.shoe || '#2a2224'),
+      style: lk.hairStyle || (fem ? 'bob' : 'short'), d: face === 'right' ? 1 : face === 'left' ? -1 : 0 };
+    Q.SL = Q.SL || Q.SK;
+    // shadow on the floor (does not jump with the body)
+    F(-6, -1, 12, 2, 'rgba(0,0,0,0.16)'); F(-4, 0, 8, 1, 'rgba(0,0,0,0.10)');
+    if (face === 'left' || face === 'right') hiSide(Q);
+    else hiFront(Q, face === 'up');
+    hiProps(Q, x, y);
+  }
+  // ---- front / back view
+  function hiFront(Q, back) {
+    const { O, TP, PN, SK, SH, bw, bh, lh, legTop, torsoTop, sitting, walking, fr } = Q;
+    const tx = -bw / 2;
     // legs
-    const pantsC = O.pants, shoe = '#2a2224';
-    if (!(sitting && face === 'up')) {
-      if (O.skirt && !sitting) { R(bx, legTop, dims.bw, Math.min(2, lh), pantsC); const sl = lh - 2; if (sl > 0) { R(x - 2, legTop + 2, 1, sl, skin); R(x + 1, legTop + 2, 1, sl, skin); } R(x - 2 - (fr === 1 ? 1 : 0), y - 1, 2, 1, shoe); R(x + 1 + (fr === 2 ? 1 : 0), y - 1, 2, 1, shoe); }
-      else if (face === 'left' || face === 'right') {
-        const d = face === 'right' ? 1 : -1;
-        const a1 = fr === 1 ? d : fr === 2 ? -d : 0;
-        R(x - 1 + a1, legTop, 2, lh, O.shorts ? skin : pantsC); R(x - 1 - a1, legTop, 2, lh, sh(O.shorts ? skin : pantsC, 0.85));
-        if (O.shorts) R(x - 2, legTop, 4, 1, pantsC);
-        R(x - 1 + a1 + (d > 0 ? 0 : -1), legTop + lh - 1, 3, 1, shoe);
+    if (!(sitting && back)) {
+      const liftL = walking && fr === 0 ? 1 : 0, liftR = walking && fr === 2 ? 1 : 0;
+      if (O.skirt && !sitting) {
+        const sk = Math.max(2, Math.min(5, lh - 2));
+        for (let i = 0; i < sk; i++) { const w = bw + (i >= 2 ? 2 : 0); F(-w / 2, legTop + i, w, 1, i === sk - 1 ? PN.s : PN.b); F(-w / 2, legTop + i, 1, 1, PN.d); F(w / 2 - 1, legTop + i, 1, 1, PN.d); }
+        for (let px = -bw / 2 + 2; px < bw / 2 - 1; px += 3) F(px, legTop + 1, 1, sk - 1, PN.s);
+        const legH = lh - sk;
+        for (const [lx, lf] of [[-4, liftL], [2, liftR]]) {
+          F(lx, legTop + sk, 2, legH - 2 - lf, SK.b); F(lx + 1, legTop + sk, 1, legH - 2 - lf, SK.s);
+          if (O.socks) F(lx, -4 - lf, 2, 2, O.socks);
+          F(lx - 1, -2 - lf, 4, 2, SH.b); F(lx - 1, -1 - lf, 4, 1, SH.d); F(lx, -2 - lf, 1, 1, SH.h);
+        }
+      } else if (sitting || Q.sitFloor) {
+        F(-5, legTop, 10, 2, PN.b); F(-5, legTop + 1, 10, 1, PN.s); F(-1, legTop, 2, 2, PN.s);
+        F(-6, legTop + 2, 5, 1, SH.d); F(1, legTop + 2, 5, 1, SH.d);
       } else {
-        const l1 = fr === 1 ? 1 : 0, l2 = fr === 2 ? 1 : 0;
-        const legC = O.shorts ? skin : pantsC;
-        R(x - 2, legTop, 2, lh - l1, legC); R(x, legTop, 2, lh - l2, legC);
-        if (O.shorts) R(bx, legTop, dims.bw, 1, pantsC);
-        if (O.socks && lh >= 3) { R(x - 2, legTop + lh - 2 - l1, 2, 1, O.socks); R(x, legTop + lh - 2 - l2, 2, 1, O.socks); }
-        R(x - 2, legTop + lh - 1 - l1, 2, 1, shoe); R(x, legTop + lh - 1 - l2, 2, 1, shoe);
+        const legC = O.shorts ? SK : PN;
+        F(-2, legTop, 4, 2, PN.b);
+        for (const [lx, lf, outer] of [[-5, liftL, 0], [1, liftR, 3]]) {
+          const h = lh - 2 - lf; if (h <= 0) continue;
+          F(lx, legTop, 4, h, legC.b); F(lx + outer, legTop, 1, h, legC.d); F(lx + (outer ? 0 : 3), legTop + 2, 1, h - 2, legC.s);
+          if (O.shorts) { F(lx, legTop, 4, Math.min(3, h), PN.b); F(lx + outer, legTop, 1, Math.min(3, h), PN.d); }
+          else if (h > 5) F(lx + 1, legTop + Math.floor(h / 2), 2, 1, PN.s); // knee crease
+          if (O.socks && h >= 3) F(lx, -4 - lf, 4, 2, O.socks);
+          if (O.stripe && O.k !== 'sport' && !O.shorts) F(lx + outer, legTop, 1, h, O.stripe);
+          const sx = lx === -5 ? -6 : 1;
+          F(sx, -2 - lf, 5, 2, SH.b); F(sx, -1 - lf, 5, 1, SH.d); F(sx + (lx === -5 ? 1 : 3), -2 - lf, 1, 1, Q.wealth >= 3 || /f0f0|f4f4|e8e8/.test(SH.b) ? '#ffffff' : SH.h);
+        }
       }
     }
     // torso
-    const topC = O.top;
-    R(bx, bodyTop, dims.bw, dims.bh + (O.long ? 2 : 0), OL);
-    R(bx + (dims.bw > 5 ? 0 : 0), bodyTop, dims.bw, dims.bh + (O.long ? 1 : 0), topC);
-    R(bx, bodyTop + dims.bh - 1, dims.bw, 1, sh(topC, 0.8));
-    if (O.collar && face !== 'up') { R(x - 1, bodyTop, 2, 1, O.collar); }
-    if (O.tie && face !== 'up' && face === 'down') R(x, bodyTop + 1, 1, 2, O.tie);
-    if (O.apron && face !== 'up') R(bx + 1, bodyTop + 1, dims.bw - 2, dims.bh, O.apron);
-    if (O.stripe) R(bx, bodyTop + 1, dims.bw, 1, O.stripe);
-    if (O.badge && face === 'down') P1(bx + 1, bodyTop + 1, O.badge);
-    // arms
-    const armC = O.sleeve || skin;
-    const swing = walking ? (fr === 1 ? 1 : fr === 2 ? -1 : 0) : 0;
-    if (face === 'down' || face === 'up') {
-      R(bx - 1, bodyTop + 1 + Math.max(0, swing), 1, dims.bh - 2, armC); R(bx + dims.bw, bodyTop + 1 + Math.max(0, -swing), 1, dims.bh - 2, armC);
-      R(bx - 1, bodyTop + dims.bh - 1 + Math.max(0, swing), 1, 1, skin); R(bx + dims.bw, bodyTop + dims.bh - 1 + Math.max(0, -swing), 1, 1, skin);
-    } else { const d = face === 'right' ? 1 : -1; R(x - 1 + swing * d, bodyTop + 1, 2, dims.bh - 1, sh(armC, 0.9)); R(x - 1 + swing * d, bodyTop + dims.bh - 1, 2, 1, skin); }
-    // activity props held in hands
-    if (act === 'phone' || (act === 'idle' && false)) { const px = face === 'left' ? bx - 2 : bx + dims.bw; R(px, bodyTop + 1, 2, 3, '#2a2a30'); P1(px + (face === 'left' ? 0 : 1), bodyTop + 1, '#8ad0ff'); lights.push([px + 1, bodyTop + 2, 5, 'rgba(140,210,255,0.2)']); }
-    if (c.reading || act === 'read') { R(x - 3, bodyTop + 2, 6, 3, '#f4f0e6'); R(x, bodyTop + 2, 1, 3, '#c8c0b0'); }
-    if (act === 'sweep') { const sx = x + (c.sweepDir || 1) * 4; R(sx, bodyTop - 2, 1, dims.bh + lh + 2, '#a07a52'); R(sx - 1, y - 2, 3, 2, '#d8c070'); if (Math.floor(now * 4) % 2) { c.x += (c.sweepDir || 1) * 0.15; } }
-    if (act === 'water') { R(x + (face === 'left' ? -5 : 3), bodyTop + 1, 3, 2, '#5a8ac8'); if (Math.floor(now * 5) % 2) P1(x + (face === 'left' ? -6 : 6), bodyTop + 3, '#8ac0f0'); }
+    const tt = torsoTop;
+    F(-2, tt - 1, 4, 2, SK.s); // neck
+    F(tx + 1, tt, bw - 2, 1, TP.d); F(tx, tt + 1, bw, bh - 1, TP.d);
+    F(tx + 1, tt + 1, bw - 2, bh - 2, TP.b);
+    if (O.bare) { F(-3, tt + 3, 2, 1, SK.s); F(1, tt + 3, 2, 1, SK.s); F(-1, tt + 5, 2, 3, SK.s); }
+    F(tx + bw - 3, tt + 1, 2, bh - 2, TP.s); F(tx + 1, tt + 1, 1, bh - 3, TP.h); F(tx + 1, tt + bh - 2, bw - 2, 1, TP.s);
+    if (O.long) { const cl = Math.min(lh - 2, 5); F(tx, legTop - 1, bw, cl + 1, TP.d); F(tx + 1, legTop - 1, bw - 2, cl, TP.b); F(tx + bw - 3, legTop - 1, 2, cl, TP.s); if (!back) F(-1, legTop - 1, 2, cl, PN.b); }
+    if (!back) torsoDetail(Q, tx, tt);
+    else { // seen from behind: collar and a centre seam / hood
+      if (O.hood) { F(-4, tt, 8, 3, TP.s); F(-3, tt + 1, 6, 1, TP.d); }
+      else if (O.k === 'sailor') { F(tx + 1, tt, bw - 2, 4, '#f4f4f4'); F(tx + 1, tt + 3, bw - 2, 1, TP.b); }
+      else if (O.collar) F(-3, tt, 6, 1, TP.h);
+      if (['suit', 'exec', 'coat', 'uniform'].includes(O.k)) F(-1, tt + 3, 1, bh - 3, TP.s);
+      if (O.apron) { F(tx + 2, tt + bh - 3, bw - 4, 1, O.apron); F(-1, tt + bh - 3, 2, 2, sh(O.apron, 0.85)); }
+      if (O.num) { F(-2, tt + 2, 1, 4, '#f4f4f4'); F(0, tt + 2, 2, 1, '#f4f4f4'); F(1, tt + 3, 1, 3, '#f4f4f4'); }
+    }
+    hiArms(Q, tx, tt, false);
+    hiHead(Q, back);
+    if (Q.sitting && back && ['desk', 'homework', 'stream', 'draw', 'music'].includes(Q.act)) { F(-7, legTop - 4, 14, 8, OL); F(-6, legTop - 3, 12, 6, '#4a4a56'); F(-6, legTop - 3, 12, 1, '#62626e'); }
+    if (Q.sitting && back && Q.act === 'eat' && Q.c.spot && Q.c.spot.item.it.key !== 'lowtable') { F(-7, legTop - 2, 14, 6, OL); F(-6, legTop - 1, 12, 4, '#8a6040'); F(-6, legTop - 1, 12, 1, '#a07450'); }
+  }
+  function torsoDetail(Q, tx, tt) {
+    const { O, TP, SK, bw, bh, wealth } = Q;
+    const k = O.k;
+    const belt = () => { F(tx + 1, tt + bh - 2, bw - 2, 1, '#3a2a22'); F(-1, tt + bh - 2, 2, 1, wealth >= 3 ? '#e0c060' : '#9a9aa0'); };
+    if (k === 'suit' || k === 'exec' || k === 'uniform' || k === 'coat') {
+      F(-2, tt, 4, 2, O.collar); F(-1, tt + 2, 2, 1, O.collar);
+      if (O.tie) { F(-1, tt + 1, 2, 1, mix(O.tie, '#ffffff', 0.2)); F(-1, tt + 2, 2, bh - 5, O.tie); F(-1, tt + bh - 3, 1, 1, sh(O.tie, 0.8)); }
+      F(-3, tt + 1, 1, 3, TP.d); F(2, tt + 1, 1, 3, TP.d); F(-4, tt + 1, 1, 1, TP.h); F(3, tt + 1, 1, 1, TP.s);
+      if (k !== 'coat') { F(1, tt + bh - 4, 1, 1, k === 'exec' || wealth >= 4 ? '#d8b44a' : TP.d); F(tx + 2, tt + 4, 3, 1, TP.s); }
+      if (k === 'exec' || (O.square && wealth >= 3)) { F(tx + 2, tt + 3, 2, 1, '#f0e2a8'); F(tx + 3, tt + 2, 1, 1, '#f8f0d0'); }
+      if (k === 'uniform') { F(tx + 2, tt + 3, 2, 2, O.badge); F(tx + 1, tt + 1, 2, 1, TP.h); F(tx + bw - 3, tt + 1, 2, 1, TP.h); belt(); }
+      if (k === 'coat') { F(tx + 2, tt + bh - 3, 3, 1, TP.s); F(tx + bw - 5, tt + bh - 3, 3, 1, TP.s); F(-3, tt + 2, 1, 3, '#7a8090'); F(2, tt + 2, 1, 3, '#7a8090'); F(-2, tt + 5, 4, 1, '#7a8090'); F(1, tt + 6, 2, 2, '#9aa0b0'); }
+      else if (k !== 'uniform') F(tx + 1, tt + bh - 2, bw - 2, 1, TP.d);
+      return;
+    }
+    if (k === 'work') { F(tx + 2, tt + 2, 3, 3, TP.s); F(tx + 2, tt + 2, 3, 1, TP.d); F(-1, tt, 1, bh - 1, TP.d); F(tx + bw - 5, tt + 2, 3, 1, '#f4f4f4'); belt(); return; }
+    if (k === 'vest') { F(-2, tt, 4, 1, SK.s); for (const vx of [tx + 1, tx + bw - 4]) { F(vx, tt + 1, 3, bh - 2, O.vest); F(vx, tt + 4, 3, 1, '#f4f080'); } F(tx + 1, tt + bh - 3, bw - 2, 1, '#f4f080'); return; }
+    if (k === 'track' || (k === 'sport' && O.sp !== 'baseball' && !O.num && !O.polo && !O.bare)) { F(-1, tt, 1, bh - 1, mix(TP.b, '#ffffff', 0.5)); F(-3, tt, 5, 1, TP.d); if (O.stripe && k === 'sport') F(tx + 1, tt + 4, bw - 2, 1, O.stripe); return; }
+    if (k === 'gakuran') { F(-3, tt, 6, 2, TP.d); F(-1, tt, 2, 1, '#f4f4f4'); for (let i = 0; i < 3 && tt + 3 + i * 3 < tt + bh - 1; i++) F(-1, tt + 3 + i * 3, 2, 1, '#e0c060'); return; }
+    if (k === 'sailor') { F(tx + 1, tt, bw - 2, 2, O.collar); F(tx + 1, tt + 1, bw - 2, 1, mix(O.collar, TP.b, 0.35)); F(-2, tt, 4, 3, SK.b); F(-2, tt + 2, 4, 2, O.tie); F(-1, tt + 4, 2, 1, sh(O.tie, 0.8)); return; }
+    if (k === 'apron') { F(-2, tt, 4, 1, SK.s); F(tx + 2, tt + 2, bw - 4, bh, O.apron); F(tx + 2, tt, 1, 2, O.apron); F(tx + bw - 3, tt, 1, 2, O.apron); F(-2, tt + bh - 1, 4, 2, sh(O.apron, 0.82)); F(tx + 2, tt + 2, bw - 4, 1, mix(O.apron, '#ffffff', 0.25)); return; }
+    if (k === 'hoodie') { F(-4, tt, 8, 2, TP.s); F(-3, tt, 6, 1, TP.d); F(-2, tt + 2, 1, 3, '#f0f0f0'); F(1, tt + 2, 1, 3, '#f0f0f0'); F(-4, tt + bh - 5, 8, 3, TP.s); F(-3, tt + bh - 4, 6, 1, TP.d); return; }
+    if (k === 'cardigan') { F(-2, tt, 4, bh - 1, O.shirt); F(-1, tt, 2, 1, SK.s); F(-3, tt, 1, bh - 1, TP.d); F(2, tt, 1, bh - 1, TP.d); F(3, tt + 3, 1, 1, '#e8dcc0'); F(3, tt + 6, 1, 1, '#e8dcc0'); return; }
+    if (k === 'sport') {
+      if (O.sp === 'baseball') { for (let px = tx + 2; px < tx + bw - 1; px += 3) F(px, tt + 1, 1, bh - 2, mix(O.team, '#ffffff', 0.55)); F(-3, tt + 3, 6, 1, O.team); F(-1, tt, 2, bh - 1, '#e0e0dc'); belt(); return; }
+      if (O.polo) { F(-3, tt, 2, 2, TP.h); F(1, tt, 2, 2, TP.h); F(-1, tt + 1, 1, 3, TP.s); F(tx + 2, tt + 3, 2, 1, '#2a8a4a'); belt(); return; }
+      if (O.num) { F(-3, tt, 6, 1, '#f4f4f4'); F(-2, tt + 3, 1, 4, '#f4f4f4'); F(0, tt + 3, 2, 1, '#f4f4f4'); F(1, tt + 4, 1, 3, '#f4f4f4'); F(0, tt + 6, 1, 1, '#f4f4f4'); if (O.sp === 'basketball') { F(tx + 1, tt, 2, 3, SK.b); F(tx + bw - 3, tt, 2, 3, SK.b); } return; }
+      return;
+    }
+    // casual: the pattern is part of the person (from the id), so the same person always wears the same kind of top
+    F(-2, tt, 4, 1, SK.s);
+    if (O.pat === 1) for (let i = 2; i < bh - 2; i += 3) F(tx + 1, tt + i, bw - 2, 1, TP.h);
+    else if (O.pat === 2) { const lum = hex(TP.b).reduce((a, v) => a + v, 0) / 765, ink = lum > 0.55 ? '#2a3448' : '#f2eee0'; F(-2, tt + 3, 4, 3, ink); F(-1, tt + 4, 2, 1, TP.b); }
+    else if (O.pat === 3) { F(-3, tt, 2, 2, TP.h); F(1, tt, 2, 2, TP.h); F(-2, tt, 4, 1, SK.s); F(-1, tt + 1, 1, 3, TP.d); }
+    else if (O.pat === 4) { F(tx + 3, tt + 1, 1, bh - 2, TP.s); F(tx + bw - 4, tt + 1, 1, bh - 2, TP.s); F(tx + 1, tt + 4, bw - 2, 1, TP.s); F(tx + 3, tt + 4, 1, 1, TP.d); F(tx + bw - 4, tt + 4, 1, 1, TP.d); }
+    F(tx + 2, tt + bh - 4, 1, 1, TP.s); F(tx + 3, tt + bh - 3, 1, 1, TP.s); F(tx + bw - 4, tt + 2, 1, 1, TP.s); // folds
+    if (!O.skirt && Q.kind !== 'toddler') belt();
+  }
+  function hiArms(Q, tx, tt, side) {
+    const { O, SL, SK, bw, bh, walking, fr, wealth } = Q;
+    const len = bh - 1, shortSl = O.short || O.k === 'sport' && !O.sleeve;
+    const sw = walking ? (fr === 1 ? 1 : fr === 3 ? -1 : 0) : 0;
+    const arm = (ax, dl, outerL) => {
+      const L2 = len + dl; if (L2 <= 1) return;
+      const S = O.sleeve ? SL : SK;
+      const slv = !O.sleeve ? 0 : shortSl ? Math.min(4, L2) : L2;
+      F(ax, tt + 1, 3, slv, S.b); F(ax + (outerL ? 0 : 2), tt + 1, 1, slv, S.d); F(ax + (outerL ? 2 : 0), tt + 2, 1, Math.max(0, slv - 2), S.s);
+      if (slv < L2) { F(ax, tt + 1 + slv, 3, L2 - slv, SK.b); F(ax + (outerL ? 0 : 2), tt + 1 + slv, 1, L2 - slv, SK.s); }
+      if (O.stripe && O.k !== 'sport' && slv) F(ax + (outerL ? 0 : 2), tt + 1, 1, slv, O.stripe);
+      if ((O.k === 'suit' || O.k === 'exec') && slv) F(ax, tt + L2, 3, 1, '#f4f4f4');
+      F(ax, tt + 1 + L2, 3, 2, SK.b); F(ax, tt + 2 + L2, 3, 1, SK.s);
+      if (outerL && wealth >= 3 && Q.kind === 'adult' && slv < L2 + 1) F(ax, tt + L2, 3, 1, wealth >= 4 ? '#e0c050' : '#c0c4cc');
+    };
+    if (side) { const d = Q.d; arm(-1 + sw * d * 2, 0, d < 0); return; }
+    arm(tx - 2, Math.max(0, sw), true); arm(tx + bw - 1, Math.max(0, -sw), false);
+  }
+  // ---- head: face, hair, hat
+  function hiHead(Q, back) {
+    const { SK, HR, T, hw, hh, headTop, blink, kind, fem, elder, p, act, wealth, O } = Q;
+    const hx = -hw / 2, hy = headTop, ey = hy + Math.round(hh * 0.52);
+    F(hx - 1, ey - 1, 2, 3, SK.s); F(hx + hw - 1, ey - 1, 2, 3, SK.s); F(hx - 1, ey, 1, 1, SK.d); F(hx + hw, ey, 1, 1, SK.d);
+    F(hx + 3, hy, hw - 6, 1, SK.d); F(hx + 1, hy + 1, hw - 2, 1, SK.d); F(hx, hy + 2, hw, hh - 5, SK.d); F(hx + 1, hy + hh - 3, hw - 2, 1, SK.d); F(hx + 3, hy + hh - 2, hw - 6, 1, SK.d);
+    F(hx + 3, hy + 1, hw - 6, 1, SK.b); F(hx + 1, hy + 2, hw - 2, hh - 5, SK.b); F(hx + 2, hy + hh - 3, hw - 4, 1, SK.b);
+    F(hx + hw - 3, hy + 3, 2, hh - 6, SK.s); F(hx + 3, hy + hh - 3, hw - 6, 1, SK.s); F(hx + 2, hy + 3, 1, 2, SK.h);
+    if (back) { hairBack(Q, hx, hy); hat(Q, hx, hy, true); return; }
+    // eyes: style stored per person
+    const small = kind === 'toddler' || kind === 'child';
+    const eL = hw === 16 ? -5 : -4, eR = hw === 16 ? 3 : 2;
+    const es = small ? 2 : T.eyes;
+    const eT = es === 2 ? ey - 2 : es === 0 ? ey - 1 : ey;
+    for (const ex of [eL, eR]) {
+      const outer = ex === eL ? ex - 1 : ex + 2;
+      if (blink || act === 'floorsleep') { F(ex, ey + 1, 2, 1, SK.d); continue; }
+      if (es === 0) { F(ex, eT, 2, 3, EYE); F(ex, eT, 1, 1, '#ffffff'); }
+      else if (es === 1) { F(ex, eT, 2, 2, EYE); F(ex - (ex === eL ? 1 : 0), eT - 1, 3, 1, SK.d); }
+      else if (es === 2) { F(ex, eT, 2, 4, EYE); F(ex, eT, 1, 2, '#ffffff'); F(ex + 1, eT + 3, 1, 1, '#5a4a6a'); }
+      else { F(ex, eT, 2, 2, EYE); F(ex, eT, 1, 1, '#f4f4f4'); F(outer, eT + 1, 1, 1, SK.d); }
+      if (fem && !small) F(outer, eT, 1, 1, EYE);
+    }
+    // brows
+    const by = eT - 2, BC = hex(HR.b).reduce((a, v) => a + v, 0) > 480 ? HR.s : HR.d;
+    const worried = SIM.mood && SIM.mood.until > SIM.clock && SIM.mood.tone !== 'good';
+    if (!small || kind === 'child') for (const [bx, dir] of [[eL - 1, -1], [eR, 1]]) {
+      if (T.brow === 2 && !small) { F(bx, by - 1, 3, 2, BC); continue; }
+      const inner = dir < 0 ? bx + 2 : bx, outer = dir < 0 ? bx : bx + 2;
+      F(bx, by, 3, 1, BC);
+      if (T.brow === 1) { F(outer, by, 1, 1, SK.b); F(outer, by + 1, 1, 1, BC); }
+      if (worried) { F(inner, by, 1, 1, SK.b); F(inner, by - 1, 1, 1, BC); }
+    }
+    // nose, mouth, cheeks
+    const my = Math.min(ey + 4, hy + hh - 4);
+    if (!small) F(-1, ey + 2, 1, 1, SK.s);
+    const MO = mix(SK.b, '#7a2a2a', 0.55);
+    const talk = Q.c.talkWith && Math.floor(Q.now * 6 + Q.c.sd) % 2;
+    if (talk) { F(-1, my - 1, 2, 2, '#6a2a2a'); F(-1, my, 2, 1, '#c86a6a'); }
+    else if (Q.c.talkWith || act === 'happy' || act === 'play') { F(-2, my, 4, 1, MO); F(-3, my - 1, 1, 1, MO); F(2, my - 1, 1, 1, MO); }
+    else F(-1, my, 2, 1, MO);
+    if (fem || small || act === 'happy') { const bl = mix(SK.b, '#e86a6a', 0.42); F(hx + 1, ey + 2, 2, 1, bl); F(hx + hw - 3, ey + 2, 2, 1, bl); }
+    if (p.beard && p.age >= 20) { F(-3, my - 1, 6, 1, HR.s); F(-4, hy + hh - 4, 8, 2, mix(HR.s, SK.b, 0.35)); F(-1, my, 2, 1, MO); }
+    if (elder) { F(hx + 1, ey, 1, 1, SK.s); F(hx + hw - 2, ey, 1, 1, SK.s); F(-3, my - 1, 1, 1, SK.s); F(2, my - 1, 1, 1, SK.s); }
+    hairFront(Q, hx, hy, ey);
+    if (T.glasses || (elder && strId(p.id) % 2 === 0)) {
+      const fc = wealth >= 4 ? '#c8a040' : '#2a2a32';
+      for (const ex of [eL, eR]) { F(ex - 1, eT - 1, 4, 1, fc); F(ex - 1, eT + 2 + (es === 2 ? 1 : 0), 4, 1, fc); F(ex - 1, eT, 1, 2 + (es === 2 ? 1 : 0), fc); F(ex + 2, eT, 1, 2 + (es === 2 ? 1 : 0), fc); }
+      F(eL + 2, eT, eR - eL - 2, 1, fc);
+    }
+    hat(Q, hx, hy, false);
+    void O;
+  }
+  function crown(Q, hx, hy) {
+    const { HR, hw, T } = Q;
+    F(hx + 3, hy - 1, hw - 6, 1, HR.d); F(hx + 1, hy, hw - 2, 1, HR.d); F(hx, hy + 1, hw, 3, HR.d);
+    F(hx + 3, hy, hw - 6, 1, HR.b); F(hx + 1, hy + 1, hw - 2, 3, HR.b);
+    if (T.bald) { F(hx + 3, hy, hw - 6, 2, Q.SK.b); F(hx + 4, hy, 3, 1, Q.SK.h); F(hx + 2, hy + 2, hw - 4, 1, HR.s); return; }
+    F(hx + 3, hy + 1, 4, 1, HR.h); F(hx + 2, hy + 2, 2, 1, HR.h); F(hx + hw - 4, hy + 2, 2, 1, HR.s);
+  }
+  function hairFront(Q, hx, hy, ey) {
+    const { HR, hw, hh, style } = Q;
+    crown(Q, hx, hy);
+    const side = (h) => { F(hx, hy + 4, 2, h, HR.b); F(hx, hy + 4, 1, h, HR.d); F(hx + hw - 2, hy + 4, 2, h, HR.b); F(hx + hw - 1, hy + 4, 1, h, HR.d); };
+    const fringe = (P) => { for (let i = 1; i < hw - 1; i++) { const h = P[i % P.length]; F(hx + i, hy + 4, 1, h, HR.b); F(hx + i, hy + 3 + h, 1, 1, HR.s); } };
+    if (Q.T.bald) { side(ey - hy - 4); return; }
+    if (style === 'short') { fringe([2, 3, 2, 1, 2, 3, 2, 2, 3, 1, 2, 2, 3, 2]); side(ey - hy - 4); }
+    else if (style === 'spiky') {
+      fringe([3, 1, 3, 2, 1, 3, 2, 1, 3, 2]); side(ey - hy - 5);
+      for (let s = hx + 2; s < hx + hw - 2; s += 3) { F(s, hy - 2, 2, 2, HR.b); F(s, hy - 3, 1, 1, HR.d); F(s + 1, hy - 2, 1, 1, HR.h); }
+    } else if (style === 'side') {
+      for (let i = 1; i < hw - 1; i++) { const h = Math.max(1, Math.min(ey - hy - 6, Math.round(4 - i * 0.36))); F(hx + i, hy + 4, 1, h, HR.b); F(hx + i, hy + 3 + h, 1, 1, HR.s); }
+      F(hx + 3, hy + 4, 3, 1, HR.h); side(ey - hy - 3);
+    } else if (style === 'bob') {
+      F(hx + 1, hy + 4, hw - 2, 2, HR.b); F(hx + 1, hy + 5, hw - 2, 1, HR.s); F(hx + 3, hy + 4, 2, 1, HR.h);
+      F(hx - 1, hy + 2, 3, hh - 4, HR.b); F(hx - 1, hy + 2, 1, hh - 4, HR.d); F(hx + hw - 2, hy + 2, 3, hh - 4, HR.b); F(hx + hw + 1, hy + 2, 1, hh - 4, HR.d);
+      F(hx, hy + hh - 3, 2, 1, HR.s); F(hx + hw - 2, hy + hh - 3, 2, 1, HR.s);
+    } else if (style === 'long') {
+      const half = hw / 2;
+      F(hx + 1, hy + 4, half - 2, 3, HR.b); F(hx + half + 1, hy + 4, half - 2, 3, HR.b); F(hx + 2, hy + 6, half - 3, 1, HR.s); F(hx + half + 1, hy + 6, half - 3, 1, HR.s);
+      F(-1, hy + 1, 1, 3, HR.s);
+      const len = hh + 5;
+      F(hx - 1, hy + 2, 3, len, HR.b); F(hx - 1, hy + 2, 1, len, HR.d); F(hx + hw - 2, hy + 2, 3, len, HR.b); F(hx + hw + 1, hy + 2, 1, len, HR.d);
+      F(hx, hy + 2 + len, 2, 1, HR.s); F(hx + hw - 2, hy + 2 + len, 2, 1, HR.s); F(hx, hy + 6, 1, len - 6, HR.h);
+    } else if (style === 'bun') {
+      fringe([2, 2, 1, 2, 3, 2, 1, 2]); side(ey - hy - 4);
+      F(-3, hy - 5, 6, 4, HR.b); F(-2, hy - 6, 4, 1, HR.d); F(-4, hy - 4, 1, 2, HR.d); F(3, hy - 4, 1, 2, HR.d); F(-2, hy - 5, 2, 1, HR.h); F(-3, hy - 2, 6, 1, HR.s);
+    } else if (style === 'pony') {
+      fringe([2, 3, 2, 2, 1, 2, 3, 2]); side(ey - hy - 3);
+      F(hx + hw - 1, hy + 3, 3, 9, HR.b); F(hx + hw + 1, hy + 3, 1, 9, HR.d); F(hx + hw - 1, hy + 3, 3, 1, '#d04a6a'); F(hx + hw, hy + 11, 1, 1, HR.s);
+    } else { fringe([2, 2, 3, 2]); side(ey - hy - 4); }
+  }
+  function hairBack(Q, hx, hy) {
+    const { HR, SK, hw, hh, style } = Q;
+    crown(Q, hx, hy);
+    if (Q.T.bald) { F(hx, hy + 4, hw, hh - 7, HR.b); F(hx, hy + 4, 1, hh - 7, HR.d); F(hx + hw - 1, hy + 4, 1, hh - 7, HR.d); return; }
+    F(hx, hy + 4, hw, hh - 7, HR.b); F(hx, hy + 4, 1, hh - 7, HR.d); F(hx + hw - 1, hy + 4, 1, hh - 7, HR.d);
+    for (let i = hx + 2; i < hx + hw - 2; i += 3) F(i, hy + 5, 1, hh - 9, HR.s);
+    F(hx + 3, hy + hh - 3, hw - 6, 1, SK.s);
+    if (style === 'long') { F(hx, hy + hh - 4, hw, 9, HR.b); F(hx, hy + hh - 4, 1, 9, HR.d); F(hx + hw - 1, hy + hh - 4, 1, 9, HR.d); F(hx + 1, hy + hh + 4, hw - 2, 1, HR.s); }
+    if (style === 'bob') { F(hx - 1, hy + 3, hw + 2, hh - 5, HR.b); F(hx, hy + hh - 3, hw, 1, HR.s); }
+    if (style === 'pony') { F(-2, hy + hh - 4, 4, 9, HR.b); F(-2, hy + hh - 4, 4, 1, '#d04a6a'); F(-1, hy + hh + 4, 2, 1, HR.s); }
+    if (style === 'bun') { F(-3, hy - 5, 6, 4, HR.b); F(-2, hy - 6, 4, 1, HR.d); F(-2, hy - 5, 2, 1, HR.h); }
+  }
+  function hat(Q, hx, hy, back) {
+    const { O, hw } = Q;
+    if (O.helmet) { F(hx - 1, hy - 2, hw + 2, 6, '#b8901c'); F(hx, hy - 2, hw, 5, O.helmet); F(hx + 2, hy - 1, 4, 1, '#fff2a0'); F(hx - 2, hy + 3, hw + 4, 1, '#c89a20'); return; }
+    if (!O.cap) return;
+    const C = tone(O.cap);
+    F(hx, hy - 2, hw, 1, C.d); F(hx - 1, hy - 1, hw + 2, 5, C.d); F(hx, hy - 1, hw, 4, C.b); F(hx + 2, hy - 1, 4, 1, C.h);
+    if (!back) { F(hx - 1, hy + 3, hw + 2, 2, C.s); F(hx - 1, hy + 4, hw + 2, 1, C.d); if (O.badge) F(-1, hy, 2, 2, O.badge); }
+    else F(-2, hy + 2, 4, 1, C.s);
+  }
+  // ---- side view (walking left / right)
+  function hiSide(Q) {
+    const { O, TP, PN, SK, SH, HR, T, d, bw, bh, lh, legTop, torsoTop, headTop, hw, hh, walking, fr, sitting, blink, p, elder, wealth } = Q;
+    const bws = bw - 4, tx = -bws / 2;
+    // legs: the far leg first, then the near one; a stride spreads them
+    const s = walking ? (fr === 0 ? 2 : fr === 2 ? -2 : 0) : 0;
+    if (sitting || Q.sitFloor) { F(tx, legTop, bws + 3 * d, 2, PN.b); F(d > 0 ? tx + bws : tx - 3, legTop + 2, 4, 1, SH.d); }
+    else for (const [off, far] of [[-s, 1], [s, 0]]) {
+      const L = far ? tone(PN.s) : PN, h = lh - 2, half = Math.floor(h / 2), lx = -2;
+      const legC = O.shorts ? (far ? tone(SK.s) : SK) : L;
+      if (O.skirt) { F(lx + 1 + off, legTop + 2, 2, h - 2, far ? SK.s : SK.b); }
+      else { F(lx + Math.round(off / 2), legTop, 4, half, legC.b); F(lx + off, legTop + half, 4, h - half, legC.b); F(lx + off + (d > 0 ? 0 : 3), legTop + half, 1, h - half, legC.s); if (O.shorts) F(lx + Math.round(off / 2), legTop, 4, 3, far ? PN.s : PN.b); }
+      if (O.socks) F(lx + off, -4, 4, 2, O.socks);
+      const sx = lx + off + (d > 0 ? 0 : -1);
+      F(sx, -2, 5, 2, far ? SH.s : SH.b); F(sx, -1, 5, 1, SH.d); if (!far) F(d > 0 ? sx + 3 : sx + 1, -2, 1, 1, SH.h);
+    }
+    if (O.skirt && !sitting) { F(tx - 1, legTop, bws + 2, Math.min(5, lh - 2), PN.b); F(tx - 1, legTop + Math.min(5, lh - 2) - 1, bws + 2, 1, PN.s); F(tx + 1, legTop + 1, 1, 3, PN.s); }
+    // torso
+    const tt = torsoTop;
+    F(tx, tt, bws, bh, TP.d); F(tx + 1, tt + 1, bws - 2, bh - 2, TP.b);
+    F(d > 0 ? tx + 1 : tx + bws - 3, tt + 1, 2, bh - 2, TP.s); F(d > 0 ? tx + bws - 2 : tx + 1, tt + 1, 1, bh - 3, TP.h);
+    if (O.long) F(tx, legTop - 1, bws, Math.min(lh - 2, 5), TP.b);
+    const front = d > 0 ? tx + bws - 2 : tx + 1;
+    if (O.tie) { F(front, tt + 1, 1, bh - 4, O.tie); F(front - d, tt, 2, 2, O.collar || '#f4f4f4'); }
+    if (O.apron) F(front - (d > 0 ? 1 : 0), tt + 2, 2, bh + 1, O.apron);
+    if (O.vest) { F(tx + 1, tt + 1, bws - 2, bh - 2, O.vest); F(tx + 1, tt + 4, bws - 2, 1, '#f4f080'); }
+    if (O.hood) F(d > 0 ? tx : tx + bws - 4, tt, 4, 3, TP.s);
+    if (O.k === 'sailor') F(d > 0 ? tx : tx + bws - 4, tt, 4, 3, O.collar);
+    if (!O.skirt && !O.long && !O.apron && ['casual', 'work', 'uniform', 'sport'].includes(O.k)) F(tx + 1, tt + bh - 2, bws - 2, 1, '#3a2a22');
+    // head (profile)
+    const hs = hw - 2, hx = -hs / 2 + d, hy = headTop, ey = hy + Math.round(hh * 0.52);
+    F(hx + 2, hy, hs - 4, 1, SK.d); F(hx + 1, hy + 1, hs - 2, 1, SK.d); F(hx, hy + 2, hs, hh - 5, SK.d); F(hx + 1, hy + hh - 3, hs - 2, 1, SK.d); F(hx + 3, hy + hh - 2, hs - 5, 1, SK.d);
+    F(hx + 2, hy + 1, hs - 4, 1, SK.b); F(hx + 1, hy + 2, hs - 2, hh - 5, SK.b); F(hx + 2, hy + hh - 3, hs - 4, 1, SK.b);
+    const fx = d > 0 ? hx + hs - 1 : hx; // the face edge
+    F(fx + d, ey + 1, 1, 2, SK.b); F(fx + d, ey + 3, 1, 1, SK.d); // nose
+    const small = Q.kind === 'toddler' || Q.kind === 'child';
+    const exx = d > 0 ? fx - 3 : fx + 2, es = small ? 2 : T.eyes;
+    const eT = es === 2 ? ey - 2 : es === 0 ? ey - 1 : ey;
+    if (blink) F(exx, ey + 1, 2, 1, SK.d);
+    else { F(exx, eT, 2, es === 2 ? 4 : es === 0 ? 3 : 2, EYE); F(d > 0 ? exx + 1 : exx, eT, 1, 1, '#ffffff'); if (Q.fem && !small) F(d > 0 ? exx - 1 : exx + 2, eT, 1, 1, EYE); }
+    if (!small || Q.kind === 'child') F(exx - (d > 0 ? 1 : 0), eT - 2, 3, 1, hex(HR.b).reduce((a, v) => a + v, 0) > 480 ? HR.s : HR.d);
+    const my = Math.min(ey + 4, hy + hh - 4);
+    F(d > 0 ? fx - 2 : fx + 1, my, 2, 1, mix(SK.b, '#7a2a2a', 0.55));
+    if (Q.fem || small) F(d > 0 ? fx - 4 : fx + 3, ey + 2, 2, 1, mix(SK.b, '#e86a6a', 0.42));
+    if (p.beard && p.age >= 20) F(d > 0 ? fx - 5 : fx + 1, hy + hh - 4, 5, 2, mix(HR.s, SK.b, 0.35));
+    if (elder) F(d > 0 ? fx - 4 : fx + 3, ey + 1, 1, 1, SK.s);
+    // ear and hair (hair covers the back half of the head)
+    const back = d > 0 ? hx : hx + hs, earX = d > 0 ? hx + 5 : hx + hs - 7;
+    F(hx + 3, hy - 1, hs - 6, 1, HR.d);
+    F(d > 0 ? hx : hx + 2, hy, hs - 2, 4, HR.b); F(d > 0 ? hx : hx + hs - 7, hy + 4, 7, hh - 8, HR.b);
+    F(d > 0 ? hx : hx + hs - 1, hy + 2, 1, hh - 5, HR.d); F(d > 0 ? hx + 3 : hx + 4, hy, 3, 1, HR.h);
+    if (!T.bald) F(d > 0 ? fx - 4 : fx + 1, hy + 4, 4, 2, HR.b); else F(d > 0 ? hx + 3 : hx + 3, hy, hs - 6, 2, SK.b);
+    F(earX, ey - 1, 2, 3, SK.b); F(earX + (d > 0 ? 0 : 1), ey, 1, 1, SK.s); F(earX + (d > 0 ? -1 : 2), ey - 1, 1, 3, HR.s);
+    if (Q.style === 'long') { F(d > 0 ? hx - 1 : hx + hs - 3, hy + 3, 4, hh + 4, HR.b); F(d > 0 ? hx - 1 : hx + hs, hy + 3, 1, hh + 4, HR.d); }
+    if (Q.style === 'bob') F(d > 0 ? hx - 1 : hx + hs - 4, hy + 3, 5, hh - 5, HR.b);
+    if (Q.style === 'pony') { F(d > 0 ? hx - 3 : hx + hs, hy + 3, 3, 8, HR.b); F(d > 0 ? hx - 1 : hx + hs, hy + 3, 1, 1, '#d04a6a'); }
+    if (Q.style === 'bun') { F(d > 0 ? hx - 2 : hx + hs - 3, hy - 3, 5, 5, HR.b); F(d > 0 ? hx - 1 : hx + hs - 2, hy - 3, 2, 1, HR.h); }
+    if (Q.style === 'spiky') for (let i = 0; i < 3; i++) F(hx + 2 + i * 3, hy - 2, 2, 2, HR.b);
+    void back;
+    if (T.glasses || (elder && strId(p.id) % 2 === 0)) { const fc = wealth >= 4 ? '#c8a040' : '#2a2a32'; F(exx - 1, eT - 1, 4, 1, fc); F(exx - 1, eT + 2, 4, 1, fc); F(d > 0 ? exx - 1 : exx + 2, eT, 1, 2, fc); F(d > 0 ? earX + 2 : exx + 3, eT, Math.abs(exx - earX) - 1, 1, fc); }
+    hat(Q, hx, hy, false);
+    // the near arm swings in front of the body
+    hiArms(Q, tx, tt, true);
+  }
+  // ---- what people hold while doing things
+  function hiProps(Q, x, y) {
+    const { act, face, torsoTop: tt, bh, lh, p, now, c, d } = Q;
+    const lx = (dx) => (OX + dx) / 2, ly = (dy) => (OY + dy) / 2;
+    if (act === 'phone') { const px = face === 'left' ? -6 : face === 'right' ? 3 : -2; F(px, tt + 3, 4, 6, '#26262c'); F(px + 1, tt + 4, 2, 4, '#8ad0ff'); F(px + 1, tt + 4, 1, 1, '#d8f0ff'); lights.push([lx(px + 2), ly(tt + 5), 5, 'rgba(140,210,255,0.2)']); }
+    if (c.reading || act === 'read') { F(-6, tt + 3, 12, 7, '#7a4a3a'); F(-5, tt + 3, 10, 6, '#f6f2e8'); F(-1, tt + 3, 2, 6, '#c8c0b0'); F(-4, tt + 5, 3, 1, '#b8b0a0'); F(2, tt + 5, 3, 1, '#b8b0a0'); F(-4, tt + 7, 3, 1, '#b8b0a0'); }
+    if (act === 'sweep') { const sx = (c.sweepDir || 1) * 8; F(sx, tt - 4, 2, bh + lh + 2, '#a07a52'); F(sx, tt - 4, 1, bh + lh + 2, '#c09a6a'); F(sx - 2, -5, 6, 4, '#d8c070'); F(sx - 1, -2, 1, 1, '#b8a050'); F(sx + 2, -2, 1, 1, '#b8a050'); if (Math.floor(now * 4) % 2) c.x += (c.sweepDir || 1) * 0.15; }
+    if (act === 'water') { const wx = face === 'left' ? -11 : 6; F(wx, tt + 2, 6, 4, '#4a7ab8'); F(wx + 1, tt + 2, 4, 1, '#7aaae0'); F(face === 'left' ? wx - 2 : wx + 6, tt + 2, 2, 1, '#4a7ab8'); if (Math.floor(now * 5) % 2) { F(face === 'left' ? wx - 3 : wx + 8, tt + 4, 1, 2, '#8ac0f0'); F(face === 'left' ? wx - 2 : wx + 7, tt + 7, 1, 1, '#8ac0f0'); } }
     if (act === 'practice') {
-      const sp = p.sport; const ph = Math.floor(now * 3) % 4;
-      if (sp === 'baseball') { const ang = [[-5, -3], [-3, -6], [3, -6], [5, -2]][ph]; for (let i = 1; i <= 5; i++) P1(x + Math.round(ang[0] * i / 5), bodyTop + 2 + Math.round(ang[1] * i / 5), '#c8a070'); }
-      else if (sp === 'soccer' || sp === 'basketball') { const by = y - 2 - Math.abs(Math.round(Math.sin(now * 6) * 6)); R(x + 3, by, 3, 3, sp === 'soccer' ? '#f4f4f4' : '#e0782a'); }
-      else if (sp === 'boxing') { R(x + (ph % 2 ? 4 : 2), bodyTop + 1, 3, 3, '#c83a3a'); }
-      else { R(x + 3, bodyTop + (ph % 2 ? 0 : 2), 1, 6, '#8a8a92'); }
+      const sp = p.sport, ph = Math.floor(now * 3) % 4;
+      if (sp === 'baseball') { const ang = [[-10, -6], [-6, -12], [6, -12], [10, -4]][ph]; for (let i = 2; i <= 10; i++) F(Math.round(ang[0] * i / 10), tt + 4 + Math.round(ang[1] * i / 10), 2, 2, i > 6 ? '#b08050' : '#d0a878'); }
+      else if (sp === 'soccer' || sp === 'basketball') { const by = -4 - Math.abs(Math.round(Math.sin(now * 6) * 12)); if (sp === 'soccer') { F(6, by, 5, 5, '#f4f4f4'); F(7, by + 1, 2, 2, '#2a2a30'); F(10, by + 3, 1, 1, '#2a2a30'); } else { F(6, by, 6, 6, '#e0782a'); F(6, by + 2, 6, 1, '#7a3a14'); F(8, by, 1, 6, '#7a3a14'); } }
+      else if (sp === 'boxing') { const gx = ph % 2 ? 8 : 4; F(gx, tt + 2, 5, 5, '#c83a3a'); F(gx + 1, tt + 2, 2, 1, '#e86a6a'); }
+      else if (sp === 'golf') { F(6, tt + (ph % 2 ? 0 : 4), 1, 14, '#9a9aa2'); F(6, tt + (ph % 2 ? 14 : 18), 3, 2, '#5a5a62'); }
+      else F(6, tt + (ph % 2 ? 0 : 4), 2, 12, '#8a8a92');
     }
-    if (act === 'eat' && Math.floor(now * 2 + c.sd) % 3 === 0 && face === 'down') R(x + 2, bodyTop + 1, 1, 2, skin);
-    // head
-    const hy = top;
-    R(hx - 1, hy, dims.hw + 2, dims.hh, OL);
-    R(hx, hy + 1, dims.hw, dims.hh - 1, skin);
-    R(hx + 1, hy - 1 + 1, dims.hw - 2, 1, OL);
-    // hair by facing
-    const hair1 = hair, hair2 = sh(hair, 0.8);
-    if (face === 'up') {
-      R(hx, hy, dims.hw, dims.hh - 1, hair1); R(hx + 1, hy + dims.hh - 2, dims.hw - 2, 1, hair2);
-      if (style === 'long') R(hx, hy + dims.hh - 1, dims.hw, 3, hair1);
-      if (style === 'pony') R(x - 1, hy + dims.hh - 1, 2, 3, hair1);
-      if (style === 'bun') R(x - 2, hy - 2, 4, 3, hair1);
-    } else if (face === 'down') {
-      R(hx, hy, dims.hw, 2, hair1); R(hx, hy + 2, 1, dims.hh - 3, hair1); R(hx + dims.hw - 1, hy + 2, 1, dims.hh - 3, hair1);
-      if (style === 'short' || style === 'spiky') R(hx + 1, hy + 2, dims.hw - 2, 1, hair2);
-      if (style === 'spiky') { P1(hx + 1, hy - 1, hair1); P1(hx + 4, hy - 1, hair1); P1(hx + 6, hy - 1, hair1); }
-      if (style === 'side') R(hx + 1, hy + 2, dims.hw - 4, 1, hair1);
-      if (style === 'bob') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx - 1, hy + 2, 1, dims.hh - 1, hair1); R(hx + dims.hw, hy + 2, 1, dims.hh - 1, hair1); }
-      if (style === 'long') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx - 1, hy + 2, 1, dims.hh + 3, hair1); R(hx + dims.hw, hy + 2, 1, dims.hh + 3, hair1); }
-      if (style === 'bun') R(x - 2, hy - 2, 4, 2, hair1);
-      if (style === 'pony') { R(hx + 1, hy + 2, dims.hw - 2, 1, hair1); R(hx + dims.hw, hy + 1, 2, 4, hair1); }
-      // face
-      const ey = hy + Math.floor(dims.hh / 2) + 1;
-      if (!blink && act !== 'floorsleep') { P1(hx + 2, ey, '#1a1418'); P1(hx + dims.hw - 3, ey, '#1a1418'); } else { P1(hx + 2, ey, sh(skin, 0.75)); P1(hx + dims.hw - 3, ey, sh(skin, 0.75)); }
-      if (r !== 'toddler') { P1(hx + 1, ey + 1, 'rgba(230,120,120,0.45)'); P1(hx + dims.hw - 2, ey + 1, 'rgba(230,120,120,0.45)'); }
-      if (c.talkWith || act === 'happy') P1(x, ey + 2, '#8a3a3a');
-      if (p.beard && p.age >= 20) R(hx + 1, hy + dims.hh - 1, dims.hw - 2, 1, hair2);
-      if (elder) { P1(hx + 1, hy + 3, sh(skin, 0.85)); }
-    } else {
-      const d = face === 'right' ? 1 : -1;
-      const back = d > 0 ? hx : hx + dims.hw - 3;
-      R(hx, hy, dims.hw, 2, hair1); R(back, hy + 2, 3, dims.hh - 3, hair1);
-      if (style === 'long') R(back, hy + 2, 3, dims.hh + 3, hair1);
-      if (style === 'pony') R(d > 0 ? hx - 2 : hx + dims.hw, hy + 1, 2, 5, hair1);
-      if (style === 'bun') R(d > 0 ? hx - 1 : hx + dims.hw - 2, hy - 1, 3, 3, hair1);
-      if (style === 'spiky') { P1(hx + 2, hy - 1, hair1); P1(hx + 5, hy - 1, hair1); }
-      const ex = d > 0 ? hx + dims.hw - 2 : hx + 1, ey = hy + Math.floor(dims.hh / 2) + 1;
-      if (!blink) P1(ex, ey, '#1a1418');
-      if (p.beard && p.age >= 20) R(d > 0 ? hx + dims.hw - 3 : hx + 1, hy + dims.hh - 1, 2, 1, hair2);
+    if (act === 'eat' && Math.floor(now * 2 + c.sd) % 3 === 0 && face === 'down') { F(3, tt + 1, 3, 3, Q.SK.b); F(3, tt - 1, 1, 2, '#c8a070'); }
+    if (Q.elder && p.age >= 78 && !Q.sitting && !Q.sitFloor) { const cx = face === 'left' ? -bh / 2 - 6 : bh / 2 + 4; F(cx, tt + 4, 2, bh + lh - 5, '#6a4a2a'); F(cx - (face === 'left' ? 0 : 2), tt + 3, 4, 2, '#7a5a3a'); }
+    void x; void y; void d;
+  }
+  function hiBaby(c, now, lk) {
+    const p = c.p, SK = tone(lk.skin || '#f1c9a5'), HR = tone(hairCol(p)), cl = tone(lk.shirt || '#f5c6d4');
+    if (c.state === 'act' && c.act === 'crib') {
+      const bob = Math.floor(now * 1.5 + c.sd) % 4 === 0 ? 2 : 0;
+      F(-6, -18 - bob, 12, 10, SK.d); F(-5, -17 - bob, 10, 8, SK.b); F(-5, -17 - bob, 10, 2, HR.b); F(-1, -18 - bob, 2, 1, HR.b); F(2, -13 - bob, 2, 3, SK.s);
+      if (!isNight()) { F(-3, -13 - bob, 1, 2, EYE); F(1, -13 - bob, 1, 2, EYE); F(-3, -13 - bob, 1, 1, '#ffffff'); } else { F(-3, -12 - bob, 2, 1, SK.d); F(1, -12 - bob, 2, 1, SK.d); }
+      F(-4, -11 - bob, 2, 1, mix(SK.b, '#e86a6a', 0.45)); F(2, -11 - bob, 2, 1, mix(SK.b, '#e86a6a', 0.45));
+      return;
     }
-    if (O.cap) { R(hx, hy - 1, dims.hw, 3, O.cap); if (face === 'down') R(hx + 1, hy + 2, dims.hw - 2, 1, sh(O.cap, 0.7)); else if (face !== 'up') R(face === 'right' ? hx + dims.hw : hx - 2, hy + 1, 2, 1, sh(O.cap, 0.7)); }
-    if (elder && p.age >= 78 && !sitting && !sitFloor) { const cxn = face === 'left' ? bx - 2 : bx + dims.bw + 1; R(cxn, bodyTop + 2, 1, dims.bh + lh - 2, '#6a4a2a'); }
-    // chair back over a seated person seen from behind
-    if (sitting && face === 'up' && ['desk', 'homework', 'stream', 'draw', 'music'].includes(act)) { R(x - 3, legTop - 2, 7, 4, OL); R(x - 2, legTop - 1, 5, 3, '#4a4a56'); }
-    if (sitting && face === 'up' && act === 'eat' && c.spot && c.spot.item.it.key !== 'lowtable') { R(x - 3, legTop - 1, 7, 3, OL); R(x - 2, legTop, 5, 2, '#8a6040'); }
+    const crawl = Math.floor(now * 4) % 2, dir = c.face === 'left' ? -1 : 1;
+    F(-8, -1, 16, 2, 'rgba(0,0,0,0.15)');
+    F(-6, -10, 13, 8, cl.d); F(-5, -9, 11, 6, cl.b); F(-5, -9, 11, 1, cl.h); F(-5, -4, 11, 1, cl.s);
+    F(-6 + crawl * 2, -3, 3, 3, SK.b); F(3 - crawl * 2, -3, 3, 3, SK.b); F(-6 + crawl * 2, -1, 3, 1, SK.s);
+    const hx = dir < 0 ? -13 : 3;
+    F(hx, -17, 10, 10, SK.d); F(hx + 1, -16, 8, 8, SK.b); F(hx + 1, -16, 8, 2, HR.b); F(hx + 3, -17, 3, 1, HR.b); F(hx + (dir < 0 ? 1 : 6), -14, 2, 4, SK.s);
+    const ex = dir < 0 ? hx + 2 : hx + 6;
+    F(ex, -13, 1, 2, EYE); F(ex, -13, 1, 1, '#ffffff'); F(ex + (dir < 0 ? 0 : -1), -10, 2, 1, mix(SK.b, '#e86a6a', 0.45));
+    if (c.state === 'act' && c.act === 'crawl') { c.x += dir * 0.06; if (Math.floor(now) % 5 === 0) c.face = c.face === 'left' ? 'right' : 'left'; const L = SIM.L; if (L) c.x = Math.max(L.ox + 6, Math.min(L.ox + L.w * TS - 6, c.x)); }
   }
-  function drawBaby(c, x, y, now, skin, hair, lk) {
-    if (c.state === 'act' && c.act === 'crib') { const bob = Math.floor(now * 1.5 + c.sd) % 4 === 0 ? 1 : 0; R(x - 3, y - 9 - bob, 6, 5, OL); R(x - 2, y - 8 - bob, 4, 4, skin); R(x - 2, y - 8 - bob, 4, 1, hair); if (!isNight()) { P1(x - 1, y - 6 - bob, '#1a1418'); P1(x + 1, y - 6 - bob, '#1a1418'); } return; }
-    const crawl = Math.floor(now * 4) % 2;
-    R(x - 4, y - 1, 8, 2, 'rgba(0,0,0,0.15)');
-    R(x - 3, y - 5, 7, 4, OL); R(x - 2, y - 4, 5, 3, lk.shirt || '#f5c6d4');
-    R(x - 3 + crawl, y - 1, 2, 1, skin); R(x + 1 - crawl, y - 1, 2, 1, skin);
-    const hx = c.face === 'left' ? x - 6 : x + 1;
-    R(hx, y - 8, 5, 5, OL); R(hx + 1, y - 7, 3, 4, skin); R(hx + 1, y - 7, 3, 1, hair);
-    P1(hx + (c.face === 'left' ? 1 : 3), y - 5, '#1a1418');
-    if (c.state === 'act' && c.act === 'crawl') { c.x += (c.face === 'left' ? -1 : 1) * 0.06; if (Math.floor(now) % 5 === 0) c.face = c.face === 'left' ? 'right' : 'left'; const L = SIM.L; if (L) c.x = Math.max(L.ox + 6, Math.min(L.ox + L.w * TS - 6, c.x)); }
-  }
-  function drawSleeper(c, now) { // lying in a bed / futon: head on the pillow, the blanket is drawn over the body
+  // kept as the 1× versions' names: the frame loop and snapshots call these, now through the fine renderer
+  function drawPerson(c, x, y, now) { hiPerson(c, x, y, now); }
+  function drawSleeper(c, now) { // lying in a bed / futon: head on the pillow, the blanket over the body
     const s = c.spot, L = SIM.L; if (!s) return;
-    const x = L.ox + s.x * TS + (s.item.D.w === 2 ? TS : TS / 2) + (s.item.D.w > 2 ? 0 : 0), y = L.floorY + s.y * TS;
-    const p = c.p, skin = (p.look && p.look.skin) || '#f1c9a5', hair = hairCol(p);
-    const hx = L.ox + s.x * TS + 4;
-    R(hx - 1, y + 2, 9, 7, OL); R(hx, y + 3, 7, 5, skin); R(hx, y + 2, 7, 2, hair); R(hx - 1, y + 3, 1, 3, hair); R(hx + 7, y + 3, 1, 3, hair);
-    R(hx + 1, y + 6, 2, 1, sh(skin, 0.7)); R(hx + 4, y + 6, 2, 1, sh(skin, 0.7));
-    const bc = s.item.it.key === 'futon' ? '#c46a6a' : s.item.it.key === 'bed_luxury' ? '#7a3a5a' : s.item.it.key === 'bed_double' ? '#4f7aa8' : '#6a9a7a';
-    R(hx - 2, y + 9, 12, 12, bc); R(hx - 2, y + 9, 12, 1, sh(bc, 1.3)); R(hx + 1, y + 13, 6, 6, sh(bc, 1.1));
-    void x;
-    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) bubbleAt(hx + 8, y - 2, 'z');
+    const p = c.p, SK = tone((p.look && p.look.skin) || '#f1c9a5'), HR = tone(hairCol(p));
+    const hx = L.ox + s.x * TS + 4, y = L.floorY + s.y * TS;
+    OX = hx * 2; OY = y * 2;
+    F(-2, 4, 18, 14, SK.d); F(-1, 5, 16, 12, SK.b); F(-1, 4, 16, 5, HR.b); F(-2, 5, 2, 7, HR.b); F(14, 5, 2, 7, HR.b); F(1, 5, 4, 1, HR.h);
+    F(2, 12, 4, 1, SK.d); F(9, 12, 4, 1, SK.d); F(11, 14, 3, 2, SK.s); F(1, 14, 2, 1, mix(SK.b, '#e86a6a', 0.4)); F(12, 14, 2, 1, mix(SK.b, '#e86a6a', 0.4));
+    const key = s.item.it.key, bc = key === 'futon' ? '#c46a6a' : key === 'bed_luxury' ? '#7a3a5a' : key === 'bed_double' ? '#4f7aa8' : '#6a9a7a', B = tone(bc);
+    F(-4, 18, 24, 24, B.b); F(-4, 18, 24, 2, B.h); F(-4, 20, 24, 1, B.s); F(2, 26, 12, 12, mix(bc, '#ffffff', 0.12));
+    for (let i = 0; i < 3; i++) F(0 + i * 6, 30 + (i % 2) * 2, 4, 1, B.s);
+    F(-4, 18, 1, 24, B.s); F(19, 18, 1, 24, B.d);
+    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) late(hx + 8, y - 2, 'z');
   }
   function drawFloorSleeper(c, now) {
-    const x = Math.round(c.x), y = Math.round(c.y), p = c.p, skin = (p.look && p.look.skin) || '#f1c9a5', hair = hairCol(p);
-    R(x - 7, y - 10, 14, 12, OL); R(x - 6, y - 9, 12, 10, '#e8e4dc'); R(x - 6, y - 5, 12, 6, '#8aa0c0');
-    R(x - 3, y - 9, 6, 4, skin); R(x - 3, y - 9, 6, 1, hair);
-    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) bubbleAt(x + 5, y - 14, 'z');
+    const x = Math.round(c.x), y = Math.round(c.y), p = c.p, SK = tone((p.look && p.look.skin) || '#f1c9a5'), HR = tone(hairCol(p));
+    OX = x * 2; OY = y * 2;
+    F(-14, -20, 28, 24, OL); F(-13, -19, 26, 22, '#ece8e0'); F(-13, -10, 26, 13, '#8aa0c0'); F(-13, -10, 26, 1, '#a8bcd8'); F(-9, -4, 18, 1, '#7a90b0');
+    F(-6, -19, 12, 8, SK.b); F(-6, -19, 12, 3, HR.b); F(-4, -14, 3, 1, SK.d); F(1, -14, 3, 1, SK.d);
+    if (Math.floor(now * 1.2 + c.sd) % 3 === 0) late(x + 5, y - 14, 'z');
   }
-  // ---------- pets
+  // ---------- pets (fine pixels too)
   function drawPet(a, now) {
-    const p = a.p, x = Math.round(a.x), y = Math.round(a.y);
+    const p = a.p;
     if (p.kind === 'bird' || p.kind === 'hamster') return;
-    const col = p.color || (p.kind === 'dog' ? '#c8955a' : '#9a9aa2'), dark = sh(col, 0.72), light = mix(col, '#ffffff', 0.35);
-    const walking = a.state === 'walk', fr = walking ? Math.floor((a.walkD || 0) / 2.5) % 2 : 0;
-    const d = a.face === 'left' ? -1 : 1;
-    R(x - 5, y - 1, 10, 2, 'rgba(0,0,0,0.16)');
+    OX = Math.round(a.x * 2); OY = Math.round(a.y * 2);
+    const col = p.color || (p.kind === 'dog' ? '#c8955a' : '#9a9aa2'), C = tone(col), id = strId(p.id);
+    const walking = a.state === 'walk', fr = walking ? Math.floor((a.walkD || 0) / 1.6) % 4 : 0;
+    const d = a.face === 'left' ? -1 : 1, X = (v) => d > 0 ? v : -v, FX = (dx, dy, w, h, cc) => F(d > 0 ? dx : -dx - w, dy, w, h, cc);
+    F(-9, -1, 18, 2, 'rgba(0,0,0,0.16)');
     if (a.state === 'sleep') {
-      R(x - 4, y - 4, 9, 4, OL); R(x - 3, y - 3, 7, 3, col); R(x - 3, y - 3, 7, 1, light); R(x + (d > 0 ? 2 : -3), y - 4, 2, 2, dark);
-      if (Math.floor(now * 1.2 + a.sd) % 3 === 0) bubbleAt(x + 4, y - 9, 'z');
+      F(-8, -8, 17, 8, C.d); F(-7, -7, 15, 6, C.b); F(-7, -7, 15, 2, C.h); FX(3, -9, 6, 5, C.b); FX(4, -6, 3, 1, C.d); FX(-9, -4, 4, 3, C.s);
+      if (Math.floor(now * 1.2 + a.sd) % 3 === 0) late(Math.round(a.x) + 4, Math.round(a.y) - 9, 'z');
       return;
     }
     const sit = a.state === 'sit' || a.state === 'eat';
-    const hop = a.state === 'happy' ? -Math.max(0, Math.round(Math.sin(now * 10) * 2)) : 0;
+    const hop = a.state === 'happy' ? -2 * Math.max(0, Math.round(Math.sin(now * 10) * 2)) : 0;
+    const legs = (y0, h, xs) => xs.forEach((lx, i) => { const st = walking ? ((fr + i) % 4 < 2 ? 1 : -1) : 0, far = i % 2 === 1; FX(lx + st, y0, 2, h, far ? C.s : C.b); FX(lx + st, y0 + h - 1, 2, 1, C.d); });
     if (p.kind === 'dog') {
-      const by = y - 6 + hop;
-      R(x - 5, by - 1, 10, 5, OL); R(x - 4, by, 8, 3, col); R(x - 4, by, 8, 1, light);
-      if (!sit) { R(x - 4 + fr, by + 3, 1, 3, dark); R(x - 2 - fr, by + 3, 1, 3, col); R(x + 2 + fr, by + 3, 1, 3, dark); R(x + 3 - fr, by + 3, 1, 3, col); } else { R(x - 4, by + 3, 8, 1, dark); R(x + 1 * d, by + 3, 2, 2, col); }
-      const hx = d > 0 ? x + 3 : x - 7;
-      R(hx - 1, by - 4, 6, 6, OL); R(hx, by - 3, 4, 4, col); R(d > 0 ? hx + 3 : hx - 1, by - 1, 2, 2, light); P1(d > 0 ? hx + 4 : hx - 1, by - 1, '#2a2020');
-      R(d > 0 ? hx : hx + 3, by - 4, 1, 3, dark);
-      P1(d > 0 ? hx + 2 : hx + 1, by - 2, '#1a1418');
+      const by = -12 + hop, spot = id % 3 === 0;
+      if (!sit) legs(by + 7, 6, [-7, -5, 4, 6]); else { FX(-7, by + 7, 14, 2, C.s); FX(3, by + 7, 3, 4, C.b); }
+      FX(-9, by, 18, 9, C.d); FX(-8, by + 1, 16, 7, C.b); FX(-8, by + 1, 16, 2, C.h); FX(-8, by + 6, 16, 2, C.s);
+      if (spot) { FX(-5, by + 2, 4, 3, mix(col, '#3a2a20', 0.5)); }
+      FX(3, by + 1, 4, 2, '#d04a4a'); // collar
       const wag = Math.floor(now * (a.state === 'happy' ? 12 : 3)) % 2;
-      R(d > 0 ? x - 6 : x + 5, by - 1 - wag, 1, 2, col);
-      if (a.state === 'eat' && Math.floor(now * 4) % 2) P1(hx + 2, by + 3, '#c8a060');
+      FX(-11, by - 1 - wag * 2, 2, 4, C.b); FX(-12, by - 2 - wag * 2, 2, 2, C.h);
+      const hx = 5, hy = by - 7;
+      FX(hx - 1, hy - 1, 11, 11, C.d); FX(hx, hy, 9, 9, C.b); FX(hx, hy, 9, 2, C.h);
+      FX(hx + 6, hy + 4, 5, 4, mix(col, '#ffffff', 0.3)); FX(hx + 9, hy + 4, 2, 2, '#2a2020');
+      FX(hx + 5, hy + 2, 2, 2, EYE); FX(hx + 5, hy + 2, 1, 1, '#ffffff');
+      FX(hx, hy - 1, 3, 7, C.d); FX(hx + 1, hy, 2, 5, C.s); // floppy ear
+      if (a.state === 'eat' && Math.floor(now * 4) % 2) FX(hx + 6, hy + 10, 2, 2, '#c8a060');
+      if (a.state === 'happy') FX(hx + 7, hy + 8, 2, 2, '#e86a7a');
     } else {
-      const by = y - 5 + hop;
-      R(x - 4, by - 1, 8, 4, OL); R(x - 3, by, 6, 2, col); R(x - 3, by, 6, 1, light);
-      if (!sit) { R(x - 3 + fr, by + 2, 1, 3, dark); R(x + 2 - fr, by + 2, 1, 3, dark); } else R(x - 3, by + 2, 6, 1, dark);
-      const hx = d > 0 ? x + 2 : x - 6;
-      R(hx - 1, by - 4, 6, 5, OL); R(hx, by - 3, 4, 3, col); P1(hx, by - 5, col); P1(hx + 3, by - 5, col);
-      P1(d > 0 ? hx + 2 : hx + 1, by - 2, '#3a8a3a');
+      const by = -10 + hop, tabby = id % 2 === 0;
+      if (!sit) legs(by + 5, 6, [-6, -4, 3, 5]); else FX(-6, by + 5, 12, 2, C.s);
+      FX(-8, by, 15, 7, C.d); FX(-7, by + 1, 13, 5, C.b); FX(-7, by + 1, 13, 1, C.h);
+      if (tabby) for (let i = -5; i < 5; i += 3) FX(i, by + 1, 1, 3, C.s);
       const tl = Math.floor(now * 2 + a.sd) % 2;
-      R(d > 0 ? x - 5 : x + 4, by - 3 - tl, 1, 4, col);
+      FX(-10, by - 6 - tl, 2, 8, C.b); FX(-11, by - 7 - tl, 2, 2, C.b); FX(-10, by - 6 - tl, 1, 8, C.s);
+      const hx = 4, hy = by - 7;
+      FX(hx - 1, hy - 1, 10, 9, C.d); FX(hx, hy, 8, 7, C.b); FX(hx, hy, 8, 1, C.h);
+      FX(hx, hy - 3, 2, 3, C.b); FX(hx + 5, hy - 3, 2, 3, C.b); FX(hx + 1, hy - 2, 1, 2, '#e8a0a8'); FX(hx + 6, hy - 2, 1, 2, '#e8a0a8');
+      FX(hx + 4, hy + 2, 2, 2, '#4aa04a'); FX(hx + 4, hy + 2, 1, 2, '#1a2a1a');
+      FX(hx + 7, hy + 4, 1, 1, '#e88a9a'); FX(hx + 8, hy + 4, 3, 1, mix(col, '#ffffff', 0.6)); FX(hx + 8, hy + 6, 3, 1, mix(col, '#ffffff', 0.6));
     }
-    if (p.sick) bubbleAt(x + 3, y - 14, 'sweat');
+    void X;
+    if (p.sick) late(Math.round(a.x) + 3, Math.round(a.y) - 14, 'sweat');
   }
-  // ---------- cars (owned vehicles only), seen from above like the room, parked nose-in inside a bay
+  // ---------- cars (owned vehicles only), seen from above, parked nose-in inside a bay — fine pixels
   const CAR_DIM = { compact: [12, 18], sedan: [13, 21], suv: [14, 21], ev: [13, 20], luxury: [14, 23], sports: [13, 19] };
   function drawCar(cr, bay, dl) {
-    const k2 = 0.55 + 0.45 * dl, [w, h] = CAR_DIM[cr.type] || [13, 20];
-    const x = bay.x + Math.floor((bay.w - w) / 2), y = bay.y + Math.floor((bay.h - h) / 2);
-    const body = sh(cr.color || '#5c6f8f', k2), dark = sh(body, 0.72), lite = mix(body, '#ffffff', 0.3), glass = sh(dl > 0.4 ? '#8fb6d4' : '#34445c', 1), ol = sh('#1c1618', 1);
-    // soft shadow on the ground (translucent, so the ground stays visible)
-    g.fillStyle = 'rgba(0,0,0,0.22)'; g.fillRect(x + 1, y + 2, w, h);
-    // outline follows the rounded body (corners left open → no box behind the car)
-    R(x + 1, y - 1, w - 2, h + 2, ol); R(x - 1, y + 1, w + 2, h - 2, ol); R(x, y, w, h, ol);
-    // wheels peek out at the sides
-    for (const wy of [y + 3, y + h - 6]) { R(x - 1, wy, 1, 3, '#111114'); R(x + w, wy, 1, 3, '#111114'); }
-    R(x + 1, y + 1, w - 2, h - 2, body);
-    R(x + 1, y + 1, w - 2, 1, lite); R(x + 1, y + h - 2, w - 2, 1, dark);
-    // windscreen (front, toward the house), roof, rear window (toward the viewer)
-    const front = cr.type === 'sports' ? 6 : 4, roofH = Math.max(4, h - front - (cr.type === 'suv' ? 6 : 8));
-    R(x + 2, y + front, w - 4, 3, glass); R(x + 2, y + front + 3, w - 4, roofH, sh(body, 0.9));
-    R(x + 2, y + front + 3 + roofH, w - 4, 2, glass);
-    if (cr.type === 'suv') { R(x + 3, y + front + 4, w - 6, 1, sh('#2a2a2a', k2)); R(x + 3, y + front + roofH, w - 6, 1, sh('#2a2a2a', k2)); }
-    if (cr.type === 'sports') R(x + Math.floor(w / 2) - 1, y + 1, 2, h - 2, mix(body, '#ffffff', 0.55));
-    if (cr.type === 'luxury') { R(x + 1, y + Math.floor(h / 2), 1, 3, '#d8c070'); R(x + w - 2, y + Math.floor(h / 2), 1, 3, '#d8c070'); }
-    if (cr.type === 'ev') P1(x + Math.floor(w / 2), y + 2, '#5ad0a0');
-    // lights: headlights face the house, tail lights face the viewer
-    P1(x + 1, y + 1, '#f4ecc0'); P1(x + w - 2, y + 1, '#f4ecc0');
-    R(x + 1, y + h - 2, 2, 1, '#d84a4a'); R(x + w - 3, y + h - 2, 2, 1, '#d84a4a');
-    if (dl < 0.4) { lights.push([x + 2, y + h - 1, 4, 'rgba(255,80,80,0.35)']); lights.push([x + w - 2, y + h - 1, 4, 'rgba(255,80,80,0.35)']); }
+    const k2 = 0.55 + 0.45 * dl, [w0, h0] = CAR_DIM[cr.type] || [13, 20];
+    const x0 = bay.x + Math.floor((bay.w - w0) / 2), y0 = bay.y + Math.floor((bay.h - h0) / 2);
+    OX = x0 * 2; OY = y0 * 2;
+    const w = w0 * 2, h = h0 * 2;
+    const B = tone(sh(cr.color || '#5c6f8f', k2)), glass = dl > 0.4 ? '#8fb6d4' : '#34445c', G = tone(glass), ol = '#1c1618';
+    F(2, 4, w, h, 'rgba(0,0,0,0.22)');
+    F(3, -1, w - 6, h + 2, ol); F(1, 1, w - 2, h - 2, ol); F(-1, 4, w + 2, h - 8, ol);
+    for (const wy of [6, h - 12]) { F(-2, wy, 2, 6, '#111114'); F(w, wy, 2, 6, '#111114'); F(-2, wy + 1, 1, 4, '#3a3a40'); F(w + 1, wy + 1, 1, 4, '#3a3a40'); }
+    F(3, 0, w - 6, h, B.b); F(1, 3, w - 2, h - 6, B.b);
+    F(3, 1, w - 6, 2, B.h); F(1, 4, 2, h - 8, B.h); F(w - 3, 4, 2, h - 8, B.s); F(3, h - 3, w - 6, 2, B.s);
+    const front = cr.type === 'sports' ? 12 : 8, roofH = Math.max(8, h - front - (cr.type === 'suv' ? 12 : 16));
+    // bonnet line, windscreen with a reflection, roof, rear window
+    F(4, front - 2, w - 8, 1, B.s);
+    F(4, front, w - 8, 6, G.b); F(5, front, w - 10, 1, G.h); F(6, front + 1, 2, 4, mix(glass, '#ffffff', 0.5)); F(9, front + 1, 1, 2, mix(glass, '#ffffff', 0.4));
+    F(4, front + 6, w - 8, roofH, sh(B.b, 0.92)); F(5, front + 7, w - 10, 1, mix(B.b, '#ffffff', 0.18)); F(4, front + 6, 1, roofH, B.s); F(w - 5, front + 6, 1, roofH, B.d);
+    F(4, front + 6 + roofH, w - 8, 4, G.s); F(5, front + 6 + roofH, 3, 1, G.h);
+    F(-1, front + 4, 2, 2, B.s); F(w - 1, front + 4, 2, 2, B.s); // mirrors
+    F(1, front + 10, w - 2, 1, B.s); // door seam
+    if (cr.type === 'suv') { F(6, front + 8, w - 12, 1, sh('#2a2a2a', k2)); F(6, front + roofH + 2, w - 12, 1, sh('#2a2a2a', k2)); }
+    if (cr.type === 'sports') { F(w / 2 - 2, 1, 4, h - 2, mix(B.b, '#ffffff', 0.55)); F(w / 2 - 1, 1, 1, h - 2, mix(B.b, '#ffffff', 0.75)); }
+    if (cr.type === 'luxury') { F(2, h / 2 - 2, 1, 8, '#e0c870'); F(w - 3, h / 2 - 2, 1, 8, '#e0c870'); F(w / 2 - 1, 1, 2, 2, '#e8e0c0'); }
+    if (cr.type === 'ev') { F(w / 2 - 2, 3, 4, 1, '#5ad0a0'); F(w / 2 - 1, 2, 2, 3, '#5ad0a0'); }
+    F(2, 1, 4, 2, '#f8f0c8'); F(w - 6, 1, 4, 2, '#f8f0c8'); F(3, 1, 1, 1, '#ffffff'); F(w - 5, 1, 1, 1, '#ffffff');
+    F(2, h - 3, 4, 2, '#d84a4a'); F(w - 6, h - 3, 4, 2, '#d84a4a'); F(3, h - 3, 2, 1, '#f08080'); F(w - 5, h - 3, 2, 1, '#f08080');
+    F(w / 2 - 4, h - 2, 8, 2, '#e8e8e0'); F(w / 2 - 3, h - 2, 6, 1, '#2a2a30'); // plate
+    if (dl < 0.4) { lights.push([x0 + 2, y0 + h0 - 1, 4, 'rgba(255,80,80,0.35)']); lights.push([x0 + w0 - 2, y0 + h0 - 1, 4, 'rgba(255,80,80,0.35)']); }
   }
   // ---------- bubbles
   const ICON = {
@@ -10292,10 +11023,10 @@ const Scene = (function () {
   function getView() { return viewMode; }
   function mood(tone) { SIM.mood = { tone, until: SIM.clock + 4 }; }
   function frame(state, now) {
-    if (!g) return;
+    if (!g) return false;
     const tnow = now / 1000;
     const dt = Math.min(0.1, last ? tnow - last : 0.016); last = tnow;
-    acc += dt; if (acc < 1 / 30) return; // ~30 fps is plenty for pixel art
+    acc += dt; if (acc < 1 / 30) return false; // ~30 fps is plenty for pixel art
     const step = Math.min(0.1, acc); acc = 0;
     SIM.clock += step;
     // the model only changes when the game state changes (rev), so it is rebuilt at most once per change
@@ -10310,7 +11041,7 @@ const Scene = (function () {
     if (sig !== SIM.sig) { const fresh = !SIM.L || SIM.sig.split('|')[0] !== viewMode; SIM.sig = sig; SIM.L = buildLayout(m); if (fresh) { SIM.chars.clear(); SIM.pets.clear(); } syncActors(m, SIM.L); resetActorsToLayout(SIM.L); }
     else syncActors(m, SIM.L);
     const L = SIM.L;
-    lights = [];
+    lights = []; LATE = [];
     const t = dayT(), dl = daylight(t);
     // behaviour (presentation only)
     for (const c of SIM.chars.values()) stepChar(c, L, m, step);
@@ -10321,24 +11052,24 @@ const Scene = (function () {
     for (const p of L.placed) if (p.under && p.x >= 0) drawItem(p, dl, tnow, L);
     // depth-sorted furniture, people and pets
     const list = [];
-    for (const p of L.placed) if (!p.under && p.x >= 0) list.push({ y: L.floorY + (p.y + p.D.h) * TS - (p.D.place === 'center' && p.it.key.startsWith('sofa') ? 2 : 0), f: () => drawItem(p, dl, tnow, L) });
+    for (const p of L.placed) if (!p.under && p.x >= 0) list.push({ y: L.floorY + (p.y + p.D.h) * TS - (p.D.place === 'center' && p.it.key.startsWith('sofa') ? 2 : 0), f: () => drawItem(p, dl, tnow, L), bb: itemBB(p, L) });
     for (const p of L.placed) if (p.under && p.x >= 0 && /^petbed|^bowl/.test(p.it.key)) { /* drawn under */ }
     for (const c of SIM.chars.values()) {
       if (c.state === 'out') continue;
-      if (c.state === 'act' && c.act === 'sleep') { const s = c.spot; list.push({ y: L.floorY + (s.item.y + s.item.D.h) * TS + 0.5, f: () => drawSleeper(c, tnow) }); continue; }
-      if (c.state === 'act' && c.act === 'floorsleep') { list.push({ y: c.y - 6, f: () => drawFloorSleeper(c, tnow) }); continue; }
+      if (c.state === 'act' && c.act === 'sleep') { const s = c.spot; const sx = L.ox + s.x * TS, sy = L.floorY + s.y * TS; list.push({ y: L.floorY + (s.item.y + s.item.D.h) * TS + 0.5, hi: 1, bb: [sx, sy, sx + 14, sy + 22], f: () => drawSleeper(c, tnow) }); continue; }
+      if (c.state === 'act' && c.act === 'floorsleep') { list.push({ y: c.y - 6, hi: 1, bb: [c.x - 8, c.y - 11, c.x + 8, c.y + 3], f: () => drawFloorSleeper(c, tnow) }); continue; }
       let yy = c.y;
       if (c.state === 'act' && c.spot && c.spot.on && c.act === 'sofa') yy = L.floorY + (c.spot.item.y + 1) * TS - 3;
       if (c.state === 'act' && c.act === 'crib') yy = L.floorY + (c.spot.item.y + 1) * TS + 4;
       const dy = c.state === 'act' && c.act === 'sofa' ? -1 : c.state === 'act' && c.act === 'crib' ? -1 : 0;
-      list.push({ y: yy, f: () => drawPerson(c, c.x, c.y + dy, tnow) });
+      list.push({ y: yy, hi: 1, bb: personBB(c.x, c.y + dy), f: () => drawPerson(c, c.x, c.y + dy, tnow) });
     }
-    for (const a of SIM.pets.values()) list.push({ y: a.y, f: () => drawPet(a, tnow) });
+    for (const a of SIM.pets.values()) list.push({ y: a.y, hi: 1, bb: [a.x - 8, a.y - 14, a.x + 8, a.y + 2], f: () => drawPet(a, tnow) });
     // cars belong to the home (not the office view) and sit in their bays, depth-sorted with anyone walking outside
     SIM.carsDrawn = [];
-    if (m.kind !== 'office') m.cars.slice(0, L.bays.length).forEach((cr, i) => { const b = L.bays[i]; SIM.carsDrawn.push({ id: cr.id, type: cr.type, bay: b }); list.push({ y: b.y + b.h, f: () => drawCar(cr, b, dl) }); });
-    list.sort((a, b) => a.y - b.y);
-    for (const e of list) e.f();
+    if (m.kind !== 'office') m.cars.slice(0, L.bays.length).forEach((cr, i) => { const b = L.bays[i]; SIM.carsDrawn.push({ id: cr.id, type: cr.type, bay: b }); list.push({ y: b.y + b.h, hi: 1, bb: [b.x - 2, b.y - 2, b.x + b.w + 2, b.y + b.h + 2], f: () => drawCar(cr, b, dl) }); });
+    compose(list);
+    overlay(() => {
     // weather outside
     if (m.weather === 'rain') { g.fillStyle = 'rgba(190,210,240,0.6)'; for (let i = 0; i < 16; i++) { const rx = (i * 37 + Math.floor(tnow * 60)) % W, ry = H - OUT + ((i * 13 + Math.floor(tnow * 80)) % OUT); g.fillRect(rx, ry, 1, 2); } }
     if (m.weather === 'snow') { g.fillStyle = '#ffffff'; for (let i = 0; i < 14; i++) { const rx = (i * 37 + Math.floor(tnow * 6 + Math.sin(tnow + i) * 3)) % W, ry = H - OUT + ((i * 13 + Math.floor(tnow * 12)) % OUT); g.fillRect(rx, ry, 1, 1); } }
@@ -10359,6 +11090,9 @@ const Scene = (function () {
     for (const b of SIM.bubbles) { const c = SIM.chars.get(b.id); if (c && c.state !== 'out' && !(c.act === 'sleep')) bubbleAt(Math.round(c.x) + 2, Math.round(c.y) - 30, b.kind); }
     for (const c of SIM.chars.values()) if (c.state === 'act' && ['music', 'stream'].includes(c.act) && Math.floor(tnow * 1.5 + c.sd) % 3 === 0) bubbleAt(Math.round(c.x) + 3, Math.round(c.y) - 28, 'note');
     if (SIM.mood && SIM.mood.until > SIM.clock) { const kind = SIM.mood.tone === 'good' ? 'star' : 'sweat'; for (const c of SIM.chars.values()) if (c.state !== 'out' && c.act !== 'sleep' && c.p.routine !== 'staff') bubbleAt(Math.round(c.x) - 4, Math.round(c.y) - 30, kind); }
+    for (const [bx, by, kind] of LATE) bubbleAt(bx, by, kind);
+    });
+    return true;
   }
   // draw at 1:1 into an offscreen buffer, then (1) lift contrast/saturation a little so colours read clearly on a phone,
   // (2) upscale ×2 with Scale2x/EPX — a classic pixel-art filter that keeps every edge hard but turns jagged diagonals and
@@ -10386,60 +11120,104 @@ const Scene = (function () {
       }
     }
   }
-  function present(target, ctxT, buf, bufG, scale) {
-    // scale = integer device pixels per logical pixel
-    ctxT.imageSmoothingEnabled = false;
-    if (scale < 2) { ctxT.drawImage(buf, 0, 0, W * scale, H * scale); return; }
-    if (!hi) { hi = document.createElement('canvas'); hi.width = W * 2; hi.height = H * 2; hg = hi.getContext('2d'); hiImg = hg.createImageData ? hg.createImageData(W * 2, H * 2) : null; }
-    if (!hiImg) { ctxT.drawImage(buf, 0, 0, W * scale, H * scale); return; }
-    let src = null; try { src = bufG.getImageData(0, 0, W, H); } catch (e) { src = null; }
-    if (!src || !src.data) { ctxT.drawImage(buf, 0, 0, W * scale, H * scale); return; } // canvases without pixel access (tests, old browsers): plain crisp scaling
-    if (scale % 2) { crisp(src, W, H, null); bufG.putImageData(src, 0, 0); ctxT.drawImage(buf, 0, 0, W * scale, H * scale); return; } // odd scale: colour only, keep 1:1 pixels
-    crisp(src, W, H, hiImg); hg.putImageData(hiImg, 0, 0);
-    ctxT.drawImage(hi, 0, 0, W * scale, H * scale); // even scale: every 2×2 block lands on whole device pixels
+  // ---- composing: the room (drawn 1:1, colour-lifted and EPX-doubled) and the fine sprites (drawn 2×) in depth order
+  let scr = null, sg = null, LATE = [];
+  function late(x, y, kind) { LATE.push([x, y, kind]); }
+  function buffers() {
+    if (!off) { off = document.createElement('canvas'); off.width = W; off.height = H; og = off.getContext('2d', { willReadFrequently: true }); }
+    if (!hi) { hi = document.createElement('canvas'); hi.width = W * 2; hi.height = H * 2; hg = hi.getContext('2d'); hiImg = hg.createImageData ? hg.createImageData(W * 2, H * 2) : null; scr = document.createElement('canvas'); scr.width = W * 2; scr.height = H * 2; sg = scr.getContext('2d'); }
+  }
+  function flush(x0, y0, x1, y1, over) { // a region of the 1× room buffer → the 2× buffer
+    x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0)); x1 = Math.min(W, Math.ceil(x1)); y1 = Math.min(H, Math.ceil(y1));
+    const w = x1 - x0, h = y1 - y0; if (w <= 0 || h <= 0) return;
+    hg.imageSmoothingEnabled = false;
+    let src = null; try { src = og.getImageData(x0, y0, w, h); } catch (e) { src = null; }
+    if (!src || !src.data || !hiImg) { if (!over) hg.clearRect(x0 * 2, y0 * 2, w * 2, h * 2); hg.drawImage(off, x0, y0, w, h, x0 * 2, y0 * 2, w * 2, h * 2); return; } // no pixel access: plain doubling
+    const dst = w === W && h === H ? hiImg : hg.createImageData(w * 2, h * 2);
+    crisp(src, w, h, dst);
+    if (!over) { hg.putImageData(dst, x0 * 2, y0 * 2); return; }
+    sg.clearRect(0, 0, w * 2, h * 2); sg.putImageData(dst, 0, 0); hg.drawImage(scr, 0, 0, w * 2, h * 2, x0 * 2, y0 * 2, w * 2, h * 2);
+  }
+  const itemBB = (p, L) => [L.ox + p.x * TS - 2, L.floorY + p.y * TS - 28, L.ox + (p.x + p.D.w) * TS + 2, L.floorY + (p.y + p.D.h) * TS + 2];
+  const personBB = (x, y) => [x - 8, y - 25, x + 8, y + 3];
+  function compose(list) {
+    // 1) everything that is not a fine sprite goes into the room buffer, which is then doubled as a whole
+    list.sort((a, b) => a.y - b.y);
+    for (const e of list) if (!e.hi) e.f();
+    flush(0, 0, W, H, false);
+    // 2) fine sprites in depth order; furniture that stands in front of an already drawn sprite is drawn again on top
+    const saveG = HG; HG = hg;
+    const done = []; let pend = [];
+    const front = () => {
+      if (!pend.length) return;
+      let x0 = W, y0 = H, x1 = 0, y1 = 0;
+      for (const e of pend) { x0 = Math.min(x0, e.bb[0]); y0 = Math.min(y0, e.bb[1]); x1 = Math.max(x1, e.bb[2]); y1 = Math.max(y1, e.bb[3]); }
+      x0 = Math.max(0, Math.floor(x0) - 2); y0 = Math.max(0, Math.floor(y0) - 2); x1 = Math.min(W, Math.ceil(x1) + 2); y1 = Math.min(H, Math.ceil(y1) + 2);
+      og.clearRect(x0, y0, x1 - x0, y1 - y0);
+      const n = lights.length; for (const e of pend) e.f(); lights.length = n;
+      flush(x0, y0, x1, y1, true); pend = [];
+    };
+    try {
+      for (const e of list) {
+        if (e.hi) { front(); e.f(); if (e.bb) done.push(e.bb); }
+        else if (e.bb && done.some((b) => b[0] < e.bb[2] && e.bb[0] < b[2] && b[1] < e.bb[3] && e.bb[1] < b[3])) pend.push(e);
+      }
+      front();
+    } finally { HG = saveG; }
+  }
+  function overlay(fn) { // weather, night light and bubbles: drawn in room pixels straight onto the 2× buffer
+    const save = g; g = hg; hg.setTransform(2, 0, 0, 2, 0, 0); hg.imageSmoothingEnabled = false;
+    try { fn(); } finally { hg.setTransform(1, 0, 0, 1, 0, 0); g = save; }
   }
   function frameScaled(state, now) {
     if (!cv) return;
-    if (!off) { off = document.createElement('canvas'); off.width = W; off.height = H; og = off.getContext('2d', { willReadFrequently: true }); }
+    buffers();
     const screen = g; g = og; g.imageSmoothingEnabled = false;
-    const kk = k; k = 1;
-    try { frameInner(state, now); } finally { k = kk; g = screen; }
-    present(cv, g, off, og, k);
+    const kk = k; k = 1; let drawn = false;
+    try { drawn = frameInner(state, now); } finally { k = kk; g = screen; }
+    if (!drawn) return;
+    g.imageSmoothingEnabled = false; g.clearRect(0, 0, cv.width, cv.height);
+    g.drawImage(hi, 0, 0, W * k, H * k); // 2× buffer → integer device pixels (k is even on almost every screen)
   }
-  function preview(canvas, look, gender) {
-    const c2 = canvas.getContext('2d'); const save = g; g = c2; g.imageSmoothingEnabled = false;
-    g.clearRect(0, 0, canvas.width, canvas.height);
-    const fake = { p: { id: 'preview', look, gender, age: 25, routine: 'adult', outfit: 'casual', grey: 0 }, state: 'idle', face: 'down', walkD: 0, sd: 3 };
-    try { drawPerson(fake, Math.floor(canvas.width / 2), canvas.height - 3, 1); } finally { g = save; }
+  // one person on a small canvas (profile, look editor). `extra` carries age / outfit / wealth so it matches the room
+  function preview(canvas, look, gender, extra) {
+    const c2 = canvas.getContext('2d'); c2.imageSmoothingEnabled = false;
+    c2.clearRect(0, 0, canvas.width, canvas.height);
+    const p = Object.assign({ id: 'preview', look, gender, age: 25, routine: 'adult', outfit: 'casual', grey: 0 }, extra || {}, { look });
+    if (p.routine === 'baby') p.routine = 'toddler';
+    const pose = (extra && extra.pose) || {};
+    const fake = { p, state: pose.walkD != null ? 'walk' : 'idle', face: pose.face || 'down', walkD: pose.walkD || 0, sd: 3, x: 0, y: 0 };
+    const save = HG, sl = lights; HG = c2; lights = [];
+    try { hiPerson(fake, canvas.width / 4, (canvas.height - 3) / 2, 1); } finally { HG = save; lights = sl; }
   }
   // a still picture of a stored room (used by the life history): same layout and sprites as the live scene, at midday, nobody moving
   function snapshot(canvas, cm) {
     if (!canvas || !cm) return;
     const m = Object.assign({ weather: 'clear', month: 5, office: null, view: 'none', outside: 'street' }, cm);
     m.items = (cm.items || []).map((i) => Object.assign({}, i)); m.people = (cm.people || []).map((p) => Object.assign({}, p)); m.pets = (cm.pets || []).map((p) => Object.assign({}, p)); m.cars = (cm.cars || []).slice();
-    const buf = document.createElement('canvas'); buf.width = W; buf.height = H;
-    const save = g, saveM = m_, saveLights = lights; g = buf.getContext('2d'); g.imageSmoothingEnabled = false; m_ = m; lights = [];
+    buffers();
+    const save = g, saveM = m_, saveLights = lights, saveLate = LATE; g = og; g.imageSmoothingEnabled = false; m_ = m; lights = []; LATE = [];
+    g.clearRect(0, 0, W, H); hg.clearRect(0, 0, W * 2, H * 2);
     try {
       const L = buildLayout(m), dl = 1;
       drawSurroundings(m, L, dl); drawRoomShell(m, L, dl, 0);
       for (const p of L.placed) if (p.under && p.x >= 0) drawItem(p, dl, 0, L);
       const list = [];
-      for (const p of L.placed) if (!p.under && p.x >= 0) list.push({ y: L.floorY + (p.y + p.D.h) * TS, f: () => drawItem(p, dl, 0, L) });
+      for (const p of L.placed) if (!p.under && p.x >= 0) list.push({ y: L.floorY + (p.y + p.D.h) * TS, f: () => drawItem(p, dl, 0, L), bb: itemBB(p, L) });
       const free = []; for (let y = 1; y < L.h; y++) for (let x = 0; x < L.w; x++) if (L.walk[y][x] && L.reach[y][x]) free.push([x, y]);
       const used = new Set();
       const spot = (sd) => { if (!free.length) return tileC(L, L.doorX, L.h - 1); for (let i = 0; i < free.length; i++) { const t = free[(sd + i * 7) % free.length], key = t[0] + ',' + t[1]; if (!used.has(key)) { used.add(key); return tileC(L, t[0], t[1]); } } return tileC(L, free[0][0], free[0][1]); };
-      for (const p of m.people) { const sd = strId(p.id), [x, y] = spot(sd); const c = { id: p.id, p, x, y, face: 'down', state: 'idle', walkD: 0, sd, path: [] }; list.push({ y, f: () => drawPerson(c, x, y, 0) }); }
-      for (const p of m.pets) { const sd = strId(p.id), [x, y] = spot(sd * 3); const a = { id: p.id, p, x, y, face: 'right', state: 'idle', sd, path: [] }; list.push({ y, f: () => drawPet(a, 0) }); }
-      if (m.kind !== 'office') m.cars.slice(0, L.bays.length).forEach((cr, i) => { const b = L.bays[i]; list.push({ y: b.y + b.h, f: () => drawCar(cr, b, dl) }); });
-      list.sort((a, b) => a.y - b.y); for (const e of list) e.f();
+      for (const p of m.people) { const sd = strId(p.id), [x, y] = spot(sd); const c = { id: p.id, p, x, y, face: 'down', state: 'idle', walkD: 0, sd, path: [] }; list.push({ y, hi: 1, bb: personBB(x, y), f: () => drawPerson(c, x, y, 0) }); }
+      for (const p of m.pets) { const sd = strId(p.id), [x, y] = spot(sd * 3); const a = { id: p.id, p, x, y, face: 'right', state: 'idle', sd, path: [] }; list.push({ y, hi: 1, bb: [x - 8, y - 14, x + 8, y + 2], f: () => drawPet(a, 0) }); }
+      if (m.kind !== 'office') m.cars.slice(0, L.bays.length).forEach((cr, i) => { const b = L.bays[i]; list.push({ y: b.y + b.h, hi: 1, bb: [b.x - 2, b.y - 2, b.x + b.w + 2, b.y + b.h + 2], f: () => drawCar(cr, b, dl) }); });
+      compose(list);
     } catch (e) { /* an old or partial snapshot: leave the frame blank rather than break the page */ }
-    finally { g = save; m_ = saveM; lights = saveLights; }
-    // size the canvas to what is actually shown (integer device pixels per game pixel), then present like the live scene
+    finally { g = save; m_ = saveM; lights = saveLights; LATE = saveLate; }
+    // size the canvas to what is actually shown (integer device pixels per game pixel), then copy the 2× picture
     const dpr = Math.min(3, window.devicePixelRatio || 1), cssW = canvas.clientWidth || canvas.width;
     const sc = Math.max(2, Math.floor(cssW * dpr / W)); canvas.width = W * sc; canvas.height = H * sc;
-    const c2 = canvas.getContext('2d'); c2.clearRect(0, 0, canvas.width, canvas.height);
-    const bg = buf.getContext('2d', { willReadFrequently: true });
-    const keepHi = hi; hi = null; present(canvas, c2, buf, bg, sc); hi = keepHi;
+    const c2 = canvas.getContext('2d'); c2.imageSmoothingEnabled = false; c2.clearRect(0, 0, canvas.width, canvas.height);
+    c2.drawImage(hi, 0, 0, W * sc, H * sc);
   }
   return { mount, OUT, LIP, TS, frame: frameScaled, snapshot, mood, preview, setView, getView, onPick, resize, W, H, _sim: SIM, _build: buildLayout, _office: officeModel };
 })();
@@ -10852,7 +11630,7 @@ const Scene = (function () {
   function openSheet(name, tab) {
     if (!ui.sheet) ui.wasPlaying = S.time.playing;
     if (S.time.playing) { S.time.playing = false; LC.bump(S); }
-    ui.sheet = name; ui.tab = tab || defaultTab(name); ui.msg = null; ui.confirm = null; ui.asset = null; ui.buyType = null; ui.div = null; ui.ctab = 'ov'; ui.sub = null; // a fresh visit starts at the overview (where 「いまやること」 is)
+    ui.sheet = name; ui.tab = tab || defaultTab(name); ui.msg = null; ui.confirm = null; ui.asset = null; ui.buyType = null; ui.div = null; ui.ctab = 'ov'; ui.sub = null; ui.arc = null; // a fresh visit starts at the overview (where 「いまやること」 is)
     $('#sheet').hidden = false; document.documentElement.classList.add('lock'); markDock();
     renderSheet();
     $('#sheetBody').scrollTop = 0;
@@ -11390,6 +12168,9 @@ const Scene = (function () {
       case 'rlist': ui.rlist = ui.rlist === v ? null : v; ui.rform = null; renderSheet(); break;
       case 'buyProp': { const f = ui.rform || { down: 0.2, years: 25 }; const r = LC.buyRealty(S, v, f.down, f.years); if (r.ok) ui.rlist = null; result(r); break; }
       case 'bizSel': ui.bizSel = v; renderSheet(); break;
+      case 'arcOpen': ui.arc = v; renderSheet(); { const sb = document.querySelector('#sheetBody'); if (sb) sb.scrollTop = 0; } break;
+      case 'arcClose': ui.arc = null; renderSheet(); break;
+      case 'noop': break;
       case 'ctab': ui.ctab = v; ui.div = null; renderSheet(); break;
       case 'divOpen': ui.div = v; if (el.dataset.b && S.businesses.find((x) => x.id === el.dataset.b && x.parentId)) ui.sub = el.dataset.b; else ui.ctab = 'ops'; renderSheet(); break;
       case 'divBack': ui.div = null; renderSheet(); break;
@@ -11501,7 +12282,7 @@ const Scene = (function () {
   }
   function lookControls(look, pre) {
     const hs = look.hairStyle, hc = look.hair, sc = look.shirt;
-    return `<div class="look-grid"><canvas id="lookPrev" width="24" height="24" aria-label="見た目のプレビュー"></canvas><div class="look-opts">
+    return `<div class="look-grid"><canvas id="lookPrev" width="48" height="48" aria-label="見た目のプレビュー"></canvas><div class="look-opts">
       <span class="hint">髪型</span><div class="seg">${Object.keys(HAIR_LABEL).map((k) => `<button data-act="${pre}" data-k="hairStyle" data-v="${k}" class="${hs === k ? 'on' : ''}">${HAIR_LABEL[k]}</button>`).join('')}</div>
       <span class="hint">髪の色</span><div class="swatches">${HAIR_COLORS.map((c) => `<button class="sw ${hc === c ? 'on' : ''}" style="background:${c}" data-act="${pre}" data-k="hair" data-v="${c}" aria-label="髪の色 ${c}"></button>`).join('')}</div>
       <span class="hint">服の色</span><div class="swatches">${LC.LOOKS.shirt.map((c) => `<button class="sw ${sc === c ? 'on' : ''}" style="background:${c}" data-act="${pre}" data-k="shirt" data-v="${c}" aria-label="服の色 ${c}"></button>`).join('')}</div>
@@ -11922,7 +12703,8 @@ const Scene = (function () {
   }
   function sheetCompanyX() {
     const mine = S.businesses.filter((b) => !b.parentId);
-    if (!mine.length) return sheetCompany();
+    if (ui.arc) { const h = arcScreen(ui.arc); if (h) return h; ui.arc = null; }
+    if (!mine.length) return sheetCompany() + arcSection();
     if (ui.sub) { const sub = S.businesses.find((x) => x.id === ui.sub); if (sub) return subDetail(sub); ui.sub = null; }
     let b = mine.find((x) => x.id === ui.bizSel) || mine[0]; ui.bizSel = b.id;
     const ct = CTAB_OLD[ui.ctab] || (CTABS.some(([k]) => k === ui.ctab) ? ui.ctab : 'ov');
@@ -11946,6 +12728,7 @@ const Scene = (function () {
     };
     html += (G[ct] || G.ov)();
     if (mine.length < 3 && ct === 'ov') html += `<details class="box more-co"><summary>もう1社つくる</summary>${companyForm()}</details>`;
+    if (ct === 'ov') html += arcSection();
     return html;
   }
   function plRows(P) { return P ? [['売上', Y(P.revenue)], ['売上原価', '−' + Y(P.cogs)], ['人件費', '−' + Y(P.labor)], ['減価償却', '−' + Y(P.depr)], ['広告費', '−' + Y(P.ads)], ['家賃・研究開発・その他', '−' + Y(P.other)], ['役員報酬', '−' + Y(P.pay)], ['支払利息', '−' + Y(P.interest)], ['税引前利益', LC.signedYen(P.pretax), 'sum'], ['法人税', '−' + Y(P.tax)], ['純利益', `<span class="${P.net >= 0 ? 'up' : 'down'}">${LC.signedYen(P.net)}</span>`, 'sum']] : []; }
@@ -12211,7 +12994,9 @@ const Scene = (function () {
   // ---- decisions: peek and auto
   function autoBar() {
     const cur = S.flags.auto;
-    return cur ? `<div class="auto-bar"><span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button></div>`
+    const A = cur ? LC.autoSummary(S) : null, recent = A ? A.recent.slice(-3).reverse() : [];
+    const what = { safe: '生活費12か月分を残し、債券・投資信託中心にゆっくり運用。会社は年1回見直し、借入返済を優先します。', balanced: '生活費6か月分を残して分散投資。収支がプラスの不動産だけ検討し、会社は半年ごとに見直します。', bold: '生活費4か月分を残し、余裕資金で株・不動産・事業拡大・買収に挑戦します。赤字や資金不足のときは立て直しを優先します。' }[cur] || '';
+    return cur ? `<div class="auto-bar"><span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button></div><p class="hint auto-what">${what}</p>${recent.length ? `<ul class="auto-log">${recent.map((x) => `<li><span class="num">${x.age}歳</span>${esc(x.title)}</li>`).join('')}</ul>` : ''}`
       : `<details class="auto-d"><summary class="auto-open">これからの決断をおまかせにする</summary><div class="auto-bar"><span class="hint">選び方：</span>${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}</div></details>`;
   }
   function peekLayer(v) {
@@ -12443,11 +13228,11 @@ const Scene = (function () {
     const school = S.career.status === 'student' || S.career.status === 'child' ? (S.education.school || (LC.playerAge(S) < 6 ? '就学前' : '—')) : (EDU[S.education.degree] || '—');
     const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
     const html = `<div class="prof-strip"><span>プロフィール · ${esc(C.name)}</span><span class="num">${cal.y}</span></div>
-      <div class="prof-body"><canvas id="profAvatar" class="prof-av" width="24" height="24" aria-hidden="true"></canvas>
+      <div class="prof-body"><canvas id="profAvatar" class="prof-av" width="48" height="48" aria-hidden="true"></canvas>
         <div class="prof-main"><h3 class="prof-name">${esc(P.name)}</h3>
         <dl class="prof-kv">${row('性別', esc(LC.GENDER_LABEL[P.gender] || ''))}${row('出生', `${esc(bc.name)} · ${P.birthYear}年${S.birthMonth ? S.birthMonth + '月' : ''}`)}${row('居住地', `${esc(S.region.name)}, ${esc(C.name)}`)}
           ${row('生まれた家庭', `<span class="tier-dots" title="${esc(LC.TIERS[tier].label)}">${dots}</span>`)}${row('学歴', esc(school))}${row('仕事', esc(jobLine()))}${S.temper ? row('性格', esc(S.temper)) : ''}</dl></div></div>`;
-    if (el._h !== html) { el.innerHTML = html; el._h = html; const cv = $('#profAvatar'); if (cv) Scene.preview(cv, P.look, P.gender); }
+    if (el._h !== html) { el.innerHTML = html; el._h = html; const cv = $('#profAvatar'); if (cv) { let me = null; try { me = LC.roomModel(S).people.find((x) => x.relation === 'self'); } catch (e) { me = null; } Scene.preview(cv, P.look, P.gender, me); } }
   }
   const BAR_COL = { health: 'var(--health)', happiness: 'var(--happy)', knowledge: 'var(--know)', relations: 'var(--rel)' };
   function renderStatsRef() {
@@ -12526,6 +13311,55 @@ const Scene = (function () {
     return `<div class="box"><h4>これまでの人生<span class="hint">${a.length}人</span></h4>${a.length ? `<div class="list">${a.map((E, i) => `<div class="opt"><span class="name">${esc(E.name)} <span class="tag">${esc(E.eval.rank)}</span></span><span class="sub">${E.birthYear}–${E.death.year} · 享年${E.age}歳 · ${esc(E.eval.tags[0] ? E.eval.tags[0].t : E.eval.label)}</span><button class="btn sm" data-act="epiArchive" data-v="${i}">総評を読む</button></div>`).join('')}</div>` : '<p class="empty">人生を最後まで生きると、ここに総評が残ります。新しい人生を始めても消えません。</p>'}</div>`;
   }
   const VIA_L = { found: '設立', acquire: '買収', family: '家業', inherit: '相続' };
+  // ======================= companies that ended (and the ones still running): one shared record view =======================
+  const ARC_ST = { active: ['ok', '経営中'], bankrupt: ['bad', '倒産'], sold: ['info', '売却済み'], subsold: ['info', '子会社として売却'], parent: ['muted', 'グループごと終了'], ended: ['muted', '経営から離脱'] };
+  const ARC_ROLE = { owner: 'オーナー経営者（創業者）', ceo: '代表（経営者）', holder: '株主（経営は他の人）', sub: '親会社を通じて経営', subhold: '親会社を通じた株主' };
+  const ARC_VIA = { found: '自分で設立', inherit: '親から相続', acquire: '買収で取得', family: '家族の会社' };
+  // yearly sales (bars) and operating profit (line) up to the year the company ended — never beyond it
+  function arcChart(a) {
+    const H = (a.hist || []).filter((r) => r.rev != null); if (H.length < 2) return '<p class="hint">年ごとの決算が2期分そろう前に終わったため、グラフはありません。</p>';
+    const W = 320, Hh = 132, pl = 4, pr = 4, pt = 10, pb = 18, n = H.length, bw = (W - pl - pr) / n;
+    const max = Math.max(1, ...H.map((r) => r.rev), ...H.map((r) => Math.abs(r.op || 0)));
+    const minOp = Math.min(0, ...H.map((r) => r.op || 0)), top = max, bot = minOp, yOf = (v) => pt + (top - v) / (top - bot) * (Hh - pt - pb);
+    const bars = H.map((r, i) => `<rect x="${(pl + i * bw + bw * 0.15).toFixed(1)}" y="${yOf(r.rev).toFixed(1)}" width="${(bw * 0.7).toFixed(1)}" height="${Math.max(0.5, yOf(0) - yOf(r.rev)).toFixed(1)}" fill="var(--teal)" opacity="${r.part ? 0.35 : 0.55}"><title>${r.y}年 売上 ${Y(r.rev)}${r.part ? `（${r.part}か月分）` : ''}</title></rect>`).join('');
+    const pts = H.map((r, i) => [pl + i * bw + bw / 2, yOf(r.op || 0), r]);
+    const line = `<polyline fill="none" stroke="var(--ink)" stroke-width="1.4" points="${pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>` + pts.map((p) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.2" fill="${(p[2].op || 0) < 0 ? 'var(--mkt-down)' : 'var(--mkt-up)'}"><title>${p[2].y}年 営業利益 ${LC.signedYen(p[2].op || 0)}</title></circle>`).join('');
+    const step = Math.max(1, Math.ceil(n / 6));
+    const lab = H.map((r, i) => (i % step === 0 || i === n - 1) ? `<text x="${(pl + i * bw + bw / 2).toFixed(1)}" y="${Hh - 4}" text-anchor="middle" font-size="9" fill="var(--muted)">${r.y}</text>` : '').join('');
+    const end = a.status !== 'active' ? `<line x1="${W - pr}" x2="${W - pr}" y1="${pt}" y2="${Hh - pb}" stroke="var(--${a.status === 'bankrupt' ? 'mkt-down' : 'muted'})" stroke-dasharray="3 2"/>` : '';
+    return `<figure class="arc-chart"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(a.name)}の売上と営業利益の推移"><line x1="${pl}" x2="${W - pr}" y1="${yOf(0).toFixed(1)}" y2="${yOf(0).toFixed(1)}" stroke="var(--line-2)"/>${bars}${line}${lab}${end}</svg>
+      <figcaption><span class="lg bar"></span>売上 <span class="lg dot"></span>営業利益・黒字 <span class="lg dot dn"></span>赤字${a.status !== 'active' ? ` · ${a.endYear}年に${esc((ARC_ST[a.status] || ['', ''])[1])}` : ''}</figcaption></figure>`;
+  }
+  function arcRow(a, act) {
+    const st = ARC_ST[a.status] || ARC_ST.ended;
+    return `<button class="co-row arc-row" data-act="${act || 'arcOpen'}" data-v="${esc(a.id)}"><span class="co-h"><b>${esc(a.name)}</b><span class="tag via ${a.via}">${ARC_VIA[a.via] || '設立'}</span><span class="hint">${esc(a.ind)} · ${a.foundedYear}年${a.endYear ? `–${a.endYear}年` : '–'}</span><span class="co-st ${st[0]}">${st[1]}</span></span>
+      <span class="co-k"><span>関わり方<b>${ARC_ROLE[a.role] || '—'}</b></span><span>最盛期の売上<b>${a.peak && a.peak.rev ? Y(a.peak.rev) : '—'}</b></span><span>最大の社員数<b>${a.peak ? a.peak.emp : 0}人</b></span></span></button>`;
+  }
+  function arcDetail(a) {
+    const st = ARC_ST[a.status] || ARC_ST.ended, H = a.hist || [];
+    const kvx = (rows) => `<dl class="epi-kv">${rows.filter(Boolean).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    const biz = [a.ind, a.product, (a.divs || []).length ? `事業部：${a.divs.join('・')}` : ''].filter(Boolean).map(esc).join(' · ');
+    const table = H.length ? `<details class="co-sec"><summary>年ごとの数字（${H[0].y}–${H[H.length - 1].y}年）</summary><div class="table-wrap"><table class="arc-tbl"><tr><th>年</th><th>売上</th><th>営業利益</th><th>純利益</th><th>社員</th><th class="c-debt">借入</th></tr>${H.map((r) => `<tr><td>${r.y}${r.part ? `<small>（${r.part}か月）</small>` : ''}</td><td>${Y(r.rev)}</td><td class="${(r.op || 0) < 0 ? 'down' : ''}">${LC.signedYen(r.op || 0)}</td><td class="${(r.net || 0) < 0 ? 'down' : ''}">${r.net == null ? '—' : LC.signedYen(r.net)}</td><td>${r.emp}人</td><td class="c-debt">${Y(r.debt || 0)}</td></tr>`).join('')}</table></div></details>` : '';
+    const tl = (a.log || []).length ? `<ol class="arc-tl">${a.log.map((e) => `<li class="${e.tone || ''}"><span class="num">${e.y}</span><b>${esc(e.title.replace(/^おまかせ（[^）]+）：/, 'おまかせ：'))}</b></li>`).join('')}</ol>` : '<p class="hint">この会社について記録された出来事はありません。</p>';
+    const end = a.status === 'bankrupt' ? `<div class="arc-end bad"><h5>倒産について</h5>${kvx([['倒産した年', `${a.endYear}年（${a.endAge}歳）`], ['最後の会社の現金', Y(a.cashEnd)], ['最後の借入', Y(a.debtEnd)], a.guarantee > 0 && ['経営者保証で負担した額', Y(a.guarantee)]])}<p class="hint">記録から読み取れること</p><ul>${(a.causes && a.causes.length ? a.causes : ['記録に残っている数字からは、はっきりした原因は読み取れません']).map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`
+      : a.status === 'sold' || a.status === 'subsold' ? `<div class="arc-end">${kvx([['売却した年', `${a.endYear}年（${a.endAge}歳）`], a.proceeds > 0 && [a.status === 'subsold' ? '親会社の受取額' : '手取り', Y(a.proceeds)]])}</div>`
+      : a.status !== 'active' ? `<div class="arc-end">${kvx([['終了した年', `${a.endYear}年（${a.endAge}歳）`], a.parentName && ['親会社', esc(a.parentName)]])}</div>` : '';
+    return `<div class="arc-detail">
+      <div class="box"><h4>${esc(a.name)}<span class="co-st ${st[0]}">${st[1]}</span></h4>${kvx([['業種', esc(a.ind)], ['創業', `${a.foundedYear}年`], ['創業者', a.founder ? esc(a.founder) : '記録なし'], ['関わり始めた年', `${a.joinYear}年${a.joinAge != null ? `（${a.joinAge}歳）` : ''} · ${ARC_VIA[a.via] || '設立'}`], ['関わり方', ARC_ROLE[a.role] || '—'], ['持株比率', `${Math.round((a.stake || 0) * 1000) / 10}%${a.parentName && a.status !== 'parent' ? `（${esc(a.parentName)}が保有）` : ''}`], a.listed && ['上場', a.listYear ? `${a.listYear}年` : 'あり'], ['事業', biz], ['規模', `${esc(a.size)} · 社員${a.employees}人${a.status === 'active' ? '' : '（終了時）'}`]])}</div>
+      <div class="box"><h4>業績の推移</h4>${arcChart(a)}${table}</div>
+      ${end}
+      <div class="box"><h4>この会社の物語</h4><div class="epi-story">${(a.story || []).map((p) => `<p>${esc(p)}</p>`).join('')}</div></div>
+      <div class="box"><h4>年表</h4>${tl}</div></div>`;
+  }
+  // the 会社 tab: companies that ended stay listed (not hidden, not deleted) and open read-only
+  function arcSection() {
+    const list = LC.bizArcList(S).filter((a) => !a.live); if (!list.length) return '';
+    return `<div class="box arc-box"><h4>終了した会社<span class="hint">${list.length}社 · 倒産・売却した会社の記録</span></h4><div class="co-list">${list.map((a) => arcRow(a)).join('')}</div></div>`;
+  }
+  function arcScreen(id) {
+    const a = LC.bizArcList(S).find((x) => x.id === id); if (!a) return null;
+    return `<p class="crumb"><button class="btn sm" data-act="arcClose">‹ 会社一覧へ</button></p>${arcDetail(a)}`;
+  }
   function epiHTML(E, archived) {
     const D = E.death, Fn = E.final, Ev = E.eval, Af = E.after;
     const card = (l, v, sub, cls) => `<div class="epi-k ${cls || ''}"><span>${l}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
@@ -12544,11 +13378,12 @@ const Scene = (function () {
         ${kvs([Fn.career.length && ['キャリア', esc(Fn.career.join(' → '))], Fn.peakSalary > 0 && ['最高年収（給与）', Y(Fn.peakSalary)], Fn.licenses && ['資格', `${Fn.licenses}つ`],
           (Fn.companies.length || Fn.founded || Fn.failed || Fn.sold) && ['経営した会社', `${Fn.companies.length ? Fn.companies.map((c) => `${esc(c.name)}（${esc(c.ind)} · ${VIA_L[c.via] || '設立'} · 持株${Math.round(c.own * 100)}% · ${c.role === 'ceo' ? '代表' : '株主'}）`).join('<br>') + '<br>' : ''}<small>起業${Fn.founded}回 · 倒産${Fn.failed}回 · 売却${Fn.sold}回${Fn.maxEmployees ? ` · 最大${Fn.maxEmployees}人を雇用` : ''}（会社の売上・資産は個人の資産とは別）</small>`],
           ['家族', famText], fame.length && ['名声', fame.join('<br>')], ['実績', `${Fn.achievements} / ${Fn.achTotal}${Fn.achList.length ? `<br><small>${Fn.achList.map(esc).join('・')}</small>` : ''}`], Fn.bankrupt && ['自己破産', 'あり']])}`)}
-      ${sec('5', '人生の評価', `<div class="epi-rank"><span class="rank-big r-${Ev.rank}">${Ev.rank}</span><div><b>${esc(Ev.label)}</b><small>総合 ${Ev.total}点 · 人生のタイプ：${esc(Ev.ending)}</small></div></div>
+      ${(Fn.bizArc || []).length ? sec('5', '経営した会社', `<p class="hint">設立・相続・買収・子会社を含め、関わったすべての会社です。倒産した会社も、それまでの歩みと一緒に残っています。</p><div class="epi-cos">${Fn.bizArc.map((a) => `<details class="epi-co"><summary>${arcRow(a, 'noop').replace(/^<button/, '<span').replace(/<\/button>$/, '</span>')}</summary>${arcDetail(a)}</details>`).join('')}</div>`) : ''}
+      ${sec((Fn.bizArc || []).length ? '6' : '5', '人生の評価', `<div class="epi-rank"><span class="rank-big r-${Ev.rank}">${Ev.rank}</span><div><b>${esc(Ev.label)}</b><small>総合 ${Ev.total}点 · 人生のタイプ：${esc(Ev.ending)}</small></div></div>
         <ul class="epi-tags">${Ev.tags.map((x) => `<li><b>${esc(x.t)}</b><small>${esc(x.why)}</small></li>`).join('')}</ul>
         <div class="epi-scores">${Object.keys(Ev.scores).map((k) => `<div class="sbar"><span class="sb-l">${esc(LC.EVAL_LABEL ? LC.EVAL_LABEL[k] || k : k)}</span><span class="sb-m"><i style="width:${Ev.scores[k]}%;background:var(--teal)"></i></span><span class="sb-v num">${Ev.scores[k]}</span></div>`).join('')}</div>
         ${Ev.titles.length ? `<p class="epi-titles">${Ev.titles.map((x) => `<span class="tag" title="${esc(x.why)}">${esc(x.t)}</span>`).join('')}</p>` : ''}`)}
-      ${sec('6', 'その後に残されたもの', kvs([['相続人', Af.heirs.length ? `${Af.heirs.map((h) => `${esc(h.rel)} ${esc(h.name)}`).join('、')}<br><small>${esc(Af.basis || '')}</small>` : 'いません'], ['遺産（純資産）', Y(Af.estate)], Af.shares.length && ['保有していた株式など', Af.shares.map((x) => `${esc(x.name)} ${Y(x.value)}`).join('<br>')],
+      ${sec((Fn.bizArc || []).length ? '7' : '6', 'その後に残されたもの', kvs([['相続人', Af.heirs.length ? `${Af.heirs.map((h) => `${esc(h.rel)} ${esc(h.name)}`).join('、')}<br><small>${esc(Af.basis || '')}</small>` : 'いません'], ['遺産（純資産）', Y(Af.estate)], Af.shares.length && ['保有していた株式など', Af.shares.map((x) => `${esc(x.name)} ${Y(x.value)}`).join('<br>')],
           Af.companies.length && ['会社', Af.companies.map((c) => `${esc(c.name)}（持株${Math.round(c.own * 100)}%・評価 ${Y(c.value)}）<br><small>${esc(c.successor || '')}</small>`).join('<br>')], ['分け方', esc(Af.note)], Af.legacyPlan && ['生前の準備', '財産を家族に遺す準備をしていました']]))}
       <div class="epi-actions">${archived ? '<button class="btn" data-act="epiClose">閉じる</button>' : `<button class="btn primary" data-act="newgame">次の人生を始める</button><button class="btn" data-act="epiHistory">人生ヒストリー・実績を見る</button><button class="btn" data-act="epiReplay">最後の瞬間をもう一度見る</button><button class="btn" data-act="epiClose">閉じる</button>`}</div>
       <p class="epi-foot">この総評は亡くなった時点の記録から作られ、何度開いても同じ内容です。「これまでの人生」（メニュー → セーブ）にも残ります。</p></div>`;
