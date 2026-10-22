@@ -1078,6 +1078,15 @@ body { font-size: 14.5px; }
 .auto-what { margin: 4px 0 0; font-size: 12.5px; }
 .auto-log { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12.5px; display: grid; gap: 2px; }
 .auto-log li { display: flex; gap: 8px; color: var(--muted); } .auto-log .num { min-width: 3.2em; color: var(--faint); }
+/* ---- the road to an IPO and enjoying life */
+.ipo-list { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; }
+.ipo-list li { display: grid; grid-template-columns: 1.4em minmax(0, 7em) minmax(0, 1fr); gap: 6px; align-items: baseline; font-size: 13.5px; }
+.ipo-list li small { color: var(--muted); overflow-wrap: anywhere; }
+.ipo-list li.ok .mk { color: var(--good); font-weight: 700; } .ipo-list li.ng .mk { color: var(--faint); }
+.ipo-road > summary .tag { margin-left: 6px; }
+.leis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 6px; }
+.leis-grid .btn { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; min-width: 0; }
+.leis-grid .btn small { color: var(--muted); font-weight: 400; }
 </style>
 </head>
 <body>
@@ -5570,7 +5579,7 @@ EV.market_crash = { title: '市場暴落', cat: 'invest', random: false, importa
   build: (s) => { const bs = balanceSheet(s); return { text: `世界の株式市場が急落しています。あなたの投資資産は現在${yen(bs.investable)}です。`, choices: [
     { label: '保有を続ける', now: '変化なし', future: '回復を待つ', run: (s) => { addStats(s, { stress: 4, finLit: 3 }); return { desc: '暴落の中でも保有を続けました。', tone: 'neutral' }; } },
     { label: '現金の3割で買い増す', now: `現金 −${yen(s.finance.cash * 0.3)}`, future: '回復すれば大きな利益', disabled: s.finance.cash < 100000, reason: '現金が少なすぎます', run: (s) => { const amt = s.finance.cash * 0.3; buyAsset(s, 'world', amt / assetPriceJPY(s, 'world'), 'taxable'); addStats(s, { stress: 6, finLit: 5 }); return { desc: `暴落時に全世界株を${yen(amt)}買い増しました。`, tone: 'neutral' }; } },
-    { label: '株と投資信託をすべて売る', now: '損失が確定', future: '値下がりは止まる', run: (s) => { let got = 0; for (const h of holdingsList(s)) { if (['stock', 'fund'].includes(assetDef(h.id).kind)) got += sellAsset(s, h.id, h.qty, h.acct).proceeds || 0; } addStats(s, { stress: -4, finLit: -2 }); return { desc: `持っていた株と投資信託をすべて売り、${yen(got)}を現金化しました。`, tone: 'bad' }; } },
+    { label: '株と投資信託をすべて売る', now: '損失が確定', future: '値下がりは止まる', run: (s) => { let got = 0; for (const h of holdingsList(s)) { if (h.acct !== 'founder' && ['stock', 'fund'].includes(assetDef(h.id).kind)) got += sellAsset(s, h.id, h.qty, h.acct).proceeds || 0; } addStats(s, { stress: -4, finLit: -2 }); return { desc: `持っていた株と投資信託をすべて売り、${yen(got)}を現金化しました。`, tone: 'bad' }; } },
   ] }; } };
 EV.market_boom = { title: '株価急騰', cat: 'invest', random: false,
   prepare: () => ({}),
@@ -8028,6 +8037,9 @@ function autoPick(s, style) {
     const bold = /挑戦|起業|全力|攻め|独立|海外|プロ|上場|買収|投資|大胆|受ける|参入|移籍/.test(txt), safe = /見送|断る|今のまま|続ける|貯金|安定|守|休|相談|様子/.test(txt);
     // an all-in bet is not "taking risk for profit": the bold style takes it only with real investing knowledge
     const gamble = /集中投資|全額|一点張り|借金して|レバレッジ|信用取引/.test(txt), knows = (s.stats.finLit || 0) >= 55;
+    const panic = /すべて売|全部売|投げ売/.test(c.label); // selling everything in a crash locks in the loss
+    if (panic) sc -= style === 'bold' ? 3 : style === 'balanced' ? 1.5 : 0;
+    if (/上場準備を始める/.test(c.label) && style !== 'bold') sc -= 1.5; // only the bold style sets out to list its company
     if (style === 'bold') sc += (bold ? 3 : 0) + (c.risk ? 1.5 : 0) - (safe ? 1 : 0) + (gamble ? (knows ? 0.5 : -4) : 0);
     else if (style === 'safe') sc += (safe ? 2 : 0) - (c.risk ? 2 : 0) - (bold ? 1.5 : 0) - (gamble ? 4 : 0);
     else sc += (c.risk ? -0.5 : 0) - (gamble ? 2 : 0);
@@ -9208,10 +9220,16 @@ function bizRoleOf(s, b) {
   return (b.via || 'found') === 'found' && b.ownership >= 0.5 ? 'owner' : 'ceo';
 }
 function bizSizeL(emp) { return emp >= 300 ? '大企業' : emp >= 50 ? '中堅企業' : emp >= 10 ? '中小企業' : emp >= 1 ? '小規模' : '個人規模'; }
+// the listing (if any): offer price and value at listing, the latest price and value (in yen)
+function bizIpoInfo(s, b) {
+  const od = b.assetId && s.world && s.world.own ? s.world.own[b.assetId] : null; if (!od || !od.ipo) return null;
+  const fx = fxOf(s, od.cur), st = s.world.assets[od.id];
+  return { year: od.ipo.year, price: Math.round(od.ipo.price * fx), shares: od.ipo.sharesOut, mcap: Math.round(od.ipo.price * od.ipo.sharesOut * fx), lastPx: st ? Math.round(st.price * fx) : null, lastMcap: st ? Math.round(st.price * st.shares * fx) : null, delisted: !!od.delisted };
+}
 // a frozen copy of a company (used for ended companies, and for running companies at the end of a life)
 function bizSnapshot(s, b, status) {
   const via = b.via || (b.acquired ? 'acquire' : 'found'), parent = b.parentId ? bizById(s, b.parentId) : null;
-  const hist = (b.hist2 || []).slice(-40).map((r) => ({ y: r.y, rev: r.rev, op: r.op, net: r.net, emp: r.emp, debt: r.debt, cash: r.cash }));
+  const hist = (b.hist2 || []).slice(-40).map((r) => Object.assign({ y: r.y, rev: r.rev, op: r.op, net: r.net, emp: r.emp, debt: r.debt, cash: r.cash }, r.px ? { px: r.px, mcap: r.mcap } : {}));
   const Y = b.ytd;
   if (status !== 'active' && Y && Y.revenue > 0 && (!hist.length || hist[hist.length - 1].y < s.time.year)) { // the months of the final year
     hist.push({ y: s.time.year, rev: Math.round(Y.revenue), op: Math.round(Y.revenue - Y.cogs - Y.labor - Y.depr - Y.other - Y.ads), net: null, emp: b.employees, debt: Math.round(b.debt), cash: Math.round(b.cash), part: s.time.monthsDone || 0 });
@@ -9227,7 +9245,7 @@ function bizSnapshot(s, b, status) {
     id: b.id, name: b.name, industry: b.industry, ind: INDUSTRIES[b.industry] ? INDUSTRIES[b.industry].label : '', via, status,
     foundedYear: b.foundedYear, founder: via === 'found' ? `${P0.name}（あなた）` : via === 'inherit' && b.inh ? `${b.inh.from}・${b.inh.fromName}` : null,
     joinYear: via === 'inherit' && b.inh ? b.inh.year : via === 'acquire' && b.acq ? b.acq.year : b.foundedYear, joinAge: null,
-    role: bizRoleOf(s, b), stake: b.parentId ? b.parentStake : b.ownership, parentName: parent ? parent.name : null, listed: !!b.listed, listYear: b.listYear || null,
+    role: bizRoleOf(s, b), stake: b.parentId ? b.parentStake : b.ownership, parentName: parent ? parent.name : null, listed: !!b.listed, listYear: b.listYear || null, ipo: bizIpoInfo(s, b), stage: b.stage || null,
     product: b.acq && b.acq.product ? b.acq.product : null, divs: (b.divs || []).filter((d) => !d.main).map((d) => d.name).slice(0, 6),
     employees: Math.max(0, b.employees), size: bizSizeL(Math.max(0, b.employees)), revenue: Math.round(b.revenueRun || 0), cashEnd: Math.round(b.cash), debtEnd: Math.round(b.debt), value: Math.round(b.valuation || 0),
     hist, log: log.slice(-BIZ_LOG_MAX),
@@ -9271,7 +9289,11 @@ function bizStory(a) {
   if (a.peak.emp >= 5) g.push(`社員${a.peak.emp}人`);
   let t = g.length ? `最も勢いがあったころ、${g.join('・')}の規模に達した。` : '';
   if (a.peak.op > 0) t += a.peak.opY === a.peak.revY && g.length ? `その年の営業利益は${yen(a.peak.op)}だった。` : `${a.peak.opY}年には営業利益${yen(a.peak.op)}を上げている。`;
-  if (a.listed) t += `${a.listYear ? a.listYear + '年に' : ''}株式を上場させた。`;
+  if (a.ipo) {
+    t += `${a.ipo.year}年に株式を上場させた（公開価格${yen(a.ipo.price)}・上場時の時価総額${yen(a.ipo.mcap)}）。`;
+    if (a.ipo.lastPx && a.ipo.lastPx < a.ipo.price * 0.6) t += `その後、株価は公開価格の約${Math.round(a.ipo.lastPx / a.ipo.price * 100)}%まで下がった。`;
+    else if (a.ipo.lastPx && a.ipo.lastPx > a.ipo.price * 1.5) t += `その後、株価は公開価格の約${(a.ipo.lastPx / a.ipo.price).toFixed(1)}倍になった。`;
+  } else if (a.listed) t += `${a.listYear ? a.listYear + '年に' : ''}株式を上場させた。`;
   if (a.divs.length) t += `${a.divs.join('・')}にも事業を広げた。`;
   if (t) ps.push(t);
   const keys = a.log.filter((e) => !/倒産|を売却$/.test(e.title) && (e.tone !== 'neutral' || /買収|新規事業|上場|融資|採用|撤退|設備/.test(e.title))).slice(-4);
@@ -9591,7 +9613,8 @@ function autoInvest(s, P) {
     }
   }
   // 3) invest part of the surplus, into the most underweight asset class
-  const surplus = cash - reserve, lot = 1e5 * C.cost * pi;
+  const plan = typeof autoSpendPlan === 'function' ? autoSpendPlan(s) : 0; // keep the money for a planned home / car
+  const surplus = cash - reserve - plan, lot = 1e5 * C.cost * pi;
   if (surplus < lot * 2) return;
   const skill = clamp(0.7 + (s.stats.finLit || 0) / 200, 0.7, 1.2); // knowledge makes the plan bolder and better spread
   const mix = Object.assign({}, P.mix);
@@ -9727,6 +9750,467 @@ const _processMonthAuto = processMonth;
 processMonth = function (s) { const r = _processMonthAuto(s); if (s.flags && s.flags.auto && !s.over) autoManage(s); return r; };
 function autoSummary(s) { const A = s.autoMgr; return A ? { n: Object.assign({}, A.n), recent: A.log.slice(-8) } : null; }
 
+// ---- 09_zauto2.js
+// ===== おまかせ, part 2: spending on a good life, founding a company and growing it toward an IPO =====
+// Builds on 09_zauto.js (investing, rental property, company upkeep). Same rules as manual play: every purchase goes through
+// buyFurniture / buyCar / buyHome / rentHome / setLifestyle / enjoyLeisure, every company step through the company functions,
+// the IPO through ipoPrepare → the yearly listing review → ipoList (a real stock in the market).
+// 挑戦重視 = takes risks to enjoy life and to build something big, but never spends the emergency money or the company's
+// working capital; 安定重視 and バランス keep their own, more careful habits.
+
+// ---------- leisure: a small, real way to spend money on enjoying life (also available to the player on the 暮らし tab)
+const LEISURE = {
+  concert: { label: 'ライブ・観劇', cost: 3e4, tier: 0, happy: 2, stress: -3, family: false },
+  trip_dom: { label: '国内旅行', cost: 12e4, tier: 1, happy: 4, stress: -6, family: true },
+  fashion: { label: '服や小物の新調', cost: 8e4, tier: 1, happy: 2, stress: -1, family: false },
+  hobby: { label: '趣味の道具（カメラ・釣り具など）', cost: 25e4, tier: 2, happy: 3, stress: -3, family: false },
+  trip_abroad: { label: '海外旅行', cost: 45e4, tier: 2, happy: 6, stress: -8, family: true },
+  fashion_lux: { label: 'ブランドの服・時計', cost: 60e4, tier: 3, happy: 3, stress: -2, family: false },
+  trip_lux: { label: '高級リゾートでの休暇', cost: 180e4, tier: 4, happy: 8, stress: -10, family: true },
+};
+function leisureCost(s, key) {
+  const L = LEISURE[key]; if (!L) return 0;
+  const people = L.family ? household(s).filter((c) => c.relation === 'self' || c.relation === 'spouse' || (c.relation === 'child' && ageOfChar(s, c) < 22)).length : 1;
+  return Math.round(L.cost * country(s).cost * priceIdx(s) * (L.family ? 1 + 0.7 * Math.max(0, people - 1) : 1) / 1000) * 1000;
+}
+function enjoyLeisure(s, key) {
+  const L = LEISURE[key]; if (!L) return { ok: false, msg: '見つかりません。' };
+  if (playerAge(s) < 18) return { ok: false, msg: '18歳から自分のお金で楽しめます。' };
+  const cost = leisureCost(s, key);
+  if (cost > s.finance.cash) return { ok: false, msg: `現金が足りません（${yen(cost)}）。` };
+  s.finance.cash -= cost;
+  const fam = L.family && (spouse(s) || household(s).some((c) => c.relation === 'child'));
+  record(s, { cat: 'life', title: `${L.label}${fam ? '（家族で）' : ''}`, desc: `${L.label}に${yen(cost)}を使いました。${fam ? '家族とのよい思い出になりました。' : '気分がすっきりしました。'}`, money: -cost, tone: 'good',
+    stats: addStats(s, Object.assign({ happiness: L.happy, stress: L.stress }, fam ? { relations: 2 } : {})) });
+  (s.lifeLog || (s.lifeLog = { trips: 0, leisure: 0 }));
+  s.lifeLog.leisure += cost; if (/旅行|休暇/.test(L.label)) s.lifeLog.trips++;
+  bump(s);
+  return { ok: true, msg: `${L.label}に${yen(cost)}を使いました。` };
+}
+
+// ---------- the style's spending habits
+const SPEND_PROF = {
+  safe: { every: 12, share: 0.05, itemMax: 0.08, bias: -1, carShare: 0.2, carUpkeep: 0.08, homeRatio: 0.2, homeDown: 0.4, rate: 'fixed', leisurePerYear: 1, lifeMax: 'normal', gap: 2, carCool: 96, homeCool: 144, urbanCar: false, hobby: false },
+  balanced: { every: 6, share: 0.12, itemMax: 0.15, bias: 0, carShare: 0.35, carUpkeep: 0.12, homeRatio: 0.25, homeDown: 0.3, rate: 'fixed', leisurePerYear: 1, lifeMax: 'comfy', gap: 2, carCool: 60, homeCool: 96, urbanCar: false, hobby: false },
+  bold: { every: 3, share: 0.25, itemMax: 0.3, bias: 1, carShare: 0.5, carUpkeep: 0.2, homeRatio: 0.3, homeDown: 0.2, rate: 'variable', leisurePerYear: 2, lifeMax: 'lux', gap: 1, carCool: 36, homeCool: 60, urbanCar: true, hobby: true },
+};
+const LIFE_RANK = { frugal: 0, normal: 1, comfy: 2, lux: 3 };
+// a snapshot of what the household can afford (all from the save: cash, income, spending, debts, companies, family)
+function spendCtx(s, style) {
+  const P = country(s).cost * priceIdx(s), bs = balanceSheet(s);
+  let b = null; try { b = budget(s); } catch (e) { b = null; }
+  const income = b ? b.totalIncome : 0, spendM = autoMonthlySpend(s);
+  const AP = AUTO_PROF[style] || AUTO_PROF.balanced, reserve = AP.reserveM * spendM;
+  const consumer = s.finance.debts.filter((d) => !['mortgage', 'realty'].includes(d.type));
+  const loanPay = s.finance.debts.reduce((a, d) => a + (d.payment || 0) * 12, 0), consumerPay = consumer.reduce((a, d) => a + (d.payment || 0) * 12, 0);
+  const st = s.career.status, kids = household(s).filter((c) => c.relation === 'child').length, married = !!(spouse(s) && spouse(s).residing !== false);
+  const nwT = bs.net < 3e6 * P ? 0 : bs.net < 1.5e7 * P ? 1 : bs.net < 6e7 * P ? 2 : bs.net < 3e8 * P ? 3 : 4;
+  const inT = income < 3e6 * P ? 0 : income < 6e6 * P ? 1 : income < 1e7 * P ? 2 : income < 2e7 * P ? 3 : 4;
+  const SP = SPEND_PROF[style] || SPEND_PROF.balanced;
+  const tier = clamp(Math.round(Math.max((nwT + inT) / 2, nwT - 1) + SP.bias * 0.5), 0, 4); // great wealth lifts the level even on a modest salary
+  // money the companies may need: a company the player runs that is short of cash keeps the owner's money for it
+  const bizShort = playerBusinesses(s).filter((x) => isExec(x)).reduce((a, x) => { const L = x.last, mc = L ? (L.cogs + L.labor + L.other + L.ads) / 12 : 0; return a + Math.max(0, mc * 4 - x.cash); }, 0);
+  const plan = style === 'bold' && foundPlanReady(s) ? foundCapital(s) : 0; // money set aside to start a company soon
+  const liquid = s.finance.cash + Math.max(0, bs.investable) * 0.8; // investments can be sold to pay (at a small haircut)
+  const free = liquid - reserve - bizShort - plan;
+  const why = [];
+  if (st === 'unemployed' && income < spendM * 12 * 0.8) why.push('失業中で収入の見通しが立たない');
+  if (income > 0 && consumerPay > income * 0.2) why.push('ローン返済の負担が重い');
+  if (liquid < reserve) why.push('手元資金が生活費の予備を下回っている');
+  if (bizShort > 0) why.push('経営している会社の運転資金を優先');
+  if (s.finance.bankrupt && s.time.year - (s.finance.bankruptYear || 0) < 7) why.push('自己破産の後で信用が回復していない');
+  return { liquid, P, bs, income, spendM, reserve, loanPay, consumerPay, kids, married, tier, free, why, SP, style, plan };
+}
+// pay for a purchase: if the cash on hand would fall below the reserve, sell investments first (taxable account, funds first)
+function ensureCash(s, amount, reserve, what) {
+  if (s.finance.cash - amount >= reserve) return true;
+  let need = amount + reserve - s.finance.cash; const sold = [];
+  const order = { fund: 0, bond: 1, gold: 2, stock: 3, crypto: 4 };
+  const H = holdingsList(s).filter((h) => h.acct !== 'founder').sort((a, b) => (a.acct === 'nisa') - (b.acct === 'nisa') || (order[assetDef(a.id).kind] - order[assetDef(b.id).kind]) || b.value - a.value);
+  for (const h of H) {
+    if (need <= 0) break;
+    const d = assetDef(h.id), px = assetPriceJPY(s, h.id), q = Math.min(h.qty, need * 1.03 / px), qq = d.kind === 'stock' ? Math.min(h.qty, Math.ceil(q)) : q;
+    const before = s.finance.cash, r = sellAsset(s, h.id, qq, h.acct);
+    if (r.ok) { need -= s.finance.cash - before; sold.push(d.name); }
+  }
+  if (sold.length) autoNote(s, 'invest', 'sell', `${what}の資金のために売却`, `${what}の支払いで手元の予備資金を減らさないよう、${sold.join('・')}を売りました。`, { tone: 'neutral' });
+  return s.finance.cash - amount >= reserve * 0.9;
+}
+function spendNote(s, title, desc, money, extra) { autoNote(s, 'home', 'spend', title, desc, Object.assign({ money: money != null ? -Math.round(money) : null, tone: 'good' }, extra || {})); const A = autoState(s); A.spent = (A.spent || 0) + Math.max(0, money || 0); }
+// ---- furniture and appliances: missing basics first, then upgrades that fit the household's level (old item sold)
+function spendFurniture(s, X) {
+  if (!isIndependent(s) && playerAge(s) < 18) return false;
+  const own = furnitureList(s), have = (cat) => own.filter((f) => FURNITURE[f.key] && FURNITURE[f.key].cat === cat);
+  const working = ['employed', 'founder', 'freelance', 'investor', 'student', 'creator'].includes(s.career.status);
+  const house = s.residence.own || ['used_house', 'new_house', 'luxury', 'estate'].includes(s.residence.type);
+  const people = 1 + (X.married ? 1 : 0) + X.kids;
+  const wants = [['bed', 0], ['table', 0], ['kitchen', 0], ['appliance', 0], ['tv', 0], ['desk', working ? 0 : 2], ['pc', working ? 1 : 2], ['sofa', 1], ['shelf', 1], ['deco', 1], ['hobby', X.SP.hobby ? 2 : 4]];
+  const budgetItem = Math.max(0, X.free) * X.SP.itemMax;
+  for (const [cat, minTier] of wants) {
+    if (X.tier < minTier) continue;
+    if (cat === 'kitchen' && have('kitchen').some((f) => f.key === 'fridge') && !(house && X.tier >= 2)) continue;
+    const cur = have(cat), curTier = cur.reduce((m, f) => Math.max(m, FURNITURE[f.key].tier), -1);
+    const needBeds = cat === 'bed' && X.married && !cur.some((f) => (FURNITURE[f.key].beds || 0) >= 2);
+    const needSeats = cat === 'table' && people > 2 && !cur.some((f) => (FURNITURE[f.key].seats || 0) >= people);
+    const cands = Object.keys(FURNITURE).filter((k) => FURNITURE[k].cat === cat && FURNITURE[k].tier <= X.tier && furniturePrice(s, k) <= budgetItem
+      && (cat !== 'bed' || !X.married || (FURNITURE[k].beds || 0) >= 2) && (cat !== 'table' || people <= 2 || (FURNITURE[k].seats || 0) >= Math.min(people, 6))
+      && !(cat === 'kitchen' && k === 'kitchen' && !house));
+    if (!cands.length) continue;
+    const pickK = cands.sort((a, b) => FURNITURE[b].tier - FURNITURE[a].tier || FURNITURE[b].price - FURNITURE[a].price)[0], D = FURNITURE[pickK];
+    const multi = cat === 'deco' || cat === 'hobby' || (cat === 'kitchen' && pickK !== 'fridge') || (cat === 'appliance');
+    if (multi) { if (own.some((f) => f.key === pickK)) continue; if (cat === 'deco' && cur.length >= 1 + X.tier) continue; if (cat === 'hobby' && cur.length >= X.tier - 1) continue; }
+    else if (cur.length && !needBeds && !needSeats && D.tier < curTier + X.SP.gap) continue; // already has one that is good enough
+    if (!autoReady(s, 'furn:' + pickK, 24)) continue;
+    // replacing: the old one goes (sold for what it still fetches) only once the new one fits
+    const old = !multi && cur.length ? cur.slice().sort((a, b) => FURNITURE[a.key].tier - FURNITURE[b.key].tier)[0] : null;
+    let sold = 0;
+    if (old) { const r0 = canBuyFurniture(s, pickK); if (!r0.ok && /置き場所/.test(r0.msg || '')) { const before = s.finance.cash; sellFurniture(s, old.uid); sold = s.finance.cash - before; } }
+    if (s.finance.cash - furniturePrice(s, pickK) < X.reserve) continue; // small things are paid from cash, investments are not sold for them
+    const r = buyFurniture(s, pickK);
+    if (!r.ok) continue;
+    if (old && furnitureList(s).some((f) => f.uid === old.uid)) { const before = s.finance.cash; sellFurniture(s, old.uid); sold = s.finance.cash - before; }
+    autoMark(s, 'furn:' + pickK);
+    const why = needBeds ? '結婚して二人で眠れるベッドが必要になったため' : needSeats ? `家族${people}人で食卓を囲めるように` : cur.length ? `${FURNITURE[old.key].label}から買い替え（下取り${yen(sold)}）` : '暮らしに必要なため';
+    spendNote(s, `${D.label}を購入`, `${why}、${D.label}を${yen(furniturePrice(s, pickK))}で買いました（暮らしの水準 ${X.tier + 1}/5、使える予算 ${yen(Math.max(0, X.free))}）。`, furniturePrice(s, pickK) - sold);
+    return true;
+  }
+  return false;
+}
+// ---- cars: by need and level; price, yearly upkeep (insurance, tax, fuel, parking) and depreciation are all weighed
+const CAR_RANK = { compact: 0, sedan: 1, ev: 2, suv: 2, luxury: 3, sports: 4 };
+function spendCar(s, X) {
+  if (playerAge(s) < 20 || !isIndependent(s)) return false;
+  if (!autoReady(s, 'car', X.SP.carCool)) return false;
+  const urban = s.region.style === 'urban', rural = s.region.style === 'rural';
+  const need = rural || X.kids > 0 || (s.career.status === 'employed' && !urban);
+  if (!need && !X.SP.urbanCar) return false;
+  if (!need && X.tier < 2) return false;
+  let want = X.tier <= 0 ? (need ? 'compact' : null) : X.tier === 1 ? 'compact' : X.tier === 2 ? ((s.stats.knowledge || 0) >= 60 ? 'ev' : 'sedan') : X.tier === 3 ? (X.kids >= 2 ? 'suv' : X.style === 'bold' ? 'luxury' : 'suv') : 'luxury';
+  if (X.kids >= 2 && CAR_RANK[want] < 2 && X.tier >= 2) want = 'suv';
+  if (!want) return false;
+  const cars = s.vehicles.filter((v) => CARS[v.type]), best = cars.reduce((m, v) => Math.max(m, CAR_RANK[v.type]), -1);
+  let second = false;
+  if (cars.length && best >= CAR_RANK[want]) {
+    if (X.style === 'bold' && X.tier >= 4 && cars.length < 2 && !cars.some((v) => v.type === 'sports')) { want = 'sports'; second = true; } // a car for fun, once rich enough
+    else return false;
+  }
+  const order = ['sports', 'luxury', 'suv', 'ev', 'sedan', 'compact'], from = order.indexOf(want);
+  let price = 0, upkeep = 0, chosen = null, tradeIn = 0, old = null;
+  for (const typ of order.slice(from)) { // the wanted car first, then cheaper ones that still fit the budget
+    if (cars.some((v) => v.type === typ) || (second && typ !== 'sports')) continue;
+    if (!second && cars.length && CAR_RANK[typ] <= best) break;
+    const pr = carPrice(s, typ), up = CARS[typ].maint * priceIdx(s) * Math.pow(country(s).cost, 0.5) + pr * CARS[typ].dep;
+    const o = !second && cars.length ? cars.slice().sort((a, b) => CAR_RANK[a.type] - CAR_RANK[b.type])[0] : null, ti = o ? o.value * 0.9 : 0;
+    if (pr - ti > Math.max(0, X.free) * X.SP.carShare) continue;
+    if (up > X.income * X.SP.carUpkeep + Math.max(0, X.bs.net) * 0.01) { /* upkeep must fit income (plus a sustainable 1% of wealth) */ autoState(s).log.push({ y: s.time.year, m: s.time.monthsDone, age: playerAge(s), kind: 'hold', title: `${CARS[typ].label}は維持費が収入に対して重いので見送り` }); continue; }
+    chosen = typ; price = pr; upkeep = up; old = o; tradeIn = ti; break;
+  }
+  if (!chosen) return false;
+  if (old && s.time.year - (old.year || 0) < 3 && CAR_RANK[chosen] - CAR_RANK[old.type] < 2) return false; // keep a fairly new car
+  want = chosen;
+  if (!ensureCash(s, price - tradeIn, X.reserve, CARS[want].label)) return false;
+  if (old) sellCar(s, old.id);
+  const r = buyCar(s, want);
+  if (!r.ok) return false;
+  autoMark(s, 'car');
+  spendNote(s, `${CARS[want].label}を購入`, `${old ? `${old.label}を${yen(tradeIn)}で下取りに出し、` : ''}${CARS[want].label}を${yen(price)}で買いました。保険・税金・燃料などの維持費と値下がりは年に約${yen(upkeep)}（収入の${Math.round(upkeep / Math.max(1, X.income) * 100)}%）と見込みました。${second ? '仕事とは別に、楽しむための一台です。' : X.kids ? '家族の移動にも使います。' : ''}`, price - tradeIn, { important: CAR_RANK[want] >= 3 });
+  return true;
+}
+// ---- where to live: leave the family home, rent a better place, buy, then move up as the household and income grow
+const HOME_RANK = { rent_apart: 0, rent_mansion: 1, used_house: 2, new_house: 3, luxury: 4, estate: 5 };
+function spendHome(s, X) {
+  const age = playerAge(s);
+  if (age < 20 || !autoReady(s, 'home', X.SP.homeCool)) return false;
+  const R = s.residence, rank = atParents(s) ? -1 : HOME_RANK[R.type] != null ? HOME_RANK[R.type] : 0;
+  const working = X.income > X.spendM * 12 * 0.9 && s.career.status !== 'student';
+  if (atParents(s)) {
+    if (age < (X.style === 'bold' ? 22 : 24) || !working) return false;
+    const t = homeRent(s, 'rent_mansion') * 12 <= X.income * 0.25 && X.style !== 'safe' ? 'rent_mansion' : 'rent_apart';
+    if (homeRent(s, t) * 4 > Math.max(0, s.finance.cash - X.reserve * 0.5)) return false;
+    const r = rentHome(s, t); if (!r.ok) return false;
+    autoState(s).last.home = autoMonthIdx(s) - X.SP.homeCool + 12; spendNote(s, `${HOMES[t].label}で一人暮らし`, `収入が安定したため実家を出て、家賃 月${yen(homeRent(s, t))}（収入の${Math.round(homeRent(s, t) * 12 / X.income * 100)}%）の${HOMES[t].label}に移りました。`, homeRent(s, t) * 4);
+    return true;
+  }
+  // target by level and family size (more room for children)
+  let target = X.tier <= 1 ? (X.kids || X.married ? 'rent_mansion' : null) : X.tier === 2 ? 'used_house' : X.tier === 3 ? 'new_house' : X.style === 'bold' && X.bs.net > 1.5e9 * X.P ? 'estate' : 'luxury';
+  if (X.style === 'safe' && target && HOME_RANK[target] > 3) target = 'new_house';
+  if (X.style !== 'bold' && !X.married && !X.kids && target && HOME_RANK[target] >= 2 && X.tier < 4) target = 'rent_mansion'; // a home of one's own mostly comes with a family
+  if (X.kids >= 2 && target && HOME_RANK[target] < 3 && X.tier >= 2) target = 'new_house';
+  if (!target || HOME_RANK[target] <= rank) return false;
+  if (!HOMES[target].own) {
+    const rent = homeRent(s, target); if (rent * 12 > X.income * 0.28 || rent * 4 > Math.max(0, X.free)) return false;
+    const r = rentHome(s, target); if (!r.ok) return false;
+    autoMark(s, 'home'); spendNote(s, `${HOMES[target].label}に住み替え`, `${X.kids ? '家族が増えたため' : '収入が増えたため'}、家賃 月${yen(rent)}の${HOMES[target].label}に引っ越しました。`, rent * 4); return true;
+  }
+  // the wanted home first, then smaller ones; a larger down payment when there is money for it
+  let q = null, down = X.SP.homeDown;
+  const ladder = ['estate', 'luxury', 'new_house', 'used_house'].filter((k) => HOME_RANK[k] <= HOME_RANK[target] && HOME_RANK[k] > rank);
+  outer: for (const k of ladder) for (const dp of [X.SP.homeDown, 0.5, 0.8, 1]) {
+    if (dp < X.SP.homeDown) continue;
+    const qq = quoteHome(s, k, dp, 35, X.SP.rate);
+    if (!qq.ok && !/^頭金/.test(qq.reason || '')) continue; // short of cash only: investments can be sold for it
+    if (qq.loan > 0 && (qq.ratio > 0.35 || s.stats.credit < 30)) continue; // the bank's own rule (hidden behind the cash check above)
+    if (qq.payment * 12 + qq.maint > X.income * X.SP.homeRatio + Math.max(0, X.bs.net) * 0.01) continue;
+    if (X.liquid + Math.max(0, qq.sellBack) - qq.cashNeed < X.reserve) continue;
+    q = qq; target = k; down = dp; break outer;
+  }
+  if (!q) { autoState(s).log.push({ y: s.time.year, m: s.time.monthsDone, age, kind: 'hold', title: '住宅の購入は返済と維持費が重いので見送り' }); return false; }
+  const yearly = q.payment * 12 + q.maint; // loan + upkeep and property tax
+  if (!ensureCash(s, Math.max(0, q.cashNeed - Math.max(0, q.sellBack)), X.reserve, HOMES[target].label)) return false;
+  const r = buyHome(s, target, down, 35, X.SP.rate); if (!r.ok) return false;
+  autoMark(s, 'home');
+  spendNote(s, `${HOMES[target].label}を購入`, `${X.kids ? `子ども${X.kids}人との暮らしに合わせて` : X.married ? '夫婦の暮らしのために' : '資産と収入に余裕ができたため'}${HOMES[target].label}を${yen(q.price)}で買いました。頭金${Math.round(down * 100)}%、ローン返済と維持費・固定資産税で年${yen(yearly)}（収入の${Math.round(yearly / Math.max(1, X.income) * 100)}%）です。`, q.cashNeed, { important: true });
+  return true;
+}
+// ---- how comfortably to live day to day (a real change in yearly living costs)
+function spendLifestyle(s, X) {
+  if (!isIndependent(s) || !autoReady(s, 'lifestyle', 12)) return false;
+  const want = X.why.length ? (X.style === 'safe' ? 'frugal' : 'normal') : X.tier >= 4 ? 'lux' : X.tier >= 2 ? 'comfy' : 'normal';
+  const capped = LIFE_RANK[want] > LIFE_RANK[X.SP.lifeMax] ? X.SP.lifeMax : want;
+  const cur = s.lifestyle || 'normal';
+  if (cur === capped) return false;
+  // living costs must stay within income (or the household's large wealth)
+  if (LIFE_RANK[capped] > LIFE_RANK[cur] && X.spendM * 12 * (LIFESTYLES[capped].mul / LIFESTYLES[cur].mul) > X.income * 0.7 + X.bs.net * 0.02) return false;
+  setLifestyle(s, capped); autoMark(s, 'lifestyle');
+  autoNote(s, 'home', 'spend', `生活水準を「${LIFESTYLES[capped].label}」に`, LIFE_RANK[capped] > LIFE_RANK[cur] ? `収入と資産に余裕ができたため、日々の暮らしにかけるお金を増やしました（生活費 約${LIFESTYLES[capped].mul / LIFESTYLES[cur].mul}倍）。` : `${X.why[0] || '支出を見直すため'}、生活費を抑えることにしました。`, { tone: LIFE_RANK[capped] > LIFE_RANK[cur] ? 'good' : 'neutral' });
+  return true;
+}
+function spendLeisure(s, X) {
+  if (!isIndependent(s)) return false;
+  const A = autoState(s), y = s.time.year; A.leis = A.leis && A.leis.y === y ? A.leis : { y, n: 0 };
+  if (A.leis.n >= X.SP.leisurePerYear || !autoReady(s, 'leisure', X.style === 'bold' ? 4 : 10)) return false;
+  const keys = Object.keys(LEISURE).filter((k) => LEISURE[k].tier <= X.tier && leisureCost(s, k) <= Math.max(0, X.free) * (X.style === 'bold' ? 0.12 : 0.06));
+  if (!keys.length) return false;
+  const k = keys.sort((a, b) => LEISURE[b].tier - LEISURE[a].tier || (strHash(a + y) % 3) - (strHash(b + y) % 3))[X.style === 'bold' ? 0 : Math.min(1, keys.length - 1)];
+  const r = enjoyLeisure(s, k); if (!r.ok) return false;
+  A.leis.n++; autoMark(s, 'leisure');
+  A.n.spend = (A.n.spend || 0) + 1; A.spent = (A.spent || 0) + leisureCost(s, k);
+  A.log.push({ y, m: s.time.monthsDone, age: playerAge(s), kind: 'spend', title: LEISURE[k].label });
+  return true;
+}
+// money the style means to spend soon (a home's down payment, a car): investing leaves it in cash
+function autoSpendPlan(s) {
+  const style = s.flags.auto, SP = SPEND_PROF[style]; if (!SP || playerAge(s) < 20 || !isIndependent(s)) return 0;
+  const X = spendCtx(s, style); if (X.why.length) return 0;
+  let plan = 0;
+  const rank = HOME_RANK[s.residence.type] != null ? HOME_RANK[s.residence.type] : 0;
+  const target = X.tier >= 4 ? 'luxury' : X.tier >= 3 ? 'new_house' : X.tier >= 2 && (X.married || X.kids || style === 'bold') ? 'used_house' : null;
+  if (target && HOME_RANK[target] > rank && (style === 'bold' || X.married || X.kids)) { const q = quoteHome(s, target, SP.homeDown, 35, SP.rate); if (q.payment * 12 + q.maint <= X.income * SP.homeRatio) plan += q.cashNeed; }
+  if (!s.vehicles.length && X.tier >= 1) plan += carPrice(s, X.tier >= 3 ? 'suv' : X.tier >= 2 ? 'sedan' : 'compact');
+  if (style === 'bold' && foundPlanReady(s)) plan += foundCapital(s); // money for the company it means to start
+  return Math.min(plan, Math.max(0, balanceSheet(s).investable + s.finance.cash) * 0.4);
+}
+function autoSpend(s) {
+  const style = s.flags.auto, SP = SPEND_PROF[style]; if (!SP || playerAge(s) < 18) return;
+  if (!autoReady(s, 'spend', SP.every)) return;
+  autoMark(s, 'spend');
+  const X = spendCtx(s, style);
+  if (X.why.length) { // holding back is a decision too (kept in the short log, not the life story)
+    const A = autoState(s); A.log.push({ y: s.time.year, m: s.time.monthsDone, age: playerAge(s), kind: 'hold', title: '買い物を控えた：' + X.why[0] }); if (A.log.length > 80) A.log.splice(0, A.log.length - 80);
+    spendLifestyle(s, X); return;
+  }
+  if (X.free <= 0) return;
+  // one bigger step at a time: home → car → furniture; leisure and the day-to-day level alongside
+  const done = spendHome(s, X) || spendCar(s, X) || spendFurniture(s, X);
+  const X2 = done ? spendCtx(s, style) : X;
+  spendLifestyle(s, X2);
+  if (!X2.why.length && X2.free > 0) spendLeisure(s, X2);
+  if (style === 'bold' && !done && X2.free > 0) spendFurniture(s, spendCtx(s, style)); // the bold style may also pick up a second thing
+}
+
+// ---------- founding a company (挑戦重視 always aims for it once ready; バランス only with strong skills and as a side business)
+function foundCapital(s) { const P = country(s).cost * priceIdx(s); return Math.round(Math.max(5e6 * P, Math.min(3e7 * P, balanceSheet(s).investable * 0.15 + s.finance.cash * 0.3)) / 1e5) * 1e5; }
+function foundPlanReady(s) {
+  const age = playerAge(s), st = s.career.status, P = country(s).cost * priceIdx(s);
+  if (age < 23 || age > 58 || !isIndependent(s) || st === 'student' || st === 'retired') return false;
+  if (playerBusinesses(s).length) return false;
+  const lastFail = s.flags.bizFailed; if (lastFail && s.time.year - lastFail < 5) return false; // time to recover after a failure
+  if ((s.autoMgr && s.autoMgr.founded || 0) >= 2) return false; // twice in a life is enough
+  return (s.stats.workSkill || 0) >= 25 || (s.stats.knowledge || 0) >= 55 || age >= 30 || P <= 0;
+}
+function foundIndustry(s) {
+  const job = s.career.job, sec = job && OCC[job.type] ? OCC[job.type].sector : null;
+  const bySec = { it: 'it', ai: 'ai', finance: 'fin', medical: 'care', estate: 'estate', mfg: 'mfg' }[sec];
+  if (bySec) return bySec;
+  if ((s.stats.knowledge || 0) >= 70) return 'ai';
+  if ((s.stats.knowledge || 0) >= 50) return 'it';
+  return ['ec', 'web', 'food', 'school'][strHash(String(s.seed) + playerAge(s)) % 4];
+}
+function autoFound(s) {
+  const style = s.flags.auto; if (style !== 'bold' && style !== 'balanced') return;
+  if (!autoReady(s, 'found', 12) || !foundPlanReady(s)) return;
+  autoMark(s, 'found');
+  const P = country(s).cost * priceIdx(s), cap = foundCapital(s), X = spendCtx(s, style);
+  if (style === 'balanced' && !((s.stats.workSkill || 0) >= 55 && (s.stats.knowledge || 0) >= 55 && s.finance.cash > cap + X.reserve * 2)) return;
+  if (X.liquid < cap + X.reserve) { autoState(s).log.push({ y: s.time.year, m: s.time.monthsDone, age: playerAge(s), kind: 'hold', title: `起業資金 ${yen(cap)} を貯めている` }); return; }
+  if (!ensureCash(s, cap, X.reserve, '起業')) return;
+  const quit = style === 'bold' && s.career.status === 'employed' && s.finance.cash - cap > X.spendM * 12;
+  const ind = foundIndustry(s);
+  const r = foundCompany(s, { industry: ind, capital: cap, quitJob: quit });
+  if (!r.ok) return;
+  const A = autoState(s); A.founded = (A.founded || 0) + 1;
+  r.biz.autoPlan = { since: s.time.year, goal: style === 'bold' ? 'ipo' : 'steady' };
+  autoNote(s, 'biz', 'biz', `「${r.biz.name}」を起業`, `${INDUSTRIES[ind].label}の会社を資本金${yen(cap)}で設立しました。${quit ? '1年分の生活費を確保できたので会社員を辞め、経営に専念します。' : '生活の安定を保つため、今の仕事を続けながら始めます。'}${style === 'bold' ? '目標は株式上場です。' : ''}`, { important: true, tone: 'good' });
+  if (quit) bizSetPay(s, r.biz.id, Math.round(X.spendM * 12 * 0.8));
+}
+
+// ---------- growth stages and the road to an IPO
+// what an IPO needs here (scaled to prices): size, profit, a record of growth, a sound balance sheet, an organisation,
+// a product with a future, a calm market, years in business — and money for the preparation
+function ipoAssess(s, b) {
+  const P = country(s).cost * priceIdx(s), L = b.last, H = (b.hist2 || []).slice(-3);
+  const rev = L ? L.revenue : 0, net = L ? L.net : 0, prev = L && L.prevRevenue ? L.prevRevenue : (H.length >= 2 ? H[H.length - 2].rev : 0);
+  const na = bizNetAssets(b), years = s.time.year - b.foundedYear;
+  const items = [
+    { k: 'rev', label: '売上規模', ok: rev >= 5e8 * P, now: yen(rev), need: `${yen(5e8 * P)}以上` },
+    { k: 'profit', label: '利益', ok: net >= 3e7 * P && H.slice(-2).length === 2 && H.slice(-2).every((x) => x.net > 0), now: `純利益${yen(net)}`, need: `${yen(3e7 * P)}以上・直近2期とも黒字` },
+    { k: 'growth', label: '成長の継続', ok: prev > 0 && rev >= prev * 0.97, now: prev > 0 ? `前年比${Math.round((rev / prev - 1) * 100)}%` : '比較できる前年がない', need: '売上が前年を下回っていない' },
+    { k: 'finance', label: '財務の健全性', ok: na > 0 && b.debt <= Math.max(rev * 0.8, na * 2), now: `純資産${yen(na)}・借入${yen(b.debt)}`, need: '純資産がプラスで、借入が売上の8割以内' },
+    { k: 'org', label: '組織・管理体制', ok: b.employees >= 20 && b.quality >= 45, now: `社員${b.employees}人・品質${Math.round(b.quality)}`, need: '社員20人以上・品質45以上' },
+    { k: 'future', label: '事業の将来性', ok: (b.rnd || 0) > 0 || b.quality >= 60 || INDUSTRIES[b.industry].growth >= 0.2, now: `研究開発 年${yen(b.rnd || 0)}`, need: '研究開発への投資か、成長市場・高い品質' },
+    { k: 'market', label: '市場環境', ok: !(s.world.crash > 0) && (s.world.sentiment || 0) > -0.5, now: (s.world.crash > 0 ? '暴落の最中' : `投資家心理 ${Math.round((s.world.sentiment || 0) * 100)}`), need: '暴落の最中でないこと' },
+    { k: 'years', label: '設立年数', ok: years >= 3, now: `${years}年`, need: '3年以上' },
+  ];
+  return { items, gaps: items.filter((x) => !x.ok), ok: items.every((x) => x.ok) };
+}
+// the formal listing rule now uses the same checks (the old size/profit/age rules are kept inside them)
+const _ipoReadyAuto = ipoReady;
+ipoReady = function (s, b) {
+  const r = _ipoReadyAuto(s, b); if (b.listed || b.parentId) return r;
+  const A = ipoAssess(s, b), extra = A.gaps.filter((g) => ['growth', 'finance', 'org', 'market'].includes(g.k)).map((g) => `${g.label}（${g.need}）`);
+  return extra.length ? { ok: false, reasons: r.reasons.concat(extra) } : r;
+};
+const BIZ_STAGE_L = { seed: '創業期', growth: '成長期', expand: '拡大期', preipo: '上場準備期', listed: '上場企業' };
+function bizStage(s, b) {
+  if (b.listed) return 'listed';
+  const P = country(s).cost * priceIdx(s), rev = Math.max(b.revenueRun || 0, b.last ? b.last.revenue : 0), years = s.time.year - b.foundedYear;
+  if (b.ipoPrep) return 'preipo';
+  if (years < 2 || rev < 5e7 * P) return 'seed';
+  if (rev < 2.5e8 * P) return 'growth';
+  const A = ipoAssess(s, b);
+  return A.gaps.length <= 2 && rev >= 4e8 * P ? 'preipo' : 'expand';
+}
+function bizNoteStage(s, b) {
+  const st = bizStage(s, b);
+  if (b.stage === st) return st;
+  const first = b.stage == null; b.stage = st;
+  if (!first || st !== 'seed') record(s, { cat: 'biz', title: `${b.name}が${BIZ_STAGE_L[st]}に`, desc: `${b.name}は売上${yen(Math.max(b.revenueRun || 0, b.last ? b.last.revenue : 0))}・社員${b.employees}人となり、${BIZ_STAGE_L[st]}に入りました。`, tone: 'good', important: st === 'preipo' || st === 'expand' });
+  return st;
+}
+function autoGrowth(s) {
+  const style = s.flags.auto; if (!style) return;
+  for (const b of playerBusinesses(s).slice()) {
+    if (!isExec(b) || !s.businesses.includes(b)) continue;
+    const stage = bizNoteStage(s, b);
+    if (style !== 'bold' && !(style === 'balanced' && b.autoPlan)) continue;
+    if (!autoReady(s, 'grow:' + b.id, 6)) continue;
+    autoMark(s, 'grow:' + b.id);
+    const note = (title, desc, r) => { if (r && r.ok) { autoNote(s, 'biz', 'biz', `${b.name}：${title}`, desc + (r.msg ? ` ${r.msg}` : '')); return true; } return false; };
+    const L = b.last, op = bizOperatingProfit(b), rev = Math.max(b.revenueRun || 0, L ? L.revenue : 0);
+    const mc = L ? (L.cogs + L.labor + L.other + L.ads + (L.interest || 0)) / 12 : Math.max(5e5, (b.employees + 1) * INDUSTRIES[b.industry].wage * country(s).wage * priceIdx(s) / 12);
+    const runway = b.cash / Math.max(1, mc), main = ensureDivs(s, b)[0];
+    // 1) keep the company alive: the founder puts in personal money only from what is beyond the household's own reserve
+    if (b.cash < mc * 1.5 && style === 'bold') {
+      const X = spendCtx(s, style), can = s.finance.cash - X.reserve;
+      if (can > mc * 2 && autoReady(s, 'inject:' + b.id, 6)) { autoMark(s, 'inject:' + b.id); note('個人資金を投入', `会社の手元資金が約${Math.max(0, runway).toFixed(1)}か月分まで減ったため、生活の予備を残した範囲で個人のお金を会社に入れました。`, bizInject(s, b.id, Math.round(Math.min(can * 0.6, mc * 6)))); }
+      else if (op != null && op > 0) note('運転資金を借入', '本業は黒字のため、資金繰りの不足分を銀行から借りました。', bizLoan(s, b.id, Math.round(mc * 4)));
+      continue; // nothing new while money is short
+    }
+    // 2) the stage decides the strategy of the main business
+    const want = b.quality < 42 ? 'quality' : stage === 'seed' ? 'growth' : stage === 'growth' ? 'growth' : stage === 'expand' ? (op != null && op > 0 && L && op / L.revenue < 0.06 ? 'profit' : 'growth') : stage === 'preipo' ? (L && op / Math.max(1, L.revenue) < 0.08 ? 'profit' : 'balanced') : 'balanced';
+    if (main.strat !== want && autoReady(s, 'strat:' + b.id, 12)) { autoMark(s, 'strat:' + b.id); note(`方針を「${STRATS[want].label}」に`, `${BIZ_STAGE_L[stage]}の会社として、${STRATS[want].desc}。`, divSetStrategy(s, b.id, main.id, want)); }
+    // 3) funding growth: a bank loan when orders exceed capacity, outside investors once the company has a track record
+    const cap = bizCapacity(s, b), dem = divTotalDemand(b);
+    if (['seed', 'growth', 'expand'].includes(stage) && dem > cap * 1.25 && runway < 9 && op != null && op > 0 && autoReady(s, 'fund:' + b.id, 12)) {
+      autoMark(s, 'fund:' + b.id);
+      if (b.ownership >= 0.75 && s.time.year - b.foundedYear >= 1 && !b.listed && (stage !== 'seed' || dem > cap * 1.6)) note('出資を受け入れ', `需要${yen(dem)}に生産能力${yen(cap)}が追いつかず、成長資金として投資家から出資を受けました（持株比率は下がります）。`, bizRaiseEquity(s, b.id));
+      else note('成長資金を借入', `需要に生産能力が追いつかないため、採用と設備のための資金を借りました。`, bizLoan(s, b.id, Math.round(Math.min(mc * 6, bizLoanLimit(s, b) * 0.6))));
+    }
+    // 4) product: develop when the product is weak or the company is preparing to list
+    if (b.cash > mc * 6 && autoReady(s, 'dev:' + b.id, 24) && typeof divStartDev === 'function' && !main.dev) {
+      const kind = b.quality < 55 ? 'quality' : stage === 'preipo' ? 'system' : 'product';
+      autoMark(s, 'dev:' + b.id);
+      note(`開発プロジェクト「${DEVK[kind].label}」`, `${kind === 'quality' ? '品質が伸び悩んでいるため' : kind === 'system' ? '上場に向けて管理体制を整えるため' : '次の成長の柱をつくるため'}、開発に投資しました。`, divStartDev(s, b.id, main.id, kind, stage === 'seed' ? 'small' : 'mid'));
+    }
+    // 5) founder pay: modest while young, more once profits are solid (personal income comes from the company in a real way)
+    if (autoReady(s, 'pay:' + b.id, 12) && !s.career.job) {
+      const X = spendCtx(s, style), base = X.spendM * 12;
+      const target = op != null && op > 0 ? Math.min(Math.max(base, op * 0.15), 3e7 * X.P) : runway > 12 ? base * 0.8 : base * 0.5;
+      if (Math.abs((b.ownerPay || 0) - target) > target * 0.3) { autoMark(s, 'pay:' + b.id); note('役員報酬を見直し', op != null && op > 0 ? '利益に見合う範囲で、自分の報酬を決め直しました。' : '会社の資金を優先し、自分の報酬を抑えました。', bizSetPay(s, b.id, Math.round(target))); }
+    }
+    // 6) the IPO: check once a year; work on what is missing; start the preparation when everything is in place
+    if ((stage === 'preipo' || stage === 'expand') && style === 'bold') {
+      const A = ipoAssess(s, b);
+      if (autoReady(s, 'ipocheck:' + b.id, 12)) {
+        autoMark(s, 'ipocheck:' + b.id);
+        b.ipoGaps = A.gaps.map((g) => g.k);
+        if (A.gaps.length) {
+          autoNote(s, 'biz', 'biz', `${b.name}：上場への課題を点検`, `上場の条件のうち、${A.gaps.map((g) => `${g.label}（いま ${g.now}／必要 ${g.need}）`).join('、')}が足りていません。${A.gaps.some((g) => g.k === 'finance') ? '借入の返済を優先します。' : ''}${A.gaps.some((g) => g.k === 'org') ? '採用で組織を厚くします。' : ''}${A.gaps.some((g) => g.k === 'profit') ? '利益率を高める方針に切り替えます。' : ''}`, { tone: 'neutral' });
+          if (A.gaps.some((g) => g.k === 'finance') && b.debt > 0 && b.cash > mc * 4) note('借入を返済（上場準備）', '財務の健全性を整えるため、借入を返しました。', bizRepay(s, b.id, Math.min(b.debt, b.cash - mc * 4)));
+          if (A.gaps.some((g) => g.k === 'org') && b.employees < 20 && b.cash > mc * 6) { const n = Math.min(20 - b.employees, Math.max(1, Math.floor(b.employees * 0.4) + 1)); note(`${n}人を採用（上場準備）`, '上場に必要な組織体制を整えるため、採用しました。', bizHire(s, b.id, n)); }
+          if (A.gaps.some((g) => g.k === 'future') && !(b.rnd > 0)) note('研究開発を開始', '事業の将来性を示すため、研究開発に投資を始めました。', bizSetRnd(s, b.id, Math.round(rev * 0.03)));
+        }
+      }
+      if (A.ok && !b.ipoPrep && !b.listed && autoReady(s, 'ipoprep:' + b.id, 12) && !(s.events.queue || []).some((q) => q.defId === 'ipo_ready' || q.defId === 'ipo_review')) {
+        const cost = ipoPrepCost(s, b);
+        if (b.cash > cost + mc * 6) { autoMark(s, 'ipoprep:' + b.id); note('上場準備を開始', `上場の条件をすべて満たしたため、監査法人・証券会社と契約しました（費用${yen(cost)}・審査の見込み ${Math.round(ipoChance(s, b) * 100)}%）。`, ipoPrepare(s, b.id)); }
+      }
+    }
+    // 7) after listing: keep growing; record the share price once a year; enjoy a part of the success carefully
+    if (stage === 'listed') {
+      const d = ownAssetOf(s, b);
+      if (d && autoReady(s, 'sellfounder:' + b.id, 24)) {
+        const X = spendCtx(s, style), st = s.world.assets[d.id], ratio = controlRatio(s, b);
+        if (ratio > 0.4 && X.free < X.reserve && X.bs.equity > X.bs.net * 0.7) { autoMark(s, 'sellfounder:' + b.id); note('持株の一部を売却', `個人資産のほとんどが自社株に偏っているため、経営権（議決権${Math.round(ratio * 100)}%）を保てる範囲で一部を売り、暮らしと分散投資に回しました。`, bizSellShares(s, b.id, 0.05)); }
+        void st;
+      }
+    }
+  }
+}
+// listed companies: the share price and market value go into the yearly company record too
+const _bizRecordHistAuto = bizRecordHist;
+bizRecordHist = function (s, b) {
+  _bizRecordHistAuto(s, b);
+  const d = ownAssetOf(s, b), row = b.hist2 && b.hist2[b.hist2.length - 1];
+  if (d && row && row.y === (b.last && b.last.year)) { const st = s.world.assets[d.id]; row.px = Math.round(st.price * fxOf(s, d.cur)); row.mcap = Math.round(st.price * st.shares * fxOf(s, d.cur)); }
+};
+const _autoManage2 = autoManage;
+autoManage = function (s) {
+  _autoManage2(s);
+  if (!s.flags || !s.flags.auto || s.over) return;
+  try { autoFound(s); autoGrowth(s); autoSpend(s); } catch (e) { /* never stop the game */ }
+};
+// ---------- the ending: how the person lived (home, cars, things, trips) and what おまかせ did — only from the record
+function lifeAtEnd(s) {
+  const R = lifeRecords(s), first = (re) => R.find((r) => re.test(r.title) && (r.money || 0) <= 0);
+  const homes = R.filter((r) => r.title === '住宅を購入');
+  const cars = R.filter((r) => (r.title === '車を購入' || (/^おまかせ/.test(r.title) && /車|SUV|電気自動車|スポーツカー/.test(r.title))) && (r.money || 0) < 0);
+  const A = s.autoMgr || null;
+  return {
+    home: s.residence ? s.residence.label : '', homeOwn: !!(s.residence && s.residence.own), cars: s.vehicles.map((v) => v.label),
+    things: furnitureList(s).filter((f) => f.src === 'buy').length, trips: (s.lifeLog && s.lifeLog.trips) || 0, leisure: Math.round((s.lifeLog && s.lifeLog.leisure) || 0),
+    firstCar: first(/車を購入|小型車を購入|普通車を購入|SUVを購入|電気自動車を購入|高級車を購入|スポーツカーを購入/), firstHome: homes[0] || null, nCars: cars.length,
+    auto: A ? { n: Object.assign({}, A.n), spent: Math.round(A.spent || 0), founded: A.founded || 0 } : null,
+  };
+}
+const _epiFinalLife = epiFinal;
+epiFinal = function (s, F) { const out = _epiFinalLife(s, F); try { out.life = lifeAtEnd(s); } catch (e) { out.life = null; } return out; };
+const _epiStoryLife = epiStory;
+epiStory = function (s, F) {
+  const out = _epiStoryLife(s, F);
+  try {
+    const L = lifeAtEnd(s), bits = [];
+    if (L.firstCar) bits.push(`${L.firstCar.age}歳で初めて車を手に入れ${L.nCars > 1 ? `、生涯で${L.nCars}台に乗った` : ''}`);
+    if (L.firstHome) bits.push(`${L.firstHome.age}歳で${/豪邸/.test(L.firstHome.desc) ? '豪邸' : /高級住宅/.test(L.firstHome.desc) ? '高級住宅' : '自分の家'}を買った`);
+    if (L.trips >= 3) bits.push(`旅行には${L.trips}回出かけた`);
+    if (bits.length) {
+      const t = `暮らしも大切にした。${bits.join('。')}。`;
+      const at = Math.max(1, out.length - 1); out.splice(at, 0, t);
+    }
+  } catch (e) { /* the story stays as it was */ }
+  return out;
+};
+
 // ---- 09_zlook.js
 // ===== appearance details kept with every character =====
 // The pixel room draws faces in more detail now (eye shape, brows, glasses). Those traits are stored in the character's
@@ -9779,6 +10263,7 @@ const LC = {
 };
 Object.assign(LC, { nisaRoom, buySmart, sellSmart, BAITO, inSchool, baitoPay, baitoEligibility, baitoChance, applyBaito, quitBaito, bizBankrupt, playerDies, deathInfo, buildEpilogue, ensureEpilogue, EPI_VERSION, isExec, inheritedBiz, familyCompanies, inheritCompanies, bizTakeHelm, bizStepDown, bizBuyFamilyStake, familyStakeCost, ctrlLevel, canDo });
 Object.assign(LC, { ensureLook, lookWealthTier, AUTO_PROF, autoManage, autoSummary, autoState, bizArchive, bizArcList, bizStory, bizEndCauses, bizSnapshot, BIZ_END_L, BIZ_ROLE_L, BIZ_VIA_L, removeBusiness, bizSellSub, ownTakeover, bizSellCompany });
+Object.assign(LC, { LEISURE, leisureCost, enjoyLeisure, SPEND_PROF, spendCtx, autoSpend, autoFound, autoGrowth, foundPlanReady, foundCapital, ipoAssess, ipoReady, bizStage, BIZ_STAGE_L, CAR_RANK, HOME_RANK, processMonth, autoManage, bizRecordHist, lifeAtEnd, autoSpendPlan, ensureCash, ipoPrepCost, ipoChance, bizStory: bizStory });
 if (typeof module !== 'undefined' && module.exports) module.exports = LC;
 else root.LC = LC;
 
@@ -11714,6 +12199,7 @@ const Scene = (function () {
     // style
     const b = LC.budget(S);
     let html = `<div class="box"><h4>生活水準</h4><p>生活費と幸福度が変わります。いまの生活費は年${Y(b.expense.filter((e) => ['living', 'util', 'other'].includes(e.k)).reduce((x, e) => x + e.v, 0))}です。</p><div class="seg" style="margin-top:10px">${Object.keys(LC.LIFESTYLES).map((k) => `<button data-act="lifestyle" data-v="${k}" class="${S.lifestyle === k ? 'on' : ''}" ${LC.isIndependent(S) ? '' : 'disabled'}>${LC.LIFESTYLES[k].label}（×${LC.LIFESTYLES[k].mul}）</button>`).join('')}</div></div>`;
+    if (LC.isIndependent(S) || LC.playerAge(S) >= 18) html += `<div class="box"><h4>暮らしを楽しむ<span class="hint">現金から支払い・幸福度が上がる</span></h4><div class="leis-grid">${Object.keys(LC.LEISURE).map((k) => { const L = LC.LEISURE[k], c = LC.leisureCost(S, k); return `<button class="btn sm" data-act="leisure" data-v="${k}" ${c > S.finance.cash ? 'disabled' : ''}><b>${esc(L.label)}</b><small>${Y(c)}${L.family ? '・家族分' : ''}</small></button>`; }).join('')}</div></div>`;
     html += `<p class="section-title">海外に移住する</p><div class="list">` + Object.keys(LC.COUNTRIES).filter((c) => c !== S.country).map((c) => { const C = LC.COUNTRIES[c]; return `<div class="box opt"><span class="name">${C.name}</span><span class="sub">物価 ×${C.cost} · 賃金 ×${C.wage} · 移住費 ${Y(1000000 * C.cost)}</span>${confirmBtn('move', c, '移住する', '本当に移住（確認）', LC.playerAge(S) < 18)}</div>`; }).join('') + `</div><p class="hint">移住すると仕事は退職になり、持ち家は売却されます。家族の住まいは新しい国の賃貸マンションになります。</p>`;
     return html;
   }
@@ -12086,6 +12572,7 @@ const Scene = (function () {
       case 'tab': ui.tab = v; ui.msg = null; ui.asset = null; ui.confirm = null; ui.prop = null; ui.sub = null; renderSheet(); $('#sheetBody').scrollTop = 0; break;
       case 'focus': { const cur = S.focus.slice(); const i = cur.indexOf(v); if (i >= 0) cur.splice(i, 1); else cur.push(v); LC.setFocus(S, cur); break; }
       case 'lifestyle': { const r = LC.setLifestyle(S, v); if (ui.sheet) result(r); break; }
+      case 'leisure': { const r = LC.enjoyLeisure(S, v); result(r); renderSheet(); break; }
       case 'statsMore': ui.statsMore = !ui.statsMore; renderStats(); break;
       case 'statsMoreD': ui.statsMore = !el.parentElement.open; break; // <details> keeps its own state; remember it across re-renders
       case 'statsHelpD': ui.statsHelp = !el.parentElement.open; break;
@@ -12721,7 +13208,7 @@ const Scene = (function () {
     html += `<div class="sheet-tabs inner">${CTABS.map(([k, l]) => `<button class="chip-btn ${ct === k ? 'on' : ''}" data-act="ctab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const sec = (title, body, open) => `<details class="co-sec" ${open ? 'open' : ''}><summary>${title}</summary>${body}</details>`;
     const G = {
-      ov: () => coAdvice(b) + bizOverview(b) + sec('ニュース', bizNews(b)),
+      ov: () => coAdvice(b) + ipoRoad(b) + bizOverview(b) + sec('ニュース', bizNews(b)),
       ops: () => bizEmployees(b) + bizDivisions(b) + sec('予算（部門ごとの配分）', budgetTab(b)),
       money: () => bizActions(b) + sec('財務・連結（損益・資金繰り）', bizFinance(b), true) + bizShareholders(b),
       grow: () => bizMA(b),
@@ -12995,7 +13482,7 @@ const Scene = (function () {
   function autoBar() {
     const cur = S.flags.auto;
     const A = cur ? LC.autoSummary(S) : null, recent = A ? A.recent.slice(-3).reverse() : [];
-    const what = { safe: '生活費12か月分を残し、債券・投資信託中心にゆっくり運用。会社は年1回見直し、借入返済を優先します。', balanced: '生活費6か月分を残して分散投資。収支がプラスの不動産だけ検討し、会社は半年ごとに見直します。', bold: '生活費4か月分を残し、余裕資金で株・不動産・事業拡大・買収に挑戦します。赤字や資金不足のときは立て直しを優先します。' }[cur] || '';
+    const what = { safe: '生活費12か月分を残し、債券・投資信託中心にゆっくり運用。買い物は必要な物を中心に控えめで、起業はしません。会社は年1回見直し、借入返済を優先します。', balanced: '生活費6か月分を残して分散投資。収支がプラスの不動産だけ検討し、家族や収入に合わせて車や住まいを選びます。会社は半年ごとに見直します。', bold: '生活費4か月分を残し、余裕資金で株・不動産に投資し、家具・車・住宅や旅行にもお金を使います。起業して会社を育て、株式上場を目指します。資金不足や赤字のときは買い物と拡大を控え、立て直しを優先します。' }[cur] || '';
     return cur ? `<div class="auto-bar"><span>おまかせ中：<b>${LC.AUTO_STYLES[cur]}</b></span><button class="btn sm" data-act="auto" data-v="">自分で選ぶ</button></div><p class="hint auto-what">${what}</p>${recent.length ? `<ul class="auto-log">${recent.map((x) => `<li><span class="num">${x.age}歳</span>${esc(x.title)}</li>`).join('')}</ul>` : ''}`
       : `<details class="auto-d"><summary class="auto-open">これからの決断をおまかせにする</summary><div class="auto-bar"><span class="hint">選び方：</span>${Object.keys(LC.AUTO_STYLES).map((k) => `<button class="btn sm" data-act="auto" data-v="${k}">${LC.AUTO_STYLES[k]}</button>`).join('')}</div></details>`;
   }
@@ -13345,13 +13832,22 @@ const Scene = (function () {
       : a.status === 'sold' || a.status === 'subsold' ? `<div class="arc-end">${kvx([['売却した年', `${a.endYear}年（${a.endAge}歳）`], a.proceeds > 0 && [a.status === 'subsold' ? '親会社の受取額' : '手取り', Y(a.proceeds)]])}</div>`
       : a.status !== 'active' ? `<div class="arc-end">${kvx([['終了した年', `${a.endYear}年（${a.endAge}歳）`], a.parentName && ['親会社', esc(a.parentName)]])}</div>` : '';
     return `<div class="arc-detail">
-      <div class="box"><h4>${esc(a.name)}<span class="co-st ${st[0]}">${st[1]}</span></h4>${kvx([['業種', esc(a.ind)], ['創業', `${a.foundedYear}年`], ['創業者', a.founder ? esc(a.founder) : '記録なし'], ['関わり始めた年', `${a.joinYear}年${a.joinAge != null ? `（${a.joinAge}歳）` : ''} · ${ARC_VIA[a.via] || '設立'}`], ['関わり方', ARC_ROLE[a.role] || '—'], ['持株比率', `${Math.round((a.stake || 0) * 1000) / 10}%${a.parentName && a.status !== 'parent' ? `（${esc(a.parentName)}が保有）` : ''}`], a.listed && ['上場', a.listYear ? `${a.listYear}年` : 'あり'], ['事業', biz], ['規模', `${esc(a.size)} · 社員${a.employees}人${a.status === 'active' ? '' : '（終了時）'}`]])}</div>
+      <div class="box"><h4>${esc(a.name)}<span class="co-st ${st[0]}">${st[1]}</span></h4>${kvx([['業種', esc(a.ind)], ['創業', `${a.foundedYear}年`], ['創業者', a.founder ? esc(a.founder) : '記録なし'], ['関わり始めた年', `${a.joinYear}年${a.joinAge != null ? `（${a.joinAge}歳）` : ''} · ${ARC_VIA[a.via] || '設立'}`], ['関わり方', ARC_ROLE[a.role] || '—'], ['持株比率', `${Math.round((a.stake || 0) * 1000) / 10}%${a.parentName && a.status !== 'parent' ? `（${esc(a.parentName)}が保有）` : ''}`], a.ipo ? ['上場', `${a.ipo.year}年 · 公開価格 ${Y(a.ipo.price)} · 上場時の時価総額 ${Y(a.ipo.mcap)}${a.ipo.lastPx ? `<br><small>${a.status === 'active' ? '現在' : '最後'}の株価 ${Y(a.ipo.lastPx)} · 時価総額 ${Y(a.ipo.lastMcap)}${a.ipo.delisted ? '（上場廃止）' : ''}</small>` : ''}`] : a.listed && ['上場', a.listYear ? `${a.listYear}年` : 'あり'], a.stage && a.status === 'active' && ['成長段階', esc(({ seed: '創業期', growth: '成長期', expand: '拡大期', preipo: '上場準備期', listed: '上場企業' })[a.stage] || '')], ['事業', biz], ['規模', `${esc(a.size)} · 社員${a.employees}人${a.status === 'active' ? '' : '（終了時）'}`]])}</div>
       <div class="box"><h4>業績の推移</h4>${arcChart(a)}${table}</div>
       ${end}
       <div class="box"><h4>この会社の物語</h4><div class="epi-story">${(a.story || []).map((p) => `<p>${esc(p)}</p>`).join('')}</div></div>
       <div class="box"><h4>年表</h4>${tl}</div></div>`;
   }
   // the 会社 tab: companies that ended stay listed (not hidden, not deleted) and open read-only
+  // the road to an IPO: the same checks the listing review uses, with what is missing (unlisted companies the player runs)
+  function ipoRoad(b) {
+    if (!b || b.listed || b.parentId || !LC.ipoAssess) return '';
+    const A = LC.ipoAssess(S, b), st = LC.bizStage(S, b), done = A.items.filter((x) => x.ok).length;
+    const cost = LC.ipoPrepCost ? LC.ipoPrepCost(S, b) : 0;
+    return `<details class="box co-sec ipo-road" ${A.gaps.length <= 2 ? 'open' : ''}><summary>上場への道のり <span class="tag">${esc(LC.BIZ_STAGE_L[st] || '')}</span> <span class="hint">${done}/${A.items.length}項目クリア</span></summary>
+      <ul class="ipo-list">${A.items.map((x) => `<li class="${x.ok ? 'ok' : 'ng'}"><span class="mk">${x.ok ? '✓' : '—'}</span><b>${esc(x.label)}</b><small>いま ${esc(x.now)} · 必要 ${esc(x.need)}</small></li>`).join('')}</ul>
+      ${b.ipoPrep ? `<p class="hint">上場準備中です（${b.ipoPrep.year}年開始）。翌年に審査の結果が出ます。</p>` : A.ok ? `<p class="hint">すべての条件を満たしています。準備費用は ${Y(cost)}（会社負担）、審査は約1年後です。</p><div class="btn-row"><button class="btn sm primary" data-act="ipo" data-v="${b.id}" ${b.cash >= cost ? '' : 'disabled'}>上場準備を始める</button></div>` : '<p class="hint">足りない項目を満たすと、上場準備を始められます。</p>'}</details>`;
+  }
   function arcSection() {
     const list = LC.bizArcList(S).filter((a) => !a.live); if (!list.length) return '';
     return `<div class="box arc-box"><h4>終了した会社<span class="hint">${list.length}社 · 倒産・売却した会社の記録</span></h4><div class="co-list">${list.map((a) => arcRow(a)).join('')}</div></div>`;
@@ -13377,6 +13873,8 @@ const Scene = (function () {
           ${card('生涯の収入', Y(Fn.income), '税引前・ゲーム内の記録')}${card('生涯の支出', Y(Fn.expense), `税・社会保険 ${Y(Fn.tax)}は別`)}${Fn.investPL != null ? card('生涯の投資損益', LC.signedYen(Fn.investPL), `確定 ${LC.signedYen(Fn.realized)} · 含み ${LC.signedYen(Fn.unreal)}`, Fn.investPL < 0 ? 'neg' : 'pos') : ''}</div>
         ${kvs([Fn.career.length && ['キャリア', esc(Fn.career.join(' → '))], Fn.peakSalary > 0 && ['最高年収（給与）', Y(Fn.peakSalary)], Fn.licenses && ['資格', `${Fn.licenses}つ`],
           (Fn.companies.length || Fn.founded || Fn.failed || Fn.sold) && ['経営した会社', `${Fn.companies.length ? Fn.companies.map((c) => `${esc(c.name)}（${esc(c.ind)} · ${VIA_L[c.via] || '設立'} · 持株${Math.round(c.own * 100)}% · ${c.role === 'ceo' ? '代表' : '株主'}）`).join('<br>') + '<br>' : ''}<small>起業${Fn.founded}回 · 倒産${Fn.failed}回 · 売却${Fn.sold}回${Fn.maxEmployees ? ` · 最大${Fn.maxEmployees}人を雇用` : ''}（会社の売上・資産は個人の資産とは別）</small>`],
+          Fn.life && (Fn.life.home || Fn.life.cars.length || Fn.life.things) && ['暮らし', `${esc(Fn.life.home)}${Fn.life.homeOwn ? '（持ち家）' : ''}${Fn.life.cars.length ? ` · 車 ${Fn.life.cars.map(esc).join('・')}` : ''}${Fn.life.things ? ` · 買いそろえた家具・家電 ${Fn.life.things}点` : ''}${Fn.life.trips ? ` · 旅行 ${Fn.life.trips}回` : ''}`],
+          Fn.life && Fn.life.auto && ['おまかせの行動', `投資 ${Fn.life.auto.n.invest || 0}回 · 売却 ${Fn.life.auto.n.sell || 0}回 · 不動産 ${Fn.life.auto.n.realty || 0}回 · 暮らしの買い物 ${Fn.life.auto.n.spend || 0}回（${Y(Fn.life.auto.spent || 0)}） · 会社の判断 ${Fn.life.auto.n.biz || 0}回${Fn.life.auto.founded ? ` · 起業 ${Fn.life.auto.founded}回` : ''}`],
           ['家族', famText], fame.length && ['名声', fame.join('<br>')], ['実績', `${Fn.achievements} / ${Fn.achTotal}${Fn.achList.length ? `<br><small>${Fn.achList.map(esc).join('・')}</small>` : ''}`], Fn.bankrupt && ['自己破産', 'あり']])}`)}
       ${(Fn.bizArc || []).length ? sec('5', '経営した会社', `<p class="hint">設立・相続・買収・子会社を含め、関わったすべての会社です。倒産した会社も、それまでの歩みと一緒に残っています。</p><div class="epi-cos">${Fn.bizArc.map((a) => `<details class="epi-co"><summary>${arcRow(a, 'noop').replace(/^<button/, '<span').replace(/<\/button>$/, '</span>')}</summary>${arcDetail(a)}</details>`).join('')}</div>`) : ''}
       ${sec((Fn.bizArc || []).length ? '6' : '5', '人生の評価', `<div class="epi-rank"><span class="rank-big r-${Ev.rank}">${Ev.rank}</span><div><b>${esc(Ev.label)}</b><small>総合 ${Ev.total}点 · 人生のタイプ：${esc(Ev.ending)}</small></div></div>
